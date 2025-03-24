@@ -241,7 +241,7 @@ INSTALLED_APPS = [
     'rest_framework_filters',
     'rest_framework.authtoken',
     'listable',
-    'genericdropdown',
+    'qatrack.genericdropdown',
     'recurrence',
     'widget_tweaks',
     'dynamic_raw_id',
