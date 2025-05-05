@@ -13,6 +13,7 @@ from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.remote.command import Command
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as e_c
@@ -98,7 +99,7 @@ class SeleniumTests(StaticLiveServerSingleThreadedTestCase):
             chrome_driver_path = getattr(settings, 'SELENIUM_CHROME_PATH', '')
             cls.driver = webdriver.Chrome(executable_path=chrome_driver_path)
         else:
-            ff_profile = FirefoxProfile()
+            ff_profile = FirefoxOptions()
             cls.driver = webdriver.Firefox(ff_profile)
 
         orig_find_element = cls.driver.find_element
@@ -140,7 +141,7 @@ class SeleniumTests(StaticLiveServerSingleThreadedTestCase):
 
     @contextmanager
     def wait_for_page_load(self, timeout=2):
-        old_page = self.driver.find_element_by_tag_name('html')
+        old_page = self.driver.find_element(By.TAG_NAME, 'html')
         yield
         WebDriverWait(self.driver, timeout).until(
             staleness_of(old_page)
@@ -161,12 +162,12 @@ class SeleniumTests(StaticLiveServerSingleThreadedTestCase):
     def scroll_into_view(self, el_id):
         self.wait.until(e_c.presence_of_element_located((By.ID, el_id)))
         actions = ActionChains(self.driver)
-        element = self.driver.find_element_by_id(el_id)
+        element = self.driver.find_element(By.ID,el_id)
         actions.move_to_element(element)
         time.sleep(1)
         try:
             actions.perform()
-            self.driver.find_element_by_css_selector("body").click()
+            self.driver.find_element(By.CSS_SELECTOR,"body").click()
             self.driver.execute_script("window.scrollTo(0, -200);")
         except:  # noqa: E722
             pass
@@ -174,7 +175,7 @@ class SeleniumTests(StaticLiveServerSingleThreadedTestCase):
     def scroll_into_view_css(self, css_sel):
         self.wait.until(e_c.presence_of_element_located((By.CSS_SELECTOR, css_sel)))
         actions = ActionChains(self.driver)
-        element = self.driver.find_element_by_css_selector(css_sel)
+        element = self.driver.find_element(By.CSS_SELECTOR,css_sel)
         actions.move_to_element(element)
         time.sleep(1)
         try:
@@ -189,24 +190,24 @@ class SeleniumTests(StaticLiveServerSingleThreadedTestCase):
         self.scroll_into_view(el_id)
         try:
             # select2?
-            sel2 = self.driver.find_element_by_id("select2-%s-container" % el_id)
+            sel2 = self.driver.find_element(By.ID,"select2-%s-container" % el_id)
             sel2.click()
             time.sleep(0.1)
             els = self.driver.find_elements_by_class_name("select2-results__option")
             els[index].click()
         except:  # noqa: E722
-            select = Select(self.driver.find_element_by_id(el_id))
+            select = Select(self.driver.find_element(By.ID,el_id))
             select.select_by_index(index)
 
     def select_by_text(self, el_id, text):
 
         self.scroll_into_view(el_id)
         try:
-            select = Select(self.driver.find_element_by_id(el_id))
+            select = Select(self.driver.find_element(By.ID,el_id))
             select.select_by_visible_text(text)
         except:  # noqa: E722
 
-            sel2 = self.driver.find_element_by_id("select2-%s-container" % el_id)
+            sel2 = self.driver.find_element(By.ID,"select2-%s-container" % el_id)
             sel2.click()
 
             els = self.driver.find_elements_by_class_name("select2-results__option")
@@ -219,11 +220,11 @@ class SeleniumTests(StaticLiveServerSingleThreadedTestCase):
 
         self.scroll_into_view(el_id)
         try:
-            select = Select(self.driver.find_element_by_id(el_id))
+            select = Select(self.driver.find_element(By.ID,el_id))
             select.select_by_value(val)
         except:  # noqa: E722
 
-            sel2 = self.driver.find_element_by_id("select2-%s-container" % el_id)
+            sel2 = self.driver.find_element(By.ID,"select2-%s-container" % el_id)
             sel2.click()
 
             els = self.driver.find_elements_by_class_name("select2-results__option")
@@ -236,7 +237,7 @@ class SeleniumTests(StaticLiveServerSingleThreadedTestCase):
         for i in range(3):
             try:
                 self.scroll_into_view(el_id)
-                self.driver.find_element_by_id(el_id).send_keys(text)
+                self.driver.find_element(By.ID,el_id).send_keys(text)
                 break
             except:  # noqa: E722
                 if i == 2:
@@ -247,7 +248,7 @@ class SeleniumTests(StaticLiveServerSingleThreadedTestCase):
     def click(self, el_id, scroll=True):
         if scroll:
             self.scroll_into_view(el_id)
-        element = self.driver.find_element_by_id(el_id)
+        element = self.driver.find_element(By.ID,el_id)
         try:
             element.click()
         except:  # noqa: E722
@@ -255,7 +256,7 @@ class SeleniumTests(StaticLiveServerSingleThreadedTestCase):
 
     def click_by_css_selector(self, css_sel):
         self.scroll_into_view_css(css_sel)
-        element = self.driver.find_element_by_css_selector(css_sel)
+        element = self.driver.find_element(By.CSS_SELECTOR,css_sel)
         try:
             element.click()
         except:  # noqa: E722
@@ -265,7 +266,7 @@ class SeleniumTests(StaticLiveServerSingleThreadedTestCase):
         for i in range(3):
             try:
                 self.wait.until(e_c.presence_of_element_located((By.LINK_TEXT, link_text)))
-                self.driver.find_element_by_link_text(link_text).click()
+                self.driver.find_element(By.LINK_TEXT,link_text).click()
                 break
             except:  # noqa: E722
                 if i == 2:

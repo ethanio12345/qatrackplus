@@ -148,7 +148,7 @@ class BaseQATests(SeleniumTests):
         self.open("/accounts/login/")
         self.send_keys("id_username", self.user.username)
         self.send_keys("id_password", self.password)
-        self.driver.find_element_by_css_selector('button').click()
+        self.driver.find_element(By.CSS_SELECTOR,'button').click()
 
         self.wait.until(e_c.presence_of_element_located((By.CSS_SELECTOR, "head > title")))
 
@@ -160,7 +160,7 @@ class BaseQATests(SeleniumTests):
         self.open("/admin/")
         self.send_keys("id_username", self.user.username)
         self.send_keys("id_password", self.password)
-        self.driver.find_element_by_css_selector('button').click()
+        self.driver.find_element(By.CSS_SELECTOR,'button').click()
 
         self.wait.until(e_c.presence_of_element_located((By.CSS_SELECTOR, "head > title")))
 
@@ -175,13 +175,13 @@ class LiveQATests(BaseQATests):
     def test_admin_category(self):
 
         self.load_admin()
-        self.driver.find_element_by_xpath('//a[@href="/admin/qa/category/"]').click()
+        self.driver.find_element(By.XPATH,'//a[@href="/admin/qa/category/"]').click()
         self.click_by_link_text("ADD CATEGORY")
         self.wait.until(e_c.presence_of_element_located((By.ID, 'id_name')))
-        self.driver.find_element_by_id('id_name').send_keys(objects['Category']['name'])
-        self.driver.find_element_by_id('id_slug').send_keys(objects['Category']['slug'])
-        self.driver.find_element_by_id('id_description').send_keys(objects['Category']['description'])
-        self.driver.find_element_by_name('_save').click()
+        self.driver.find_element(By.ID,'id_name').send_keys(objects['Category']['name'])
+        self.driver.find_element(By.ID,'id_slug').send_keys(objects['Category']['slug'])
+        self.driver.find_element(By.ID,'id_description').send_keys(objects['Category']['description'])
+        self.driver.find_element(By.NAME,'_save').click()
         self.wait_for_success()
 
     def test_admin_tests(self):
@@ -195,7 +195,7 @@ class LiveQATests(BaseQATests):
                 description=objects['Category']['description'],
             )
 
-        self.driver.find_element_by_link_text('Tests').click()
+        self.driver.find_element(By.LINK_TEXT,'Tests').click()
         self.click_by_link_text("ADD TEST")
         self.wait.until(e_c.presence_of_element_located((By.ID, 'id_name')))
         # for i in range(len(objects['Tests'])):
@@ -215,10 +215,10 @@ class LiveQATests(BaseQATests):
                 self.send_keys('id_constant_value', '23.23')
             if the_test['procedure']:
                 time.sleep(1)
-                self.driver.find_element_by_css_selector('#calc-procedure-editor > textarea').send_keys(
+                self.driver.find_element(By.CSS_SELECTOR,'#calc-procedure-editor > textarea').send_keys(
                     the_test['procedure'],
                 )
-                self.driver.find_element_by_css_selector('.submit-row').click()
+                self.driver.find_element(By.CSS_SELECTOR,'.submit-row').click()
 
             # Firefox webdriver being weird with clicks. Had to use javascript here:
             if i + 1 == len(objects['Tests']):
@@ -254,13 +254,13 @@ class LiveQATests(BaseQATests):
         self.click_by_link_text("Test lists")
         self.click_by_link_text("ADD TEST LIST")
         self.wait.until(e_c.presence_of_element_located((By.ID, 'id_name')))
-        self.driver.find_element_by_id('id_name').send_keys(objects['TestList']['name'])
-        self.driver.find_element_by_link_text('Add another Test List Membership').click()
-        self.driver.find_element_by_link_text('Add another Test List Membership').click()
-        self.driver.find_element_by_link_text('Add another Test List Membership').click()
+        self.driver.find_element(By.ID,'id_name').send_keys(objects['TestList']['name'])
+        self.driver.find_elements(By.LINK_TEXT,'Add another Test List Membership').click()
+        self.driver.find_elements(By.LINK_TEXT,'Add another Test List Membership').click()
+        self.driver.find_elements(By.LINK_TEXT,'Add another Test List Membership').click()
         for i, pk in enumerate(models.Test.objects.values_list("pk", flat=True)):
-            self.driver.find_element_by_id('id_testlistmembership_set-' + str(i) + '-test').send_keys(str(pk))
-        self.driver.find_element_by_name('_save').click()
+            self.driver.find_element(By.ID,'id_testlistmembership_set-' + str(i) + '-test').send_keys(str(pk))
+        self.driver.find_element(By.NAME,'_save').click()
         self.wait_for_success()
 
     def test_admin_modality(self):
@@ -269,8 +269,8 @@ class LiveQATests(BaseQATests):
         self.click_by_link_text("Treatment and imaging modalities")
         self.click_by_link_text("ADD TREATMENT AND IMAGING MODALITY")
         self.wait.until(e_c.presence_of_element_located((By.ID, 'id_name')))
-        self.driver.find_element_by_id('id_name').send_keys(objects['Modality']['name'])
-        self.driver.find_element_by_name('_save').click()
+        self.driver.find_element(By.ID,'id_name').send_keys(objects['Modality']['name'])
+        self.driver.find_element(By.NAME,'_save').click()
         self.wait_for_success()
 
     def test_admin_unittype(self):
@@ -279,9 +279,9 @@ class LiveQATests(BaseQATests):
         self.click_by_link_text("Unit types")
         self.click_by_link_text("ADD UNIT TYPE")
         self.wait.until(e_c.presence_of_element_located((By.ID, 'id_name')))
-        self.driver.find_element_by_id('id_name').send_keys(objects['UnitType']['name'])
-        self.driver.find_element_by_id('id_vendor').send_keys(objects['UnitType']['vendor'])
-        self.driver.find_element_by_name('_save').click()
+        self.driver.find_element(By.ID,'id_name').send_keys(objects['UnitType']['name'])
+        self.driver.find_element(By.ID,'id_vendor').send_keys(objects['UnitType']['vendor'])
+        self.driver.find_element(By.NAME,'_save').click()
         self.wait_for_success()
 
     def test_admin_unit(self):
@@ -300,20 +300,20 @@ class LiveQATests(BaseQATests):
         self.click_by_link_text("Units")
         self.click_by_link_text("ADD UNIT")
         self.wait.until(e_c.presence_of_element_located((By.ID, 'id_name')))
-        self.driver.find_element_by_id('id_name').send_keys(objects['Unit']['name'])
-        self.driver.find_element_by_id('id_number').send_keys(objects['Unit']['number'])
-        self.driver.find_element_by_id('id_date_acceptance').send_keys(objects['Unit']['date_acceptance'])
-        self.driver.find_element_by_css_selector('#id_service_areas_add_all_link').click()
+        self.driver.find_element(By.ID,'id_name').send_keys(objects['Unit']['name'])
+        self.driver.find_element(By.ID,'id_number').send_keys(objects['Unit']['number'])
+        self.driver.find_element(By.ID,'id_date_acceptance').send_keys(objects['Unit']['date_acceptance'])
+        self.driver.find_element(By.CSS_SELECTOR,'#id_service_areas_add_all_link').click()
         self.select_by_index("id_type", 1)
-        # self.driver.find_element_by_id('id_modalities_add_all_link').click()
-        # self.driver.find_element_by_id('id_hours_monday').send_keys('800')
-        # self.driver.find_element_by_id('id_hours_tuesday').send_keys('800')
-        # self.driver.find_element_by_id('id_hours_wednesday').send_keys('800')
-        # self.driver.find_element_by_id('id_hours_thursday').send_keys('800')
-        # self.driver.find_element_by_id('id_hours_friday').send_keys('800')
-        # self.driver.find_element_by_id('id_hours_saturday').send_keys('800')
-        # self.driver.find_element_by_id('id_hours_sunday').send_keys('800')
-        self.driver.find_element_by_name('_save').click()
+        # self.driver.find_element(By.ID,'id_modalities_add_all_link').click()
+        # self.driver.find_element(By.ID,'id_hours_monday').send_keys('800')
+        # self.driver.find_element(By.ID,'id_hours_tuesday').send_keys('800')
+        # self.driver.find_element(By.ID,'id_hours_wednesday').send_keys('800')
+        # self.driver.find_element(By.ID,'id_hours_thursday').send_keys('800')
+        # self.driver.find_element(By.ID,'id_hours_friday').send_keys('800')
+        # self.driver.find_element(By.ID,'id_hours_saturday').send_keys('800')
+        # self.driver.find_element(By.ID,'id_hours_sunday').send_keys('800')
+        self.driver.find_element(By.NAME,'_save').click()
         self.wait_for_success()
 
     def test_admin_frequency(self):
@@ -322,13 +322,13 @@ class LiveQATests(BaseQATests):
         self.click_by_link_text("Frequencies")
         self.click_by_link_text("ADD FREQUENCY")
         self.wait.until(e_c.presence_of_element_located((By.ID, 'id_name')))
-        self.driver.find_element_by_id('id_name').send_keys(objects['Frequency']['name'])
-        self.driver.find_element_by_class_name("recurrence-label").click()
-        self.driver.find_elements_by_css_selector(".weekly td")[0].click()
-        self.driver.find_elements_by_css_selector(".weekly td")[2].click()
-        self.driver.find_elements_by_css_selector(".weekly td")[4].click()
-        self.driver.find_element_by_id('id_window_end').send_keys(objects['Frequency']['window_end'])
-        self.driver.find_element_by_name('_save').click()
+        self.driver.find_element(By.ID,'id_name').send_keys(objects['Frequency']['name'])
+        self.driver.find_element(By.CLASS_NAME,"recurrence-label").click()
+        self.driver.find_elements(By.CSS_SELECTOR,".weekly td")[0].click()
+        self.driver.find_elements(By.CSS_SELECTOR,".weekly td")[2].click()
+        self.driver.find_elements(By.CSS_SELECTOR,".weekly td")[4].click()
+        self.driver.find_element(By.ID,'id_window_end').send_keys(objects['Frequency']['window_end'])
+        self.driver.find_element(By.NAME,'_save').click()
         self.wait_for_success()
         assert models.Frequency.objects.get(name=objects['Frequency']['name']).nominal_interval < 3
 
@@ -356,14 +356,14 @@ class LiveQATests(BaseQATests):
         self.select_by_index("id_frequency", -1)
         self.select_by_index("id_assigned_to", 0)
         self.select_by_index("id_content_type", 1)
-        self.driver.find_element_by_css_selector('#id_visible_to_from > option:nth-child(1)').click()
-        self.driver.find_element_by_css_selector('#id_visible_to_add_link').click()
+        self.driver.find_element(By.CSS_SELECTOR,'#id_visible_to_from > option:nth-child(1)').click()
+        self.driver.find_element(By.CSS_SELECTOR,'#id_visible_to_add_link').click()
 
         time.sleep(2)
 
-        self.driver.find_element_by_id('select2-generic_object_id-container').click()
-        self.driver.find_element_by_id('select2-generic_object_id-container').click()
-        self.driver.find_element_by_name('_save').click()
+        self.driver.find_element(By.ID,'select2-generic_object_id-container').click()
+        self.driver.find_element(By.ID,'select2-generic_object_id-container').click()
+        self.driver.find_element(By.NAME,'_save').click()
         self.wait_for_success()
 
     def test_admin_tolerances(self):
@@ -374,31 +374,31 @@ class LiveQATests(BaseQATests):
         self.click_by_link_text('ADD TOLERANCE')
         self.wait.until(e_c.presence_of_element_located((By.ID, 'id_type')))
         self.select_by_index("id_type", 1)
-        self.driver.find_element_by_id('id_act_low').send_keys(objects['absoluteTolerance']['act_low'])
-        self.driver.find_element_by_id('id_tol_low').send_keys(objects['absoluteTolerance']['tol_low'])
-        self.driver.find_element_by_id('id_tol_high').send_keys(objects['absoluteTolerance']['tol_high'])
-        self.driver.find_element_by_id('id_act_high').send_keys(objects['absoluteTolerance']['act_high'])
-        self.driver.find_element_by_name('_addanother').click()
+        self.driver.find_element(By.ID,'id_act_low').send_keys(objects['absoluteTolerance']['act_low'])
+        self.driver.find_element(By.ID,'id_tol_low').send_keys(objects['absoluteTolerance']['tol_low'])
+        self.driver.find_element(By.ID,'id_tol_high').send_keys(objects['absoluteTolerance']['tol_high'])
+        self.driver.find_element(By.ID,'id_act_high').send_keys(objects['absoluteTolerance']['act_high'])
+        self.driver.find_element(By.NAME,'_addanother').click()
         self.wait_for_success()
 
         # Add percentage tolerance
         self.wait.until(e_c.presence_of_element_located((By.ID, 'id_type')))
         self.select_by_index("id_type", 1)
-        self.driver.find_element_by_id('id_act_low').send_keys(objects['percentTolerance']['act_low'])
-        self.driver.find_element_by_id('id_tol_low').send_keys(objects['percentTolerance']['tol_low'])
-        self.driver.find_element_by_id('id_tol_high').send_keys(objects['percentTolerance']['tol_high'])
-        self.driver.find_element_by_id('id_act_high').send_keys(objects['percentTolerance']['act_high'])
-        self.driver.find_element_by_name('_addanother').click()
+        self.driver.find_element(By.ID,'id_act_low').send_keys(objects['percentTolerance']['act_low'])
+        self.driver.find_element(By.ID,'id_tol_low').send_keys(objects['percentTolerance']['tol_low'])
+        self.driver.find_element(By.ID,'id_tol_high').send_keys(objects['percentTolerance']['tol_high'])
+        self.driver.find_element(By.ID,'id_act_high').send_keys(objects['percentTolerance']['act_high'])
+        self.driver.find_element(By.NAME,'_addanother').click()
         self.wait_for_success()
 
         # Add multi tolerance
         self.wait.until(e_c.presence_of_element_located((By.ID, 'id_type')))
         self.select_by_index("id_type", 3)
-        self.driver.find_element_by_id('id_mc_pass_choices').send_keys(
+        self.driver.find_element(By.ID,'id_mc_pass_choices').send_keys(
             objects['multiChoiceTolerance']['mc_pass_choices']
         )
-        self.driver.find_element_by_id('id_mc_tol_choices').send_keys(objects['multiChoiceTolerance']['mc_tol_choices'])
-        self.driver.find_element_by_name('_save').click()
+        self.driver.find_element(By.ID,'id_mc_tol_choices').send_keys(objects['multiChoiceTolerance']['mc_tol_choices'])
+        self.driver.find_element(By.NAME,'_save').click()
         self.wait_for_success()
 
     def test_admin_set_ref_tols(self):
@@ -434,37 +434,37 @@ class LiveQATests(BaseQATests):
         self.click_by_link_text(mult_test.name)
         self.wait.until(e_c.presence_of_element_located((By.ID, 'id_tolerance')))
         self.select_by_index("id_tolerance", 1)
-        self.driver.find_element_by_name('_save').click()
+        self.driver.find_element(By.NAME,'_save').click()
         self.wait_for_success()
 
-        self.driver.find_element_by_link_text('simple').click()
+        self.driver.find_elements(By.LINK_TEXT,'simple').click()
         self.select_by_index("id_tolerance", 1)
-        self.driver.find_element_by_id('id_reference_value').send_keys('0')
-        self.driver.find_element_by_name('_save').click()
+        self.driver.find_element(By.ID,'id_reference_value').send_keys('0')
+        self.driver.find_element(By.NAME,'_save').click()
         self.wait_for_success()
 
-        self.driver.find_element_by_link_text('composite').click()
+        self.driver.find_elements(By.LINK_TEXT,'composite').click()
         self.select_by_index("id_tolerance", 1)
-        self.driver.find_element_by_id('id_reference_value').send_keys('23.23')
-        self.driver.find_element_by_name('_save').click()
+        self.driver.find_element(By.ID,'id_reference_value').send_keys('23.23')
+        self.driver.find_element(By.NAME,'_save').click()
         self.wait_for_success()
 
     def test_admin_statuses(self):
 
         self.load_admin()
         self.wait.until(e_c.presence_of_element_located((By.XPATH, "//a[contains(@href,'testinstancestatus')]")))
-        self.driver.find_element_by_xpath("//a[contains(@href,'testinstancestatus')]").click()
+        self.driver.find_element(By.XPATH,"//a[contains(@href,'testinstancestatus')]").click()
         self.click_by_link_text('ADD TEST INSTANCE STATUS')
         self.wait.until(e_c.presence_of_element_located((By.ID, 'id_name')))
-        self.driver.find_element_by_id('id_name').send_keys('testStatus')
-        self.driver.find_element_by_id('id_is_default').click()
-        self.driver.find_element_by_name('_addanother').click()
+        self.driver.find_element(By.ID,'id_name').send_keys('testStatus')
+        self.driver.find_element(By.ID,'id_is_default').click()
+        self.driver.find_element(By.NAME,'_addanother').click()
         self.wait_for_success()
 
         self.wait.until(e_c.presence_of_element_located((By.ID, 'id_name')))
-        self.driver.find_element_by_id('id_name').send_keys('testApprovalStatus')
-        self.driver.find_element_by_id('id_requires_review').click()
-        self.driver.find_element_by_name('_save').click()
+        self.driver.find_element(By.ID,'id_name').send_keys('testApprovalStatus')
+        self.driver.find_element(By.ID,'id_requires_review').click()
+        self.driver.find_element(By.NAME,'_save').click()
         self.wait_for_success()
 
     def rest(self):
@@ -476,8 +476,8 @@ class LiveQATests(BaseQATests):
         self.click_by_link_text('Perform')
 
         self.wait.until(e_c.presence_of_element_located((By.ID, 'id_form-0-value')))
-        basic = self.driver.find_element_by_id('id_form-0-value')
-        boolean = self.driver.find_element_by_name('form-1-value')
+        basic = self.driver.find_element(By.ID,'id_form-0-value')
+        boolean = self.driver.find_element(By.NAME,'form-1-value')
         basic.send_keys('3')
         boolean.click()
         self.wait.until(
@@ -528,41 +528,41 @@ class LiveQATests(BaseQATests):
         boolean.click()
         # time.sleep(1)
 
-        multi = self.driver.find_element_by_id('id_form-2-string_value')
+        multi = self.driver.find_element(By.ID,'id_form-2-string_value')
         multi.click()
         multi.send_keys(Keys.ARROW_DOWN, Keys.ENTER)
         self.assertTrue(
-            self.driver.find_element_by_xpath('//*[@id="perform-qa-table"]/tbody/tr[7]/td[5]').text == 'ACT'
+            self.driver.find_element(By.XPATH,'//*[@id="perform-qa-table"]/tbody/tr[7]/td[5]').text == 'ACT'
         )
         multi.click()
         multi.send_keys(Keys.ARROW_DOWN, Keys.ENTER)
         self.assertTrue(
-            self.driver.find_element_by_xpath('//*[@id="perform-qa-table"]/tbody/tr[7]/td[5]').text == 'TOL'
+            self.driver.find_element(By.XPATH,'//*[@id="perform-qa-table"]/tbody/tr[7]/td[5]').text == 'TOL'
         )
         multi.click()
         multi.send_keys(Keys.ARROW_DOWN, Keys.ENTER)
-        self.assertTrue(self.driver.find_element_by_xpath('//*[@id="perform-qa-table"]/tbody/tr[7]/td[5]').text == 'OK')
+        self.assertTrue(self.driver.find_element(By.XPATH,'//*[@id="perform-qa-table"]/tbody/tr[7]/td[5]').text == 'OK')
 
-        self.driver.find_element_by_id('id_form-5-string_value').send_keys('a string')
+        self.driver.find_element(By.ID,'id_form-5-string_value').send_keys('a string')
         boolean.click()
         self.wait.until(
             e_c.text_to_be_present_in_element_value((By.ID, 'id_form-6-string_value'), 'a string composite')
         )
 
-        self.driver.find_element_by_id('id_form-7-skipped').click()
+        self.driver.find_element(By.ID,'id_form-7-skipped').click()
 
-        self.driver.find_element_by_id('submit-qa').click()
+        self.driver.find_element(By.ID,'submit-qa').click()
 
         self.wait.until(e_c.presence_of_element_located((By.XPATH, '//div[contains(text(), "Showing 1 to 1")]')))
-        self.driver.find_element_by_partial_link_text('Review Data').click()
-        self.driver.find_element_by_partial_link_text('Unreviewed Visible To Your Groups').click()
+        self.driver.find_element(By.PARTIAL_LINK_TEXT,'Review Data').click()
+        self.driver.find_elements(By.PARTIAL_LINK_TEXT,'Unreviewed Visible To Your Groups').click()
         self.click_by_link_text('Review')
 
         self.wait.until(e_c.presence_of_element_located((By.ID, 'id_testinstance_set-0-status')))
-        self.driver.find_element_by_id('bulk-status').click()
-        self.driver.find_element_by_id('bulk-status').send_keys(Keys.ARROW_DOWN, Keys.ARROW_DOWN, Keys.ENTER)
+        self.driver.find_element(By.ID,'bulk-status').click()
+        self.driver.find_element(By.ID,'bulk-status').send_keys(Keys.ARROW_DOWN, Keys.ARROW_DOWN, Keys.ENTER)
 
-        self.driver.find_element_by_xpath('//button[@type = "submit"]').click()
+        self.driver.find_element(By.XPATH,'//button[@type = "submit"]').click()
 
         self.wait.until(
             e_c.presence_of_element_located((By.XPATH, '//td[contains(text(), "No data available in table")]'))
@@ -630,13 +630,13 @@ class TestPerformQC(BaseQATests):
         """Ensure that no failed tests on load and 3 "NO TOL" tests present"""
         self.login()
         self.open(self.url)
-        assert len(self.driver.find_elements_by_css_selector(".qa-status.btn-danger")) == 0
+        assert len(self.driver.find_elements(By.CSS_SELECTOR,".qa-status.btn-danger")) == 0
 
     def fill_testlist(self):
 
         self.login()
         self.open(self.url)
-        inputs = self.driver.find_elements_by_class_name("qa-input")[:3]
+        inputs = self.driver.find_elements(By.CLASS_NAME,"qa-input")[:3]
         inputs[0].send_keys(1)
         inputs[1].send_keys(2)
         inputs[1].send_keys(Keys.TAB)
@@ -652,10 +652,10 @@ class TestPerformQC(BaseQATests):
 
         self.click_by_css_selector("body")
 
-        option = self.driver.find_elements_by_css_selector("select.qa-input option")[-1]
+        option = self.driver.find_elements(By.CSS_SELECTOR,"select.qa-input option")[-1]
         option.click()
 
-        self.driver.find_element_by_css_selector(".qa-string .qa-input").send_keys("test")
+        self.driver.find_element(By.CSS_SELECTOR,".qa-string .qa-input").send_keys("test")
         self.click_by_css_selector("body")
         time.sleep(0.2)
 
@@ -663,7 +663,7 @@ class TestPerformQC(BaseQATests):
         """Ensure that no failed tests on load and 3 "NO TOL" tests present"""
 
         self.fill_testlist()
-        inputs = self.driver.find_elements_by_class_name("qa-input")[:3]
+        inputs = self.driver.find_elements(By.CLASS_NAME,"qa-input")[:3]
 
         assert int(float(inputs[2].get_attribute("value"))) == 5
         assert models.TestListInstance.objects.count() == 0
@@ -693,7 +693,7 @@ class TestPerformQC(BaseQATests):
         self.user.save()
         self.group.permissions.add(Permission.objects.get(codename="add_testlistinstance"))
         self.fill_testlist()
-        inputs = self.driver.find_elements_by_class_name("qa-input")[:3]
+        inputs = self.driver.find_elements(By.CLASS_NAME,"qa-input")[:3]
 
         assert int(float(inputs[2].get_attribute("value"))) == 5
         assert models.TestListInstance.objects.count() == 0
@@ -718,9 +718,9 @@ class TestPerformQC(BaseQATests):
     def test_comment(self):
         """ tests present"""
         self.fill_testlist()
-        self.driver.find_elements_by_css_selector(".revealcomment")[0].click()
+        self.driver.find_elements(By.CSS_SELECTOR,".revealcomment")[0].click()
         self.send_keys("id_form-0-comment", "testticomment")
-        self.driver.find_elements_by_css_selector(".revealcomment")[0].click()
+        self.driver.find_elements(By.CSS_SELECTOR,".revealcomment")[0].click()
 
         self.click("submit-qa")
         self.wait.until(e_c.presence_of_element_located((By.CLASS_NAME, 'alert-success')))
@@ -787,7 +787,7 @@ class TestPerformQC(BaseQATests):
         self.login()
         self.open(self.url)
         time.sleep(0.2)
-        inputs = self.driver.find_elements_by_class_name("qa-input")[:3]
+        inputs = self.driver.find_elements(By.CLASS_NAME,"qa-input")[:3]
         inputs[0].send_keys(1)
         assert models.AutoSave.objects.count() == 0
         time.sleep(1)
@@ -834,15 +834,15 @@ class TestPerformQC(BaseQATests):
         self.open(url + "?autosave_id=%d&day=%d" % (auto.pk, auto.day + 1))
         time.sleep(0.2)
 
-        inputs = self.driver.find_elements_by_class_name("qa-input")[:3]
+        inputs = self.driver.find_elements(By.CLASS_NAME,"qa-input")[:3]
         title = "Perform %s : day 2" % utc.unit.name
-        assert title in [el.text for el in self.driver.find_elements_by_class_name("box-title")]
+        assert title in [el.text for el in self.driver.find_elements(By.CLASS_NAME,"box-title")]
         assert float(inputs[0].get_attribute("value")) == 1
-        assert self.driver.find_element_by_id("id_work_started").get_attribute("value") == "12 May 1980 12:00"
-        assert self.driver.find_element_by_id("id_work_completed").get_attribute("value") == "12 May 1980 12:01"
-        assert self.driver.find_element_by_id("id_work_duration").get_attribute("value") == "0hr:01min"
-        assert self.driver.find_element_by_id("id_form-0-comment").get_attribute("value") == "test comment"
-        assert self.driver.find_element_by_id("id_comment").get_attribute("value") == "test list instance comment"
+        assert self.driver.find_element(By.ID,"id_work_started").get_attribute("value") == "12 May 1980 12:00"
+        assert self.driver.find_element(By.ID,"id_work_completed").get_attribute("value") == "12 May 1980 12:01"
+        assert self.driver.find_element(By.ID,"id_work_duration").get_attribute("value") == "0hr:01min"
+        assert self.driver.find_element(By.ID,"id_form-0-comment").get_attribute("value") == "test comment"
+        assert self.driver.find_element(By.ID,"id_comment").get_attribute("value") == "test list instance comment"
 
     def test_submit_autosave(self):
         """Ensure that no failed tests on load and 3 "NO TOL" tests present"""
@@ -907,7 +907,7 @@ class TestReviewQC(BaseQATests):
         self.login()
         self.open(self.url)
         time.sleep(0.1)
-        self.driver.find_elements_by_class_name("test-selected-toggle")[0].click()
+        self.driver.find_elements(By.CLASS_NAME,"test-selected-toggle")[0].click()
         self.select_by_text("bulk-status", "Approved")
         self.click("submit-review")
         assert models.TestListInstance.objects.unreviewed().count() == 1
