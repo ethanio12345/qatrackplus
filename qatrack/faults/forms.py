@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils.text import gettext_lazy as _l
-from form_utils.forms import BetterModelForm
+from qatrack.form_utils.forms import BetterModelForm #TODO: remove this when form_utils is removed
 
 from qatrack.faults import models
 from qatrack.qatrack_core.forms import MultipleCharField, UserChoiceField
@@ -12,7 +12,6 @@ from qatrack.units import models as u_models
 from qatrack.units.forms import unit_site_unit_type_choices
 
 NEW_FAULT_TYPE_MARKER = "newft:"
-
 
 class FaultForm(BetterModelForm):
 

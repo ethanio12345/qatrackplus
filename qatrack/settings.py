@@ -111,6 +111,7 @@ USE_I18N = True
 
 CONSTANT_PRECISION = 8
 DEFAULT_NUMBER_FORMAT = None
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # This is the warning message given to the user when a test result is out of tolerance
@@ -224,6 +225,7 @@ FIXTURE_DIRS = (
 
 # ------------------------------------------------------------------------------
 INSTALLED_APPS = [
+    'qatrack.admin_views',
     'django.contrib.admin',
     'django.contrib.contenttypes',
     'django.contrib.auth',
@@ -260,7 +262,8 @@ INSTALLED_APPS = [
     'qatrack.faults',
     'qatrack.attachments',
     'qatrack.reports',
-    'admin_views',
+    'qatrack.form_utils'
+    #'admin_views', # TODO: remove this and replace with better solution
 ]
 
 

@@ -9,7 +9,7 @@ from django.utils.dateparse import parse_duration
 from django.utils.encoding import force_text
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
-from form_utils.forms import BetterModelForm
+from qatrack.form_utils.forms import BetterModelForm
 
 from qatrack.attachments.models import Attachment
 from qatrack.qa import models as qa_models

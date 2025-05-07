@@ -1,6 +1,6 @@
 import re
 
-from admin_views.admin import AdminViews
+from qatrack.admin_views.admin import AdminViews
 from django import VERSION
 from django.apps import apps
 from django.conf import settings

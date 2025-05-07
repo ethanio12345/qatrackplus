@@ -193,7 +193,7 @@ class SeleniumTests(StaticLiveServerSingleThreadedTestCase):
             sel2 = self.driver.find_element(By.ID,"select2-%s-container" % el_id)
             sel2.click()
             time.sleep(0.1)
-            els = self.driver.find_elements_by_class_name("select2-results__option")
+            els = self.driver.find_elements(By.CLASS_NAME,"select2-results__option")
             els[index].click()
         except:  # noqa: E722
             select = Select(self.driver.find_element(By.ID,el_id))
@@ -210,7 +210,7 @@ class SeleniumTests(StaticLiveServerSingleThreadedTestCase):
             sel2 = self.driver.find_element(By.ID,"select2-%s-container" % el_id)
             sel2.click()
 
-            els = self.driver.find_elements_by_class_name("select2-results__option")
+            els = self.driver.find_elements(By.CLASS_NAME,"select2-results__option")
             for el in els:
                 if el.text == text:
                     el.click()
@@ -227,7 +227,7 @@ class SeleniumTests(StaticLiveServerSingleThreadedTestCase):
             sel2 = self.driver.find_element(By.ID,"select2-%s-container" % el_id)
             sel2.click()
 
-            els = self.driver.find_elements_by_class_name("select2-results__option")
+            els = self.driver.find_elements(By.CLASS_NAME,"select2-results__option")
             for el in els:
                 if el.get_attribute('id').endswith(val):
                     el.click()
