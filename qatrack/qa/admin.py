@@ -1,6 +1,5 @@
 import re
 
-from qatrack.admin_views.admin import AdminViews
 from django import VERSION
 from django.apps import apps
 from django.conf import settings
@@ -13,7 +12,7 @@ import django.forms as forms
 from django.shortcuts import HttpResponseRedirect, redirect, render
 from django.template import loader
 from django.template.defaultfilters import date as date_formatter
-from django.urls import reverse
+from django.urls import reverse, path
 from django.utils import timezone
 from django.utils.html import escape, format_html_join
 from django.utils.safestring import mark_safe
@@ -24,11 +23,13 @@ from django_mptt_admin.admin import DjangoMpttAdmin
 from dynamic_raw_id.admin import DynamicRawIDMixin
 from dynamic_raw_id.widgets import DynamicRawIDWidget
 
+from qatrack.qa import models
+from qatrack.qa.views import admin as admin_views
+
 from qatrack.attachments.admin import (
     SaveInlineAttachmentUserMixin,
     get_attachment_inline,
 )
-import qatrack.qa.models as models
 from qatrack.qa.utils import format_qc_value
 from qatrack.qatrack_core.admin import (
     BaseQATrackAdmin,
@@ -231,15 +232,11 @@ class ActiveUnitTestInfoFilter(admin.SimpleListFilter):
         return qs
 
 
-class UnitTestInfoAdmin(AdminViews, BaseQATrackAdmin):
+class UnitTestInfoAdmin(BaseQATrackAdmin):
+    """Admin interface for UnitTestInfo model"""
 
-    admin_views = (
-        (_l("Copy References & Tolerances"), 'redirect_to'),
-    )
-
-    actions = ['set_multiple_references_and_tolerances']
-    form = UnitTestInfoForm
-    # model = models.UnitTestInfo
+    change_list_template = "admin/qa/unittestinfo/change_list.html"
+    
     fields = (
         "unit",
         "test",
@@ -260,6 +257,18 @@ class UnitTestInfoAdmin(AdminViews, BaseQATrackAdmin):
     readonly_fields = ("reference", "test", "unit", "history")
     search_fields = ("test__name", "test__display_name", "test__slug", "unit__name")
 
+    def history(self, obj):
+        """Display history of test instances for this UnitTestInfo"""
+        history = obj.get_history(number=5)
+        if not history:
+            return _("No history available")
+        
+        result = []
+        for date, value, pass_fail, status in history:
+            result.append(f"{date.strftime('%Y-%m-%d %H:%M')}: {value} ({status.name})")
+        return mark_safe("<br>".join(result))
+    history.short_description = _("Test History")
+
     class Media:
         js = (
             'admin/js/jquery.init.js',
@@ -274,8 +283,19 @@ class UnitTestInfoAdmin(AdminViews, BaseQATrackAdmin):
             ),
         }
 
-    def redirect_to(self, *args, **kwargs):
-        return redirect(reverse("qa_copy_refs_and_tols"))
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('copy-refs-tols/', 
+                 self.admin_site.admin_view(admin_views.CopyReferencesTolerancesView.as_view()),
+                 name='qa_copy_refs_and_tols'),
+        ]
+        return custom_urls + urls
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['copy_refs_tols_url'] = reverse('admin:qa_copy_refs_and_tols')
+        return super().changelist_view(request, extra_context=extra_context)
 
     def get_queryset(self, *args, **kwargs):
         """just display active ref/tols"""
@@ -287,188 +307,11 @@ class UnitTestInfoAdmin(AdminViews, BaseQATrackAdmin):
         ).exclude(
             test__hidden=True,
         )
-
         return qs
 
     def has_add_permission(self, request):
         """unittestinfo's are created automatically"""
         return False
-
-    def form_valid(self, request, queryset, form):
-
-        if form.is_valid():
-            reference = form.cleaned_data['reference']
-            tolerance = form.cleaned_data['tolerance']
-
-            # Save the uti with the new references and tolerance
-            # TODO: Combine with save method: save_model ?
-            for uti in queryset:
-                old = models.UnitTestInfo.objects.get(pk=uti.pk)
-                if uti.test.type != models.MULTIPLE_CHOICE:
-                    if uti.test.type == models.BOOLEAN:
-                        ref_type = models.BOOLEAN
-                        if reference == 'True' or reference == 1:
-                            reference = 1
-                        else:
-                            reference = 0
-                    else:
-                        ref_type = models.NUMERICAL
-                    if reference not in ("", None):
-                        if not(uti.reference and uti.reference.value == float(reference)):
-                            try:
-                                ref = models.Reference.objects.get(value=reference, type=ref_type)
-                            except models.Reference.DoesNotExist:
-                                ref = models.Reference(
-                                    value=reference,
-                                    type=ref_type,
-                                    created_by=request.user,
-                                    modified_by=request.user,
-                                    name="%s %s" % (uti.unit.name, uti.test.name)[:255]
-                                )
-                                ref.save()
-                            uti.reference = ref
-                    else:
-                        uti.reference = None
-                uti.tolerance = tolerance
-
-                models.UnitTestInfoChange.objects.create(
-                    unit_test_info=old,
-                    comment=form.cleaned_data["comment"],
-                    reference=old.reference,
-                    reference_changed=old.reference != uti.reference,
-                    tolerance=old.tolerance,
-                    tolerance_changed=old.tolerance != uti.tolerance,
-                    changed_by=request.user,
-                )
-
-                uti.save()
-
-            messages.success(request, "%s tolerances and references have been saved successfully." % queryset.count())
-            return HttpResponseRedirect(request.get_full_path())
-
-    def set_multiple_references_and_tolerances(self, request, queryset):
-
-        testtypes = set(queryset.values_list('test__type', flat=True).distinct())
-
-        has_upload = models.UPLOAD in testtypes
-        has_bool = models.BOOLEAN in testtypes
-        has_num = len(set(models.NUMERICAL_TYPES) & testtypes) > 0
-        has_str = len(set(models.STRING_TYPES) & testtypes) > 0
-
-        # check if tests have the same type of tolerance, else return with error message
-        if [has_bool, has_num, has_str].count(True) > 1 or has_upload:
-            messages.error(
-                request,
-                _(
-                    "Invalid combination of tests selected.  Tests must be either all "
-                    "Numerical types, all String types, or all Boolean"
-                )
-            )
-            return HttpResponseRedirect(request.get_full_path())
-
-        if 'apply' in request.POST:
-            form = SetMultipleReferencesAndTolerancesForm(request.POST)
-        else:
-            form = SetMultipleReferencesAndTolerancesForm(initial={'contenttype': None})
-
-        # if selected tests are NOT multiple choice or boolean,
-        # select all the tolerances which are NOT multiple choice or boolean
-        if has_num:
-            tolerances = models.Tolerance.objects.exclude(type="multchoice")
-            form.fields["tolerance"].queryset = tolerances
-
-        # if selected tests are multiple choice select all the tolerances which are multiple choice
-        elif has_str:
-            tolerances = models.Tolerance.objects.filter(type="multchoice")
-            form.fields["contenttype"].initial = 'multchoice'
-            form.fields["tolerance"].queryset = tolerances
-            form.fields["reference"].required = False
-            form.fields["reference"].widget = forms.HiddenInput()
-
-        # if selected tests are boolean select all the tolerances which are boolean
-        elif has_bool:
-            tolerances = models.Tolerance.objects.filter(type="boolean")
-            form.fields["contenttype"].initial = 'boolean'
-            form.fields["reference"].widget = forms.NullBooleanSelect()
-            form.fields["tolerance"].required = False
-            form.fields["tolerance"].queryset = tolerances
-
-        if 'apply' in request.POST and form.is_valid():
-            return self.form_valid(request, queryset, form)
-        else:
-            context = {
-                'queryset': queryset,
-                'form': form,
-                'action_checkbox_name': admin.ACTION_CHECKBOX_NAME,
-                'opts': models.UnitTestInfo._meta,
-                'change': True,
-                'is_popup': False,
-                'save_as': False,
-                'has_delete_permission': False,
-                'has_add_permission': False,
-                'has_change_permission': False,
-            }
-            return render(request, 'admin/qa/unittestinfo/set_multiple_refs_and_tols.html', context)
-    set_multiple_references_and_tolerances.short_description = _l("Set multiple references and tolerances")
-
-    def save_model(self, request, test_info, form, change):
-        """create new reference when user updates value"""
-
-        if any(k in form.changed_data for k in ['comment', 'reference_value', 'tolerance']):
-            if form.instance and form.instance.pk:
-                old = models.UnitTestInfo.objects.get(pk=form.instance.pk)
-                models.UnitTestInfoChange.objects.create(
-                    unit_test_info=old,
-                    comment=form.cleaned_data["comment"],
-                    reference=old.reference,
-                    reference_changed=old.reference != form.instance.reference,
-                    tolerance=old.tolerance,
-                    tolerance_changed=old.tolerance != form.instance.tolerance,
-                    changed_by=request.user,
-                )
-
-        if form.instance.test.type != models.MULTIPLE_CHOICE:
-
-            if form.instance.test.type == models.BOOLEAN:
-                ref_type = models.BOOLEAN
-            else:
-                ref_type = models.NUMERICAL
-            val = form["reference_value"].value()
-            if val not in ("", None):
-                if not(test_info.reference and test_info.reference.value == float(val)):
-                    try:
-                        ref = models.Reference.objects.filter(value=val, type=ref_type)[0]
-                    except IndexError:
-                        ref = models.Reference(
-                            value=val,
-                            type=ref_type,
-                            created_by=request.user,
-                            modified_by=request.user,
-                            name="%s %s" % (test_info.unit.name, test_info.test.name)[:255]
-                        )
-                        ref.save()
-                    test_info.reference = ref
-            else:
-                test_info.reference = None
-
-        super(UnitTestInfoAdmin, self).save_model(request, test_info, form, change)
-
-    def lookup_allowed(self, lookup, value):
-        if lookup in ['test__testlistmembership__test_list__id__exact']:
-            return True
-        return super(UnitTestInfoAdmin, self).lookup_allowed(lookup, value)
-
-    @mark_safe
-    def history(self, obj):
-        hist = list(obj.unittestinfochange_set.select_related(
-            "reference",
-            "tolerance",
-            "changed_by",
-        ).order_by("-changed"))
-        history = [obj] + list(hist)
-        new_olds = [(new, old) for (new, old) in zip(history, history[1:] + [None])]
-
-        return loader.render_to_string('admin/qa/unittestinfo/history.html', {'history': new_olds})
 
 
 class TestListAdminForm(forms.ModelForm):
@@ -797,12 +640,7 @@ class FrequencyTestListFilter(admin.SimpleListFilter):
         return qs
 
 
-class TestListAdmin(AdminViews, SaveUserMixin, SaveInlineAttachmentUserMixin, BaseQATrackAdmin):
-
-    admin_views = (
-        (_l("Export Test Pack"), 'export_testpack'),
-        (_l("Import Test Pack"), 'import_testpack'),
-    )
+class TestListAdmin(SaveUserMixin, SaveInlineAttachmentUserMixin, BaseQATrackAdmin):
 
     prepopulated_fields = {'slug': ('name',)}
     search_fields = ("name", "description", "slug", "sublist__parent__name", "sublist__child__name")
@@ -852,11 +690,23 @@ class TestListAdmin(AdminViews, SaveUserMixin, SaveInlineAttachmentUserMixin, Ba
             "ace/ace.js",
         )
 
-    def export_testpack(self, *args, **kwargs):
-        return redirect(reverse("qa_export_testpack"))
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('export-testpack/', 
+                 self.admin_site.admin_view(admin_views.ExportTestPack.as_view()),
+                 name='qa_export_testpack'),
+            path('import-testpack/', 
+                 self.admin_site.admin_view(admin_views.ImportTestPack.as_view()),
+                 name='qa_import_testpack'),
+        ]
+        return custom_urls + urls
 
-    def import_testpack(self, *args, **kwargs):
-        return redirect(reverse("qa_import_testpack"))
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['export_testpack_url'] = reverse('admin:qa_export_testpack')
+        extra_context['import_testpack_url'] = reverse('admin:qa_import_testpack')
+        return super().changelist_view(request, extra_context=extra_context)
 
     def get_queryset(self, *args, **kwargs):
         qs = super().get_queryset(*args, **kwargs)
@@ -869,7 +719,6 @@ class TestListAdmin(AdminViews, SaveUserMixin, SaveInlineAttachmentUserMixin, Ba
 
     @mark_safe
     def child_of(self, obj):
-
         title = _("Click to view parent test list")
         links = [(sl.parent.name, reverse("admin:qa_testlist_change", args=(sl.parent.pk,)))
                  for sl in obj.sublist_set.all()]
@@ -880,7 +729,6 @@ class TestListAdmin(AdminViews, SaveUserMixin, SaveInlineAttachmentUserMixin, Ba
 
     @mark_safe
     def parent_of(self, obj):
-
         title = _("Click to view child test list")
         links = [(sl.child.name, reverse("admin:qa_testlist_change", args=(sl.child.pk,)))
                  for sl in obj.children.all()]

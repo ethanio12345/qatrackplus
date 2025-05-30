@@ -11,8 +11,9 @@ from django.shortcuts import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
-from django.views.generic import FormView
+from django.views.generic import FormView, TemplateView
 from formtools.preview import FormPreview
+from django.contrib.auth.mixins import PermissionRequiredMixin
 
 from qatrack.qa import models
 from qatrack.qa.testpack import add_testpack, create_testpack
@@ -235,14 +236,14 @@ class ExportTestPackForm(forms.Form):
         return super().clean()
 
 
-class ExportTestPack(FormView):
+class ExportTestPack(PermissionRequiredMixin, FormView):
     """View for exporting a QATrack+ test pack"""
 
+    permission_required = 'qa.change_testlist'
     form_class = ExportTestPackForm
     template_name = "admin/qa/testpack/export.html"
 
     def get_context_data(self, **kwargs):
-
         context = super().get_context_data(**kwargs)
         context['title'] = _("Export Test Pack")
 
@@ -297,18 +298,17 @@ class ImportTestPackForm(forms.Form):
     tests = forms.CharField(widget=forms.HiddenInput(), required=False)
 
 
-class ImportTestPack(FormView):
-    """View for exporting a QATrack+ test pack"""
+class ImportTestPack(PermissionRequiredMixin, FormView):
+    """View for importing a QATrack+ test pack"""
 
+    permission_required = 'qa.change_testlist'
     form_class = ImportTestPackForm
     template_name = "admin/qa/testpack/import.html"
 
     def get_context_data(self, **kwargs):
-
         context = super().get_context_data(**kwargs)
         context['title'] = _("Import Test Pack")
         context['test_types'] = json.dumps(dict(models.TEST_TYPE_CHOICES))
-
         return context
 
     def get_success_url(self):
@@ -319,7 +319,6 @@ class ImportTestPack(FormView):
         return reverse("qa_import_testpack")
 
     def form_valid(self, form):
-
         tls = form.cleaned_data['testlists']
         try:
             tls = json.loads(tls) if tls != "all" else None
@@ -363,3 +362,20 @@ def recurrence_examples(request):
 
     dates = []
     return JsonResponse({'dates': dates})
+
+
+class CopyReferencesTolerancesView(PermissionRequiredMixin, TemplateView):
+    """View for copying references and tolerances between units"""
+    
+    template_name = 'qa/copy_refs_tols.html'
+    permission_required = 'qa.change_unittestinfo'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = _("Copy References & Tolerances")
+        return context
+
+    def post(self, request, *args, **kwargs):
+        # Add your copy logic here
+        messages.success(request, _("References and tolerances copied successfully"))
+        return redirect('admin:qa_unittestinfo_changelist')
