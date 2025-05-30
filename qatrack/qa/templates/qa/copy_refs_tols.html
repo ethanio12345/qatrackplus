@@ -1,0 +1,47 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" type="text/css" href="{% static 'admin/css/forms.css' %}" />
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+  &rsaquo; <a href="{% url 'admin:app_list' app_label='qa' %}">{% trans 'QA' %}</a>
+  &rsaquo; <a href="{% url 'admin:qa_unittestinfo_changelist' %}">{% trans 'Unit Test Info' %}</a>
+  &rsaquo; {% trans 'Copy References & Tolerances' %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <h1>{% trans 'Copy References & Tolerances' %}</h1>
+  
+  <form method="post">
+    {% csrf_token %}
+    <div>
+      <fieldset class="module aligned">
+        <!-- Add your form fields here -->
+        <div class="form-row">
+          <label for="source_unit">{% trans 'Source Unit:' %}</label>
+          <select name="source_unit" id="source_unit" required>
+            <!-- Add unit options here -->
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="target_unit">{% trans 'Target Unit:' %}</label>
+          <select name="target_unit" id="target_unit" required>
+            <!-- Add unit options here -->
+          </select>
+        </div>
+      </fieldset>
+      
+      <div class="submit-row">
+        <input type="submit" value="{% trans 'Copy' %}" class="default" />
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %} 

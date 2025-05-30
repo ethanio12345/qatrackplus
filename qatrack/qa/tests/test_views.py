@@ -2313,3 +2313,27 @@ class TestAutoSave(TestCase):
     def test_load_404(self):
         resp = self.client.get(self.load_url + "?autosave_id=123")
         assert resp.status_code == 404
+
+
+class TestCopyReferencesTolerancesView(TestCase):
+    """Tests for the copy references and tolerances view"""
+
+    def setUp(self):
+        self.user = utils.create_user(is_superuser=True, uname='user', pwd='pwd')
+        self.client.login(username='user', password='pwd')
+        self.url = reverse('admin:qa_copy_refs_and_tols')
+
+    def test_get_requires_permission(self):
+        """Test that view requires proper permission"""
+        self.client.logout()
+        user = utils.create_user(is_superuser=False, uname='regular', pwd='pwd')
+        self.client.login(username='regular', password='pwd')
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 403)
+
+    def test_get_with_permission(self):
+        """Test that view loads correctly with permission"""
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'qa/copy_refs_tols.html')
+        self.assertContains(response, 'Copy References &amp; Tolerances')

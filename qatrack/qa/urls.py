@@ -1,4 +1,4 @@
-from django.urls import re_path as url
+from django.urls import re_path as url, path
 
 import qatrack.qa.views.admin
 
@@ -115,4 +115,5 @@ urlpatterns = [
     ),
     url(r"^category/(?P<category>[/\w-]+?)/$", perform.CategoryList.as_view(), name="qa_by_category"),
     url(r"^due-and-overdue/$", perform.DueAndOverdue.as_view(), name="qa_by_overdue"),
+    path('admin/copy-refs-tols/', qatrack.qa.views.admin.CopyReferencesTolerancesView.as_view(), name='qa_copy_refs_and_tols'),
 ]
