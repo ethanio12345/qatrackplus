@@ -630,17 +630,17 @@ class TestListMembershipInline(DynamicRawIDMixin, admin.TabularInline):
         # so we can override the label_for_value function for the test raw id widget
         db = kwargs.get('using')
         if db_field.name == "test":
-            rel = db_field.remote_field if VERSION[0] == 2 else db_field.rel
+            rel = db_field.remote_field if VERSION[0] >= 2 else db_field.rel
             widget = DynamicRawIDWidget(rel, self.admin_site)
             widget.label_for_value = self.label_for_value
             kwargs['widget'] = widget
             return db_field.formfield(**kwargs)
         elif db_field.name in self.dynamic_raw_id_fields:
-            rel = db_field.remote_field if VERSION[0] == 2 else db_field.rel
+            rel = db_field.remote_field if VERSION[0] >= 2 else db_field.rel
             kwargs['widget'] = DynamicRawIDWidget(rel, self.admin_site)
             return db_field.formfield(**kwargs)
         elif db_field.name in self.raw_id_fields:
-            kwargs['widget'] = widgets.ForeignKeyRawIdWidget(db_field.rel,
+            kwargs['widget'] = widgets.ForeignKeyRawIdWidget(db_field.remote_field if VERSION[0] >= 2 else db_field.rel,
                                                              self.admin_site, using=db)
         elif db_field.name in self.radio_fields:
             kwargs['widget'] = widgets.AdminRadioSelect(attrs={
@@ -681,19 +681,19 @@ class SublistInline(DynamicRawIDMixin, admin.TabularInline):
         # for the test raw id widget
         db = kwargs.get('using')
         if db_field.name == "child":
-            rel = db_field.remote_field if VERSION[0] == 2 else db_field.rel
+            rel = db_field.remote_field if VERSION[0] >= 2 else db_field.rel
             widget = DynamicRawIDWidget(rel, self.admin_site)
             widget.label_for_value = self.label_for_value
             kwargs['widget'] = widget
             return db_field.formfield(**kwargs)
 
         elif db_field.name in self.dynamic_raw_id_fields:
-            rel = db_field.remote_field if VERSION[0] == 2 else db_field.rel
+            rel = db_field.remote_field if VERSION[0] >= 2 else db_field.rel
             kwargs['widget'] = DynamicRawIDWidget(rel, self.admin_site)
             return db_field.formfield(**kwargs)
 
         elif db_field.name in self.raw_id_fields:
-            kwargs['widget'] = widgets.ForeignKeyRawIdWidget(db_field.rel,
+            kwargs['widget'] = widgets.ForeignKeyRawIdWidget(db_field.remote_field if VERSION[0] >= 2 else db_field.rel,
                                                              self.admin_site, using=db)
         elif db_field.name in self.radio_fields:
             kwargs['widget'] = widgets.AdminRadioSelect(attrs={

@@ -5,7 +5,7 @@ flake8
 ipdb
 ipython
 isort
-pylint==1.6.4
+pylint>=2.12,<3.0
 sphinx-autobuild==0.7.1
 sphinx-rtd-theme==3.0.2
 sphinxcontrib-applehelp==1.0.4
