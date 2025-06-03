@@ -59,3 +59,7 @@ src/*.egg-info
 tmp/
 db/
 ./generate_ro_privileges.sql
+
+# Virtual environments and external source
+.poetry-venv/
+src/
