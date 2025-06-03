@@ -26,7 +26,7 @@ class TestSetReferencesAndTolerancesForm(TransactionTestCase):
         create_user(is_superuser=True, uname='user', pwd='pwd')
         self.client.login(username='user', password='pwd')
 
-        self.url = reverse('qa_copy_refs_and_tols')
+        self.url = reverse('admin:qa_copy_refs_and_tols')
 
         self.tl_1 = qa_utils.create_test_list()
         self.tl_2 = qa_utils.create_test_list()
@@ -71,24 +71,29 @@ class TestSetReferencesAndTolerancesForm(TransactionTestCase):
         uti_source = self.uti_1
         uti_dest = self.uti_2
 
+        # Stage 1: Submit initial form data  
         data = {
             'content_type': 'testlist',
             'source_testlist': self.tl_1.id,
             'source_unit': self.u_1.id,
             'dest_unit': self.u_2.id,
-            'confirm': 'Confirm',
-            'stage': 2
+            'stage': '1'
         }
 
         response = self.client.post(self.url, data=data)
-        hash_val = None
-        for c in response.context[0]:
-            if 'hash_value' in c:
-                hash_val = c['hash_value']
-
-        data['hash_field'] = 'hash'
-        data['hash'] = hash_val
-        self.client.post(self.url, data=data)
+        self.assertEqual(response.status_code, 200)
+        
+        # Stage 2: Confirm the operation
+        data.update({
+            'confirm': 'Confirm'
+        })
+        
+        response = self.client.post(self.url, data=data)
+        
+        # Check that the operation was successful (should redirect)
+        self.assertIn(response.status_code, [200, 302])
+        
+        # Refresh from database and verify the copy worked
         uti_dest = qa_models.UnitTestInfo.objects.get(id=uti_dest.id)
 
         self.assertEqual(uti_source.reference, uti_dest.reference)
@@ -977,8 +982,19 @@ class TestUnitTestInfoAdmin(TestCase):
         request = self.client.post(self.url_change).wsgi_request
         request.user = self.user
         admin = qa_admin.UnitTestInfoAdmin(qa_models.UnitTestInfo, self.site)
+        data = {
+            'tolerance': self.tol_1.id,
+            'reference': '1',
+            'post': 'yes',
+            'contenttype': '',
+            'action': 'set_multiple_references_and_tolerances',
+            '_selected_action': [self.uti_1.id, self.uti_2.id],  # Simple and Boolean test types
+            'apply': 'Set tolerances and references'
+        }
+        request.POST = QueryDict('', mutable=True)
+        request.POST.update(data)
         admin.set_multiple_references_and_tolerances(
-            request, qa_models.UnitTestInfo.objects.all()
+            request, qa_models.UnitTestInfo.objects.filter(id__in=[self.uti_1.id, self.uti_2.id])
         )
         messages = get_messages(request)
         self.assertTrue(constants.ERROR in [m.level for m in messages])

@@ -23,23 +23,56 @@
     {% csrf_token %}
     <div>
       <fieldset class="module aligned">
-        <!-- Add your form fields here -->
-        <div class="form-row">
-          <label for="source_unit">{% trans 'Source Unit:' %}</label>
-          <select name="source_unit" id="source_unit" required>
-            <!-- Add unit options here -->
-          </select>
-        </div>
-        <div class="form-row">
-          <label for="target_unit">{% trans 'Target Unit:' %}</label>
-          <select name="target_unit" id="target_unit" required>
-            <!-- Add unit options here -->
-          </select>
-        </div>
+        {% for field in form %}
+          <div class="form-row{% if field.errors %} errors{% endif %}">
+            <div>
+              {{ field.errors }}
+              {{ field.label_tag }}
+              {{ field }}
+              {% if field.help_text %}
+                <div class="help">{{ field.help_text|safe }}</div>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
       </fieldset>
+
+      {% if dest_source_utis %}
+        <h2>{% trans 'Preview Changes' %}</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>{% trans "Test" %}</th>
+              <th>{{ dest_unit }} {% trans "Current Reference" %}</th>
+              <th>{{ dest_unit }} {% trans "Current Tolerance" %}</th>
+              <th>{% trans "New Reference" %}</th>
+              <th>{% trans "New Tolerance" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for dest, source in dest_source_utis %}
+              <tr>
+                <td>{{dest.test}}</td>
+                <td>{{dest.reference.value_display}}</td>
+                <td>{% firstof dest.tolerance "<em>--</em>" %}</td>
+                <td>{{source.reference.value_display}}</td>
+                <td>{% firstof source.tolerance "<em>--</em>" %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <input type="hidden" name="confirm" value="Confirm">
+      {% else %}
+        <input type="hidden" name="stage" value="1">
+      {% endif %}
       
       <div class="submit-row">
-        <input type="submit" value="{% trans 'Copy' %}" class="default" />
+        {% if dest_source_utis %}
+          <input type="submit" value="{% trans 'Confirm' %}" class="default" />
+          <input type="submit" name="cancel" value="{% trans 'Cancel' %}" />
+        {% else %}
+          <input type="submit" value="{% trans 'Preview' %}" class="default" />
+        {% endif %}
       </div>
     </div>
   </form>

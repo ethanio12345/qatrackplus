@@ -225,7 +225,6 @@ FIXTURE_DIRS = (
 
 # ------------------------------------------------------------------------------
 INSTALLED_APPS = [
-    'qatrack.admin_views',
     'django.contrib.admin',
     'django.contrib.contenttypes',
     'django.contrib.auth',
@@ -263,7 +262,6 @@ INSTALLED_APPS = [
     'qatrack.attachments',
     'qatrack.reports',
     'qatrack.form_utils'
-    #'admin_views', # TODO: remove this and replace with better solution
 ]
 
 
@@ -774,8 +772,8 @@ if IS_FILE_CACHE and not os.path.isdir(CACHE_LOCATION):
 
 
 if FORCE_SCRIPT_NAME:
-    # Fix URL for Admin Views if FORCE_SCRIPT_NAME_SET in local_settings
-    ADMIN_VIEWS_URL_PREFIX = FORCE_SCRIPT_NAME + "/admin"
+    # Django admin URLs are handled automatically through standard URL routing
+    pass
 
 
 # no longer using EMAIL_NOTIFICATION_USER/PWD but people may have
