@@ -59,7 +59,7 @@ setup(
         "django-picklefield>=2.0,<3.0",
         "django-recurrence<1.10",
         "django-registration>=3.1.0,<4.0",
-        "djangorestframework>=3.15.2,<4.0",
+        "djangorestframework>=3.14.0,<3.15",
         "djangorestframework-filters>=1.0.0,<2.0",
         "django-sql-explorer<2",
         "django-widget-tweaks>=1.4.0,<2.0",
