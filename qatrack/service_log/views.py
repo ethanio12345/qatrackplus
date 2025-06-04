@@ -1301,11 +1301,24 @@ class TLISelect(UTCInstances):
 
     rtsqa = None
 
+    def get_queryset(self):
+        # Handle case where pk is not provided in URL kwargs
+        if 'pk' not in self.kwargs:
+            # Return empty queryset when no pk is provided
+            # This will result in a 404 when the template tries to render
+            return qa_models.TestListInstance.objects.none()
+        
+        # Otherwise use parent's get_queryset method
+        return super().get_queryset()
+
     def get_page_title(self):
         try:
             utc = qa_models.UnitTestCollection.objects.get(pk=self.kwargs["pk"])
             return "Select a %s instance" % utc.name
         except qa_models.UnitTestCollection.DoesNotExist:
+            raise Http404
+        except KeyError:
+            # Handle case where pk is not in kwargs
             raise Http404
 
     def actions(self, tli):

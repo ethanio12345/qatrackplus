@@ -99,8 +99,8 @@ class SeleniumTests(StaticLiveServerSingleThreadedTestCase):
             chrome_driver_path = getattr(settings, 'SELENIUM_CHROME_PATH', '')
             cls.driver = webdriver.Chrome(executable_path=chrome_driver_path)
         else:
-            ff_profile = FirefoxOptions()
-            cls.driver = webdriver.Firefox(ff_profile)
+            ff_options = FirefoxOptions()
+            cls.driver = webdriver.Firefox(options=ff_options)
 
         orig_find_element = cls.driver.find_element
 

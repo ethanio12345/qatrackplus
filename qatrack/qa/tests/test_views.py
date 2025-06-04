@@ -1340,7 +1340,8 @@ class TestPerformQA(TestCase):
 
         # user is redirected if form submitted successfully
         self.assertEqual(response.status_code, 302)
-        self.assertIn("qc/unit/%d" % self.unit_test_list.unit.number, response._headers['location'][1])
+        # In Django 3.2+, use response.url instead of response._headers['location'][1]
+        self.assertIn("qc/unit/%d" % self.unit_test_list.unit.number, response.url)
 
     def test_perform_invalid(self):
         data = {

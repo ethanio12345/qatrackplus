@@ -255,9 +255,9 @@ class LiveQATests(BaseQATests):
         self.click_by_link_text("ADD TEST LIST")
         self.wait.until(e_c.presence_of_element_located((By.ID, 'id_name')))
         self.driver.find_element(By.ID,'id_name').send_keys(objects['TestList']['name'])
-        self.driver.find_elements(By.LINK_TEXT,'Add another Test List Membership').click()
-        self.driver.find_elements(By.LINK_TEXT,'Add another Test List Membership').click()
-        self.driver.find_elements(By.LINK_TEXT,'Add another Test List Membership').click()
+        self.driver.find_element(By.LINK_TEXT,'Add another Test List Membership').click()
+        self.driver.find_element(By.LINK_TEXT,'Add another Test List Membership').click()
+        self.driver.find_element(By.LINK_TEXT,'Add another Test List Membership').click()
         for i, pk in enumerate(models.Test.objects.values_list("pk", flat=True)):
             self.driver.find_element(By.ID,'id_testlistmembership_set-' + str(i) + '-test').send_keys(str(pk))
         self.driver.find_element(By.NAME,'_save').click()
@@ -437,13 +437,13 @@ class LiveQATests(BaseQATests):
         self.driver.find_element(By.NAME,'_save').click()
         self.wait_for_success()
 
-        self.driver.find_elements(By.LINK_TEXT,'simple').click()
+        self.driver.find_element(By.LINK_TEXT,'simple').click()
         self.select_by_index("id_tolerance", 1)
         self.driver.find_element(By.ID,'id_reference_value').send_keys('0')
         self.driver.find_element(By.NAME,'_save').click()
         self.wait_for_success()
 
-        self.driver.find_elements(By.LINK_TEXT,'composite').click()
+        self.driver.find_element(By.LINK_TEXT,'composite').click()
         self.select_by_index("id_tolerance", 1)
         self.driver.find_element(By.ID,'id_reference_value').send_keys('23.23')
         self.driver.find_element(By.NAME,'_save').click()
@@ -555,7 +555,7 @@ class LiveQATests(BaseQATests):
 
         self.wait.until(e_c.presence_of_element_located((By.XPATH, '//div[contains(text(), "Showing 1 to 1")]')))
         self.driver.find_element(By.PARTIAL_LINK_TEXT,'Review Data').click()
-        self.driver.find_elements(By.PARTIAL_LINK_TEXT,'Unreviewed Visible To Your Groups').click()
+        self.driver.find_element(By.PARTIAL_LINK_TEXT,'Unreviewed Visible To Your Groups').click()
         self.click_by_link_text('Review')
 
         self.wait.until(e_c.presence_of_element_located((By.ID, 'id_testinstance_set-0-status')))

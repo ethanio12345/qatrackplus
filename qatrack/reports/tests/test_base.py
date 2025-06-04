@@ -1036,7 +1036,7 @@ class TestReportInterface(BaseQATests):
         self.driver.find_element(By.ID,"id_schedule-emails").send_keys("a@b.com")
 
         self.wait.until(e_c.presence_of_element_located((By.CLASS_NAME, 'add-date')))
-        self.driver.find_elements(By.CLASS_NAME,"add-date").click()
+        self.driver.find_element(By.CLASS_NAME,"add-date").click()
 
         self.click("schedule")
 
