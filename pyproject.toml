@@ -19,7 +19,6 @@ dependencies = [
     "django-dynamic-raw-id (>=2.8,<3.0)",
     "django-extensions (>=3.2,<3.3)",
     "django-filter (>=21.1,<22.0)",
-    "django-form-utils (>=1.0,<2.0)",
     "django-formtools (>=2.5,<2.6)",
     "django-listable (>=0.8,<0.9)",
     "django-mptt (>=0.13.4,<1.0)",
