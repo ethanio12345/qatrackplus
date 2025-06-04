@@ -57,6 +57,8 @@ markers = [
     "selenium: marks tests that use django live test case and web browser",
 ]
 DJANGO_SETTINGS_MODULE = "qatrack.test_settings"
+testpaths = ["qatrack"]
+norecursedirs = ["src", ".git", ".tox", "dist", "build", "*.egg"]
 
 [tool.poetry.group.win.dependencies]
 cherrypy = "~18.0"
