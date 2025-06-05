@@ -63,7 +63,7 @@ class CategoryAdmin(DjangoMpttAdmin):
 class UnitTestInfoForm(forms.ModelForm):
     """Form for UnitTestInfo model"""
 
-    reference_value = forms.CharField(label=_("New reference value"), required=False, widget=HiddenInput())
+    reference_value = forms.CharField(label=_("New reference value"), required=False)
     reference_set_by = forms.CharField(label=_("Set by"), required=False)
     reference_set = forms.CharField(label=_("Date"), required=False)
     test_type = forms.CharField(required=False)
@@ -83,19 +83,42 @@ class UnitTestInfoForm(forms.ModelForm):
         instance = kwargs.get('instance')
 
         if instance and instance.test:
+            # Set test type
+            self.fields['test_type'].initial = instance.test.get_type_display()
+            
+            # Set reference information if reference exists
+            if instance.reference:
+                self.fields['reference_set_by'].initial = getattr(instance.reference, 'created_by', 'Unknown')
+                # Format the date to be more readable and in user's timezone
+                created_date = getattr(instance.reference, 'created', None)
+                if created_date:
+                    # Use Django's timezone handling which respects site timezone settings
+                    if timezone.is_aware(created_date):
+                        local_date = timezone.localtime(created_date)
+                    else:
+                        local_date = created_date
+                    self.fields['reference_set'].initial = local_date.strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    self.fields['reference_set'].initial = 'Unknown'
+            
             # Filter tolerances based on test type
             if instance.test.type == models.BOOLEAN:
                 self.fields['tolerance'].queryset = models.Tolerance.objects.filter(type=models.BOOLEAN)
                 self.fields['reference_value'] = forms.ChoiceField(
                     choices=[("", "---"), (0, "No"), (1, "Yes")],
-                    required=False
+                    required=False,
+                    label=_("New reference value")
                 )
             elif instance.test.type == models.MULTIPLE_CHOICE:
                 self.fields['tolerance'].queryset = models.Tolerance.objects.filter(type=models.MULTIPLE_CHOICE)
                 if instance.test.choices:  # Check if choices exist
                     choices = [(c.strip(), c.strip()) for c in instance.test.choices.split(",")]
                     choices = [("", "---")] + choices
-                    self.fields['reference_value'] = forms.ChoiceField(choices=choices, required=False)
+                    self.fields['reference_value'] = forms.ChoiceField(
+                        choices=choices, 
+                        required=False,
+                        label=_("New reference value")
+                    )
             else:
                 # For numerical tests, exclude boolean and multiple choice tolerances
                 self.fields['tolerance'].queryset = models.Tolerance.objects.exclude(
@@ -284,11 +307,9 @@ class UnitTestInfoAdmin(BaseQATrackAdmin):
                 'reference_set',
                 'comment',
             ),
-            'classes': ('collapse',),
         }),
         (_('History'), {
             'fields': ('history',),
-            'classes': ('collapse',),
         }),
     )
 
