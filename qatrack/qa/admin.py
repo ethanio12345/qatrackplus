@@ -1,14 +1,16 @@
 import re
 
-from django import VERSION
+from django import VERSION, forms
 from django.apps import apps
 from django.conf import settings
 from django.contrib import admin, messages
-from django.contrib.admin import options, widgets, helpers
+from django.contrib.admin import ModelAdmin, options, widgets, helpers
+from django.contrib.admin.helpers import flatten_fieldsets
 from django.contrib.admin.models import CHANGE, LogEntry
+from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Count, Q
-import django.forms as forms
+from django.forms.widgets import HiddenInput
 from django.shortcuts import HttpResponseRedirect, redirect, render
 from django.template import loader
 from django.template.defaultfilters import date as date_formatter
@@ -20,21 +22,18 @@ from django.utils.safestring import mark_safe
 from django.utils.text import Truncator
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
+
 from django_mptt_admin.admin import DjangoMpttAdmin
 from dynamic_raw_id.admin import DynamicRawIDMixin
 from dynamic_raw_id.widgets import DynamicRawIDWidget
-from django.contrib.admin.helpers import flatten_fieldsets
-from django.contrib.admin import ModelAdmin
-from django.forms.widgets import HiddenInput
-
-from qatrack.qa import models
-from qatrack.qa.views import admin as admin_views
 
 from qatrack.attachments.admin import (
     SaveInlineAttachmentUserMixin,
     get_attachment_inline,
 )
+from qatrack.qa import models
 from qatrack.qa.utils import format_qc_value
+from qatrack.qa.views import admin as admin_views
 from qatrack.qatrack_core.admin import (
     BaseQATrackAdmin,
     BasicSaveUserAdmin,
@@ -124,9 +123,15 @@ class UnitTestInfoForm(forms.ModelForm):
                 try:
                     val = float(reference_value)
                     if val == 0:
-                        self.add_error('reference_value', _("Reference value cannot be zero when using a percent tolerance"))
+                        self.add_error(
+                            'reference_value',
+                            _("Reference value cannot be zero when using a percent tolerance")
+                        )
                 except ValueError:
-                    self.add_error('reference_value', _("A numerical reference value is required when using a percent tolerance"))
+                    self.add_error(
+                        'reference_value',
+                        _("A numerical reference value is required when using a percent tolerance")
+                    )
 
         # Validate wraparound tests
         if self.instance.test.type == models.WRAPAROUND:

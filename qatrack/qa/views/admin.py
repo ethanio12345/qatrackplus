@@ -4,6 +4,7 @@ import logging
 from django import forms
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
@@ -13,7 +14,6 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
 from django.views.generic import FormView, TemplateView
 from formtools.preview import FormPreview
-from django.contrib.auth.mixins import PermissionRequiredMixin
 
 from qatrack.qa import models
 from qatrack.qa.testpack import add_testpack, create_testpack
@@ -409,9 +409,11 @@ class CopyReferencesTolerancesView(PermissionRequiredMixin, FormView):
             for dest_uti in dest_utis:
                 if dest_uti.test.pk in source_utis:
                     source_uti = source_utis[dest_uti.test.pk]
-                    if source_uti.reference and not models.Test.allow_type_transition(dest_uti.test.type, source_uti.test.type):
+                    if (source_uti.reference and 
+                        not models.Test.allow_type_transition(dest_uti.test.type, source_uti.test.type)):
                         test_type_errors.append(
-                            _("Cannot copy reference for test '%(test)s' from %(source)s to %(dest)s due to incompatible test types") % {
+                            _("Cannot copy reference for test '%(test)s' from %(source)s to %(dest)s "
+                              "due to incompatible test types") % {
                                 'test': dest_uti.test.name,
                                 'source': source_unit.name,
                                 'dest': dest_unit.name,
