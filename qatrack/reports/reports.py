@@ -160,6 +160,7 @@ class BaseReport(object, metaclass=ReportMeta):
             'notes': self.notes,
             'queryset': self.filter_set.qs if self.filter_set else None,
             'include_signature': self.base_opts.get("include_signature", False),
+            'include_logo': self.base_opts.get("include_logo", True),
         }
 
     def make_url(self, url, text='', title='', plain=False):

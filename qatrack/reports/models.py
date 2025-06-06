@@ -22,37 +22,16 @@ class SavedReport(models.Model):
 
     FORMATS = [('pdf', _l('PDF')), ('xlsx', 'Excel'), ("csv", _l("CSV"))]
 
-    title = models.CharField(max_length=255,)
-
-    report_type = models.CharField(max_length=128)
-
-    report_format = models.CharField(
-        max_length=8,
-        choices=FORMATS,
-        default="pdf",
-    )
-
-    include_signature = models.BooleanField(
-        verbose_name=_l("Signature"),
-        help_text=_l("Signature field at end of PDFs?"),
-        default=True,
-    )
-
-    filters = JSONField(blank=True, editable=True)
-
-    visible_to = models.ManyToManyField(
-        Group,
-        help_text=_l("Select groups who will be able to view and run this report. Leave blank to keep it private."),
-        blank=True,
-    )
+    title = models.CharField(max_length=255, help_text=_l("Give your report a descriptive title"))
+    report_type = models.CharField(max_length=255)
+    report_format = models.CharField(max_length=4, choices=FORMATS, default=FORMATS[0][0])
+    filters = models.JSONField(default=dict)
+    include_signature = models.BooleanField(default=False)
+    include_logo = models.BooleanField(default=True)
+    visible_to = models.ManyToManyField(Group, blank=True)
 
     created = models.DateTimeField(auto_now_add=True)
-    created_by = models.ForeignKey(
-        User,
-        on_delete=models.PROTECT,
-        editable=False,
-        related_name="report_creator",
-    )
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
     modified = models.DateTimeField(auto_now=True)
     modified_by = models.ForeignKey(
         User,
@@ -79,6 +58,7 @@ class SavedReport(models.Model):
         return {
             'title': self.title,
             'include_signature': self.include_signature,
+            'include_logo': self.include_logo,
             'report_id': self.id,
         }
 

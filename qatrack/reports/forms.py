@@ -19,7 +19,7 @@ class ReportForm(forms.ModelForm):
 
     class Meta:
         model = models.SavedReport
-        fields = ("title", "report_type", "report_format", "visible_to", "include_signature")
+        fields = ("title", "report_type", "report_format", "visible_to", "include_signature", "include_logo")
 
     def __init__(self, *args, **kwargs):
 
@@ -28,6 +28,8 @@ class ReportForm(forms.ModelForm):
         f = self.fields['report_type']
         choices = [('', '------------')] + reports.report_type_choices()
         f.widget = ToolTipSelect(titles=reports.report_descriptions(), choices=choices)
+        self.fields['include_logo'].label = _("Include Logo")
+        self.fields['include_logo'].help_text = _("Include the Saskatchewan Cancer Agency logo in reports?")
 
 
 ReportNoteFormSet = forms.inlineformset_factory(
