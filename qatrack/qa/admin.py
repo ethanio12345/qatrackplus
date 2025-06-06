@@ -111,14 +111,7 @@ class UnitTestInfoForm(forms.ModelForm):
                 )
             elif instance.test.type == models.MULTIPLE_CHOICE:
                 self.fields['tolerance'].queryset = models.Tolerance.objects.filter(type=models.MULTIPLE_CHOICE)
-                if instance.test.choices:  # Check if choices exist
-                    choices = [(c.strip(), c.strip()) for c in instance.test.choices.split(",")]
-                    choices = [("", "---")] + choices
-                    self.fields['reference_value'] = forms.ChoiceField(
-                        choices=choices, 
-                        required=False,
-                        label=_("New reference value")
-                    )
+                self.fields['reference_value'].widget = forms.HiddenInput()
             else:
                 # For numerical tests, exclude boolean and multiple choice tolerances
                 self.fields['tolerance'].queryset = models.Tolerance.objects.exclude(
