@@ -35,7 +35,7 @@ Option 2: Using pip (Traditional approach)
 cd /path/to/qatrackplus
 python3.9 -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev]"
+uv pip install -e .
 
 Rather than using a full blown database server for development work, you can use Sqlite3 which is included with Python.
 Once you have the requirements installed, copy the debug local_settings.py file from the deploy subdirectory and then create your database:
@@ -71,8 +71,6 @@ This modern setup offers several advantages over the previous requirements.txt a
 Faster installation: uv is 10-100x faster than pip
 Better dependency resolution: Catches conflicts that pip might miss
 Simpler commands: Single command installs all dependencies
-Standard Python packaging: Uses modern pyproject.toml instead of multiple requirements files
-Cross-platform: Works identically on Windows, macOS, and Linux
 
 Troubleshooting
 Missing dependencies: If you encounter import errors, ensure you activated your virtual environment and installed the development dependencies with the [dev] extra.
