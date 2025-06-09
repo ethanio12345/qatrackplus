@@ -115,3 +115,23 @@ allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["qatrack"]
+
+# This needs to be added to the documentation. This was added since uv builds a folder called tests which conflicts with py.test and this specifies the test path.
+[tool.pytest.ini_options]
+testpaths = ["qatrack"]
+norecursedirs = [
+    "*.egg",
+    ".eggs",
+    "dist",
+    "build",
+    "docs",
+    ".tox",
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv"
+]
+python_files = ["test_*.py", "*_test.py"]
+addopts = "-ra -q"
+django_find_project = true
+DJANGO_SETTINGS_MODULE = "qatrack.settings"
