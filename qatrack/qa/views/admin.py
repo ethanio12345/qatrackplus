@@ -19,6 +19,7 @@ from qatrack.qa import models
 from qatrack.qa.testpack import add_testpack, create_testpack
 from qatrack.units.forms import unit_site_unit_type_choices
 from qatrack.units.models import Unit
+from qatrack.qa.forms.admin import CopyReferencesAndTolerancesForm
 
 logger = logging.getLogger('qatrack')
 
@@ -57,15 +58,12 @@ class CopyReferencesAndTolerancesForm(forms.Form):
     confirm = forms.CharField(widget=forms.HiddenInput(), required=False)
 
     def __init__(self, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
-
         self.fields['source_unit'].choices = unit_site_unit_type_choices(include_empty=True)
         self.fields['dest_unit'].choices = unit_site_unit_type_choices(include_empty=True)
         testlistchoices = models.TestList.objects.all().order_by("name").values_list("pk", 'name')
         testlistcyclechoices = models.TestListCycle.objects.all().order_by("name").values_list("pk", 'name')
         choices = [('', '---------')] + list(testlistchoices) + list(testlistcyclechoices)
-
         self.fields['source_testlist'].choices = choices
 
     def save(self):
@@ -99,7 +97,6 @@ class CopyReferencesAndTolerancesForm(forms.Form):
 
     def clean(self):
         cleaned_data = super().clean()
-
         source_unit = cleaned_data.get("source_unit")
         source_testlist = cleaned_data.get("source_testlist")
         dest_unit = cleaned_data.get("dest_unit")
@@ -108,14 +105,12 @@ class CopyReferencesAndTolerancesForm(forms.Form):
         ctype = cleaned_data.get("content_type")
         if ctype and source_unit and source_testlist:
             ctype = ContentType.objects.get(model=ctype)
-
             try:
                 models.UnitTestCollection.objects.get(
                     unit=source_unit, object_id=source_testlist, content_type=ctype,
                 )
             except models.UnitTestCollection.DoesNotExist:
                 self.add_error("source_testlist", _("The selected test list does not exist on the source unit"))
-
         return cleaned_data
 
 
@@ -369,8 +364,6 @@ def recurrence_examples(request):
 
 
 class CopyReferencesTolerancesView(PermissionRequiredMixin, FormView):
-    """View for copying references and tolerances between units"""
-    
     template_name = 'qa/copy_refs_tols.html'
     permission_required = 'qa.change_unittestinfo'
     form_class = CopyReferencesAndTolerancesForm
@@ -402,40 +395,19 @@ class CopyReferencesTolerancesView(PermissionRequiredMixin, FormView):
             dest_utis = utis.filter(unit=dest_unit)
             source_utis = utis.filter(unit=source_unit)
             source_utis = {uti.test.pk: uti for uti in source_utis}
-
-            # Validate test type compatibility
-            test_type_errors = []
-            dest_source_utis = []
-            for dest_uti in dest_utis:
-                if dest_uti.test.pk in source_utis:
-                    source_uti = source_utis[dest_uti.test.pk]
-                    if (source_uti.reference and 
-                        not models.Test.allow_type_transition(dest_uti.test.type, source_uti.test.type)):
-                        test_type_errors.append(
-                            _("Cannot copy reference for test '%(test)s' from %(source)s to %(dest)s "
-                              "due to incompatible test types") % {
-                                'test': dest_uti.test.name,
-                                'source': source_unit.name,
-                                'dest': dest_unit.name,
-                            }
-                        )
-                    dest_source_utis.append((dest_uti, source_uti))
-
-            if test_type_errors:
-                for error in test_type_errors:
-                    form.add_error(None, error)
-            else:
-                context["dest_source_utis"] = dest_source_utis
-                context["source_test_list"] = source_testlist
-                context["source_unit"] = source_unit
-                context["dest_unit"] = dest_unit
+            dest_source_utis = [(dest_uti, source_utis[dest_uti.test.pk]) for dest_uti in dest_utis]
+            context["dest_source_utis"] = dest_source_utis
+            context["source_test_list"] = source_testlist
+            context["source_unit"] = source_unit
+            context["dest_unit"] = dest_unit
 
         return context
 
     def form_valid(self, form):
-        if self.request.POST.get('stage') == '1':
+        stage = self.request.POST.get('stage')
+        if stage == '1':
             return self.render_to_response(self.get_context_data(form=form))
-        elif self.request.POST.get('confirm') == 'Confirm':
+        elif stage == '2' and self.request.POST.get('confirm') == 'Confirm':
             try:
                 form.save()
                 messages.success(self.request, _("References and tolerances copied successfully"))

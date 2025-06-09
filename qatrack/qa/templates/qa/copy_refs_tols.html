@@ -1,80 +1,25 @@
-{% extends "admin/base_site.html" %}
-{% load i18n static %}
+{% extends "site_base.html" %}
+{% load i18n %}
 
-{% block extrastyle %}
-  {{ block.super }}
-  <link rel="stylesheet" type="text/css" href="{% static 'admin/css/forms.css' %}" />
-{% endblock %}
-
-{% block breadcrumbs %}
-<div class="breadcrumbs">
-  <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
-  &rsaquo; <a href="{% url 'admin:app_list' app_label='qa' %}">{% trans 'QA' %}</a>
-  &rsaquo; <a href="{% url 'admin:qa_unittestinfo_changelist' %}">{% trans 'Unit Test Info' %}</a>
-  &rsaquo; {% trans 'Copy References & Tolerances' %}
-</div>
-{% endblock %}
-
-{% block content %}
-<div id="content-main">
-  <h1>{% trans 'Copy References & Tolerances' %}</h1>
+{% block body %}
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
   
-  <form method="post">
-    {% csrf_token %}
-    <div>
-      <fieldset class="module aligned">
-        {% for field in form %}
-          <div class="form-row{% if field.errors %} errors{% endif %}">
-            <div>
-              {{ field.errors }}
-              {{ field.label_tag }}
-              {{ field }}
-              {% if field.help_text %}
-                <div class="help">{{ field.help_text|safe }}</div>
-              {% endif %}
-            </div>
-          </div>
-        {% endfor %}
-      </fieldset>
-
-      {% if dest_source_utis %}
-        <h2>{% trans 'Preview Changes' %}</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>{% trans "Test" %}</th>
-              <th>{{ dest_unit }} {% trans "Current Reference" %}</th>
-              <th>{{ dest_unit }} {% trans "Current Tolerance" %}</th>
-              <th>{% trans "New Reference" %}</th>
-              <th>{% trans "New Tolerance" %}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for dest, source in dest_source_utis %}
-              <tr>
-                <td>{{dest.test}}</td>
-                <td>{{dest.reference.value_display}}</td>
-                <td>{% firstof dest.tolerance "<em>--</em>" %}</td>
-                <td>{{source.reference.value_display}}</td>
-                <td>{% firstof source.tolerance "<em>--</em>" %}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        <input type="hidden" name="confirm" value="Confirm">
-      {% else %}
-        <input type="hidden" name="stage" value="1">
-      {% endif %}
-      
-      <div class="submit-row">
-        {% if dest_source_utis %}
-          <input type="submit" value="{% trans 'Confirm' %}" class="default" />
-          <input type="submit" name="cancel" value="{% trans 'Cancel' %}" />
-        {% else %}
-          <input type="submit" value="{% trans 'Preview' %}" class="default" />
-        {% endif %}
-      </div>
-    </div>
-  </form>
-</div>
+  {% if dest_source_utis %}
+    <input type="hidden" name="stage" value="2">
+    <input type="hidden" name="confirm" value="Confirm">
+  {% else %}
+    <input type="hidden" name="stage" value="1">
+  {% endif %}
+  
+  <div class="submit-row">
+    {% if dest_source_utis %}
+      <input type="submit" value="{% trans 'Confirm' %}" class="default" />
+      <input type="submit" name="cancel" value="{% trans 'Cancel' %}" />
+    {% else %}
+      <input type="submit" value="{% trans 'Preview' %}" class="default" />
+    {% endif %}
+  </div>
+</form>
 {% endblock %} 

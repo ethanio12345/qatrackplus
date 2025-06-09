@@ -85,7 +85,8 @@ class TestSetReferencesAndTolerancesForm(TransactionTestCase):
         
         # Stage 2: Confirm the operation
         data.update({
-            'confirm': 'Confirm'
+            'confirm': 'Confirm',
+            'stage': '2'
         })
         
         response = self.client.post(self.url, data=data)
