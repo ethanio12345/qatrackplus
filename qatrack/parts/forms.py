@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import ObjectDoesNotExist
 from django.utils.encoding import force_text
 from django.utils.translation import gettext as _
-from qatrack.form_utils.forms import BetterModelForm
+from qatrack.qatrack_core.forms import BetterModelForm
 
 from qatrack.parts import models as p_models
 from qatrack.service_log import models as sl_models
@@ -164,6 +164,7 @@ class PartForm(BetterModelForm):
 
     class Meta:
         model = p_models.Part
+        fields = ['name', 'part_number', 'alt_part_number', 'part_category', 'cost', 'new_or_used', 'quantity_min', 'notes', 'is_obsolete']
         if not settings.PARTS_ALLOW_BLANK_PART_NUM:
             required_fields = ['part_number', 'new_or_used', 'quantity_min']
             optional_fields = ['alt_part_number', 'part_category', 'cost', 'is_obsolete']

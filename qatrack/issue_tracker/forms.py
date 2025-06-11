@@ -1,9 +1,8 @@
-
 from django import forms
 from django.core.exceptions import ValidationError, ImproperlyConfigured
 from django.db.models import ObjectDoesNotExist, Q
 from django.utils.encoding import force_text
-from qatrack.form_utils.forms import BetterModelForm
+from qatrack.qatrack_core.forms import BetterModelForm
 
 from qatrack.issue_tracker import models as i_models
 
@@ -12,6 +11,7 @@ class IssueForm(BetterModelForm):
 
     class Meta:
         model = i_models.Issue
+        fields = ['issue_type', 'issue_priority', 'issue_tags', 'description', 'error_screen']
         fieldsets = [
             ('hidden_fields', {
                 'fields': [],

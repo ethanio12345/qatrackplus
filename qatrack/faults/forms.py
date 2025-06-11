@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils.text import gettext_lazy as _l
-from qatrack.form_utils.forms import BetterModelForm #TODO: remove this when form_utils is removed
+from qatrack.qatrack_core.forms import BetterModelForm
 
 from qatrack.faults import models
 from qatrack.qatrack_core.forms import MultipleCharField, UserChoiceField
@@ -185,4 +185,4 @@ class ReviewFaultForm(BetterModelForm):
 
     class Meta:
         model = models.Fault
-        fields = []
+        fields = ['id']
