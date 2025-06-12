@@ -2,19 +2,19 @@ QATrack+ Development Setup Guide
 
 This guide will walk you through setting up a QATrack+ development environment from scratch, from cloning the repository to running tests.
 Cloning your fork to your local system
-Once you have created a fork of QATrack+ on GitHub, you will want to download your fork to your local system to work on. This can either be done using the command line or one of the graphical git apps that are available. This page assumes you are using bash on linux or the Git Bash shell on Windows.
+Once you have created a fork of QATrack+ on GitHub, you will want to download your fork to your local system to work on.
 
 git clone https://github.com/yourusername/qatrackplus.git
 cd qatrackplus
 
 Setting up your development environment
-QATrack+ now uses modern Python packaging with pyproject.toml, making setup much simpler. We recommend using uv for the fastest and most reliable dependency management, but provide alternatives below.
+QATrack+ now uses modern Python packaging with pyproject.toml, making setup much simpler. We recommend using uv for the fastest and most reliable dependency management.
 
-Option 1: Using uv (Recommended - Fastest)
+Using uv (Recommended - Fastest)
 First, install uv globally:
 curl -LsSf https://astral.sh/uv/install.sh | sh
 export PATH="/home/$USER/.local/bin:$PATH"
-Then create a virtual environment and install all dependencies in one step:
+Then create a virtual environment and install all dependencies:
 cd /path/to/qatrackplus
 uv venv -- python3.9 
 source .venv/bin/activate
@@ -22,22 +22,6 @@ source .venv/bin/activate
 uv pip install setuptools
 uv pip install -e ".[dev]"
 
-Note: If you encounter issues with git dependencies not being installed correctly, check your pyproject.toml. The git dependencies should be in the main dependencies section using this format:
-```toml
-dependencies = [
-    # ... other dependencies ...
-    "django-recurrence @ git+https://github.com/randlet/django-recurrence.git@b3a73e8e03952107e58382922fec37aead31fd6f",
-    "django-sql-explorer @ git+https://github.com/randlet/django-sql-explorer.git@12802fe83f9c45fd0bbe9610cb442dcfc5666d44",
-]
-```
-
-Option 2: Using pip (Traditional approach)
-cd /path/to/qatrackplus
-python3.9 -m venv .venv
-source .venv/bin/activate
-uv pip install -e .
-
-Rather than using a full blown database server for development work, you can use Sqlite3 which is included with Python.
 Once you have the requirements installed, copy the debug local_settings.py file from the deploy subdirectory and then create your database:
 
 cp deploy/dev/local_settings.dev.py qatrack/local_settings.py
@@ -48,6 +32,7 @@ python manage.py createcachetable
 This will put a database called default.db in the db subdirectory.
 
 Running the development server
+
 After the database is created, create a super user so you can log into QATrack+:
 python manage.py createsuperuser
 and then run the development server:
@@ -62,15 +47,8 @@ Run only admin tests:
 python -m pytest qatrack/qa/tests/test_admin.py
 Run only non-selenium tests (faster):
 python -m pytest -m "not selenium"
-Run with more verbose output:
-python -m pytest -v
 You should see output showing the tests running, with most tests passing. Some selenium-based browser tests may fail depending on your environment, but the core functionality tests should all pass.
 
-What's different in this setup?
-This modern setup offers several advantages over the previous requirements.txt approach:
-Faster installation: uv is 10-100x faster than pip
-Better dependency resolution: Catches conflicts that pip might miss
-Simpler commands: Single command installs all dependencies
 
 Troubleshooting
 Missing dependencies: If you encounter import errors, ensure you activated your virtual environment and installed the development dependencies with the [dev] extra.
@@ -78,6 +56,8 @@ pkg_resources error: If you see an error about missing pkg_resources, install se
 Git dependencies not installing: Make sure git dependencies are specified in the main dependencies section of pyproject.toml using the @ syntax shown above.
 Database issues: Make sure you've copied the local_settings.py file and run migrations before starting the server.
 Test failures: Some selenium browser tests may fail due to browser/environment issues. This is normal and doesn't affect core functionality.
+Missing django-genericdropdown: You can check if this package is installed using `pip list | grep django-genericdropdown`. If it's missing, install it using:
+`pip install -e git+https://github.com/randlet/django-genericdropdown.git@473ff52610af659f7d2a3616a6e3322e21673b4d#egg=django_genericdropdown`
 
 Complete setup commands (copy-paste ready)
 
@@ -90,19 +70,6 @@ uv venv -- python3.9 (until program is compatible with newer versions of python)
 source .venv/bin/activate
 uv pip install setuptools  # Required for django-q
 uv pip install -e ".[dev]"
-cp deploy/dev/local_settings.dev.py qatrack/local_settings.py
-mkdir db
-python manage.py migrate
-python manage.py createcachetable
-python manage.py createsuperuser
-python manage.py runserver
-
-Complete pip setup:
-git clone https://github.com/yourusername/qatrackplus.git
-cd qatrackplus
-python3.9 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
 cp deploy/dev/local_settings.dev.py qatrack/local_settings.py
 mkdir db
 python manage.py migrate
