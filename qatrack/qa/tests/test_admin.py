@@ -1048,3 +1048,66 @@ class TestUnitTestInfoAdmin(TestCase):
             qa_models.UnitTestInfo, form=qa_admin.UnitTestInfoForm, fields='__all__'
         )(instance=self.uti_4, data=data)
         self.assertFalse(form.is_valid())
+
+    def test_history_records_old_values(self):
+        """Test that UnitTestInfoChange records the correct old values when reference/tolerance are changed"""
+        request = self.factory.get(self.url_change)
+        request.user = self.user
+        admin = qa_admin.UnitTestInfoAdmin(qa_models.UnitTestInfo, self.site)
+
+        # Initial state: uti_1 has r_1 reference and tol_1 tolerance
+        initial_ref = self.uti_1.reference
+        initial_tol = self.uti_1.tolerance
+
+        # First change: update reference and tolerance
+        data = {
+            'unit': self.u_1.id,
+            'test': self.t_1.id,
+            'test_type': self.t_1.type,
+            'reference_value': self.r_2.value,
+            'tolerance': self.tol_2.id,
+            'comment': 'First change',
+            'id': self.uti_1.id
+        }
+        
+        form = admin.get_form(request)(instance=self.uti_1, data=data)
+        self.assertTrue(form.is_valid())
+        admin.save_model(request, admin.save_form(request, form, True), form, True)
+
+        # Check first history record
+        changes = qa_models.UnitTestInfoChange.objects.filter(unit_test_info=self.uti_1)
+        self.assertEqual(changes.count(), 1)
+        first_change = changes.first()
+        self.assertEqual(first_change.reference, initial_ref)
+        self.assertEqual(first_change.tolerance, initial_tol)
+        self.assertTrue(first_change.reference_changed)
+        self.assertTrue(first_change.tolerance_changed)
+        self.assertEqual(first_change.comment, 'First change')
+        self.assertEqual(first_change.changed_by, self.user)
+
+        # Second change: update reference again
+        data2 = {
+            'unit': self.u_1.id,
+            'test': self.t_1.id,
+            'test_type': self.t_1.type,
+            'reference_value': '999',
+            'tolerance': self.tol_1.id,
+            'comment': 'Second change',
+            'id': self.uti_1.id
+        }
+        
+        form2 = admin.get_form(request)(instance=self.uti_1, data=data2)
+        self.assertTrue(form2.is_valid())
+        admin.save_model(request, admin.save_form(request, form2, True), form2, True)
+
+        # Check that we now have two history records with correct old values
+        changes = qa_models.UnitTestInfoChange.objects.filter(unit_test_info=self.uti_1).order_by('changed')
+        self.assertEqual(changes.count(), 2)
+        
+        # First change should have initial values as old values
+        self.assertEqual(changes[0].reference, initial_ref)
+        self.assertEqual(changes[0].tolerance, initial_tol)
+        
+        # Second change should have the values from after the first change as old values
+        self.assertEqual(changes[1].reference.value, self.r_2.value)
+        self.assertEqual(changes[1].tolerance, self.tol_2)

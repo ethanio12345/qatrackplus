@@ -364,19 +364,28 @@ class UnitTestInfoAdmin(BaseQATrackAdmin):
     history.short_description = _("Reference & Tolerance History")
 
     def save_model(self, request, test_info, form, change):
-        """create new reference when user updates value"""
+        # Fetch the old instance from the DB before saving changes
+        if test_info.pk:
+            old = models.UnitTestInfo.objects.get(pk=test_info.pk)
+            old_reference = old.reference
+            old_tolerance = old.tolerance
+        else:
+            old_reference = None
+            old_tolerance = None
+
+        # Save the new values
         super().save_model(request, test_info, form, change)
 
+        # Now create the history record using the old values
         if any(k in form.changed_data for k in ['comment', 'reference_value', 'tolerance']):
             if form.instance and form.instance.pk:
-                old = models.UnitTestInfo.objects.get(pk=form.instance.pk)
                 models.UnitTestInfoChange.objects.create(
-                    unit_test_info=old,
+                    unit_test_info=form.instance,
                     comment=form.cleaned_data["comment"],
-                    reference=old.reference,
-                    reference_changed=old.reference != form.instance.reference,
-                    tolerance=old.tolerance,
-                    tolerance_changed=old.tolerance != form.instance.tolerance,
+                    reference=old_reference,
+                    reference_changed=old_reference != form.instance.reference,
+                    tolerance=old_tolerance,
+                    tolerance_changed=old_tolerance != form.instance.tolerance,
                     changed_by=request.user,
                 )
 

@@ -16,11 +16,7 @@
           <th scope="row">{{ change.changed }}</th>
           <td>{{ change.changed_by }}</td>
           <td>
-            {% if change.reference_changed %}
-              {{ current.reference }} → {{ change.reference }}
-            {% else %}
               {{ current.reference }}
-            {% endif %}
           </td>
           <td>
             {% if change.tolerance_changed %}
