@@ -14,6 +14,13 @@
   margin-top: 20px;
   transition: opacity 0.2s;
 }
+.logo-fallback-message {
+  font-size: 12px;
+  color: #777;
+  font-style: italic;
+  margin-top: 20px;
+  text-align: right;
+}
 </style>
 
 <div class="row">
@@ -22,7 +29,21 @@
     <h5 style="color: #1c9aea; font-weight: bold; padding-left: 4px;">{{ report_title }}</h5>
   </div>
   <div class="col-xs-4 text-right">
-    <img src="{% static 'reports/img/sca_logo.jpg' %}" alt="Saskatchewan Cancer Agency" class="logo {% if include_logo %}logo-visible{% else %}logo-hidden{% endif %}"/>
+    {% if include_logo %}
+      {% if for_pdf %}
+        <!-- For PDF generation, use file:// path that Chrome can access -->
+        <img src="file://{{ STATIC_ROOT }}/reports/img/sca_logo.jpg" alt="Saskatchewan Cancer Agency" class="logo logo-visible" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"/>
+        <div class="logo-fallback-message" style="display: none;">
+          {% trans "Saskatchewan Cancer Agency" %}<br>
+          <small>{% trans "(Logo not available in downloaded version)" %}</small>
+        </div>
+      {% else %}
+        <!-- For HTML rendering, use normal static path -->
+        <img src="{% static 'reports/img/sca_logo.jpg' %}" alt="Saskatchewan Cancer Agency" class="logo logo-visible"/>
+      {% endif %}
+    {% else %}
+      <img src="{% if for_pdf %}file://{{ STATIC_ROOT }}/reports/img/sca_logo.jpg{% else %}{% static 'reports/img/sca_logo.jpg' %}{% endif %}" alt="Saskatchewan Cancer Agency" class="logo logo-hidden"/>
+    {% endif %}
   </div>
 </div>
 
