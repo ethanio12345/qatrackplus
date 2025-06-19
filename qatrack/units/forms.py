@@ -131,7 +131,7 @@ class UnitAvailableTimeEditForm(forms.ModelForm):
     def clean_date(self):
         cleaned = self.cleaned_data['date']
         if cleaned < self.instance.unit.date_acceptance:
-            raise ValidationError('Unit cannot have available time edit before it\'s date of acceptance.')
+            raise ValidationError(_('Unit cannot have available time edit before it\'s date of acceptance.'))
         return cleaned
 
 

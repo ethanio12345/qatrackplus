@@ -137,7 +137,7 @@ class CostInputField(forms.CharField):
     def to_python(self, value):
         value = value.replace('$', '').replace(',', '')
         if value and float(value) < 0:
-            raise ValidationError('Ensure this value is greater than or equal to 0.')
+            raise ValidationError(_('Ensure this value is greater than or equal to 0.'))
         if not value:
             value = None
         return value

@@ -141,14 +141,14 @@ class HoursForm(forms.ModelForm):
             if '-user_or_thirdparty' in k1 and v1 != '':
                 for k2, v2 in self.data.items():
                     if '-user_or_thirdparty' in k2 and k2 != k1 and v1 == v2:
-                        raise ValidationError('Duplicate hours user or third party')
+                        raise ValidationError(_('Duplicate hours user or third party'))
 
         if obj_type == 'user':
             return User.objects.get(id=obj_id)
         elif obj_type == 'tp':
             return models.ThirdParty.objects.get(id=obj_id)
 
-        raise ValidationError('Not a User or Third Party object.')
+        raise ValidationError(_('Not a User or Third Party object.'))
 
 
 HoursFormset = forms.inlineformset_factory(models.ServiceEvent, models.Hours, form=HoursForm, extra=2)

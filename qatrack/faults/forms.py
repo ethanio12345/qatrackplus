@@ -145,8 +145,8 @@ class FaultForm(BetterModelForm):
         if unit:
             try:
                 unit = u_models.Unit.objects.get(pk=unit)
-            except u_models.Unit.DoesNotExist:  # pragma: nocover
-                raise ValidationError('Unit with id %s does not exist' % unit)
+            except u_models.Unit.DoesNotExist:
+                raise ValidationError(_('Unit with id %s does not exist') % unit)
         return unit
 
 

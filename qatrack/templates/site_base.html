@@ -115,6 +115,12 @@
             }
         };
 
+        var QATranslations = {
+            ERROR_INITIALIZATION: "{% trans 'An error occurred during initialization. Please reload the page' %}",
+            SERVER_ERROR: "{% trans 'Sorry, there was a server error.' %}",
+            NO_DESCRIPTION_AVAILABLE: "{% trans 'No description available' %}"
+        };
+
         var ICON_SETTINGS = {{ICON_SETTINGS_JSON|safe}};
 
         var TEST_STATUS_SHORT = {{TEST_STATUS_SHORT_JSON|safe}};
