@@ -1,0 +1,6 @@
+repos:
+-   repo: https://github.com/adamchainz/django-upgrade
+    rev: "1.25.0"  # Use the latest tag from GitHub
+    hooks:
+    -   id: django-upgrade
+        args: [--target-version, "4.2"]   # Target Django 4.2 
