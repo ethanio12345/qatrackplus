@@ -7,6 +7,7 @@ from django.db import ProgrammingError, connection
 from django.utils import timezone
 from django_q.models import Schedule
 from django_q.tasks import schedule
+from zoneinfo import ZoneInfo
 
 from qatrack.qatrack_core.utils import today_start_end
 
@@ -118,6 +119,6 @@ def run_periodic_scheduler(model, log_name, handler, time_field="time", recurren
             )
         )
         if occurences and start_time.time() <= getattr(instance, time_field) <= end_time.time():
-            tz = timezone.get_current_timezone()
-            send_time = tz.localize(timezone.datetime.combine(start_today, getattr(instance, time_field)))
+            tz = ZoneInfo(settings.TIME_ZONE)
+            send_time = timezone.datetime.combine(start_today, getattr(instance, time_field)).replace(tzinfo=tz)
             handler(instance, send_time)

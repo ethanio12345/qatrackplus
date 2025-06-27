@@ -62,7 +62,7 @@ from listable.views import (
     YESTERDAY,
     BaseListableView,
 )
-import pytz
+from zoneinfo import ZoneInfo
 
 from qatrack.attachments.models import Attachment
 from qatrack.parts import forms as p_forms
@@ -1939,18 +1939,18 @@ class DueDateOverview(PermissionRequiredMixin, TemplateView):
 
         qs = self.get_queryset()
 
-        tz = pytz.timezone(settings.TIME_ZONE)
+        tz = ZoneInfo(settings.TIME_ZONE)
         now = timezone.now().astimezone(tz)
         today = now.date()
         friday = today + timezone.timedelta(days=(4 - today.weekday()) % 7)
         next_friday = friday + timezone.timedelta(days=7)
-        month_end = tz.localize(timezone.datetime(now.year, now.month, calendar.mdays[now.month])).date()
+        month_end = timezone.datetime(now.year, now.month, calendar.mdays[now.month]).replace(tzinfo=tz).date()
         if calendar.isleap(now.year) and now.month == 2:
             month_end += timezone.timedelta(days=1)
         next_month_start = month_end + timezone.timedelta(days=1)
-        next_month_end = tz.localize(
-            timezone.datetime(next_month_start.year, next_month_start.month, calendar.mdays[next_month_start.month])
-        ).date()
+        next_month_end = timezone.datetime(
+            next_month_start.year, next_month_start.month, calendar.mdays[next_month_start.month]
+        ).replace(tzinfo=tz).date()
 
         due = collections.defaultdict(list)
 

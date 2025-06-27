@@ -1,13 +1,10 @@
 import re
-
 import black
-from django.apps import apps
+import warnings
+
 from django.conf import settings
 from django.contrib.auth.models import Group, User
-from django.contrib.contenttypes.fields import (
-    GenericForeignKey,
-    GenericRelation,
-)
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
@@ -30,6 +27,7 @@ from qatrack.qatrack_core.dates import format_as_date, format_datetime
 from qatrack.qatrack_core.fields import JSONField
 from qatrack.qatrack_core.scheduling import RecurrenceFieldMixin, SchedulingMixin
 from qatrack.units.models import Unit
+
 
 # All available test types
 BOOLEAN = "boolean"
@@ -427,6 +425,54 @@ class Frequency(RecurrenceFieldMixin, models.Model):
         approximate time between recurrences."""
         self.nominal_interval = scheduling.calc_nominal_interval(self.recurrences)
         super().save(*args, **kwargs)
+
+    def __setattr__(self, name, value):
+        """Handle string assignments to recurrences field by converting them to proper recurrence objects"""
+        if name == 'recurrences' and isinstance(value, str) and value.strip() and not hasattr(value, 'dtstart'):
+            # Convert simple string assignments to proper recurrence objects with dtstart
+            import recurrence
+            from zoneinfo import ZoneInfo
+            from django.conf import settings
+            from django.utils import timezone
+            from dateutil.rrule import rrulestr
+            
+            try:
+                # Use the recurrence library's built-in parsing for complex rules
+                if 'RRULE:' in value or 'FREQ=' in value:
+                    # Parse using dateutil and then convert to recurrence
+                    tz = ZoneInfo(settings.TIME_ZONE)
+                    dtstart = timezone.datetime(2012, 1, 1).replace(tzinfo=tz)
+                    
+                    # Create a dummy recurrence with dtstart and then parse the rule
+                    if value.startswith('RRULE:'):
+                        # Strip RRULE: prefix for parsing
+                        rule_string = value[6:]
+                    else:
+                        # Already just the rule part
+                        rule_string = value
+                    
+                    # Parse the rule string using dateutil
+                    dateutil_rule = rrulestr(rule_string, dtstart=dtstart.replace(tzinfo=None))
+                    
+                    # Convert to recurrence Rule
+                    rule = recurrence.from_dateutil_rrule(dateutil_rule)
+                    
+                    # Create recurrence object with proper dtstart
+                    recurrence_obj = recurrence.Recurrence(
+                        rrules=[rule],
+                        dtstart=dtstart,
+                    )
+                    # Mark this recurrence as created from string assignment
+                    recurrence_obj._from_string_assignment = True
+                    
+                    # Bypass Django's field processing by setting directly in __dict__
+                    self.__dict__[name] = recurrence_obj
+                    return
+            except Exception:
+                # If parsing fails, let the original assignment proceed
+                pass
+        
+        super().__setattr__(name, value)
 
     def natural_key(self):
         return (self.slug,)

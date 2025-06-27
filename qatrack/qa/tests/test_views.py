@@ -2261,7 +2261,7 @@ class TestAutoSave(TestCase):
         self.client.post(self.url, content_type="application/json", data=json.dumps(data))
 
         auto.refresh_from_db()
-        assert auto.work_started == timezone.get_current_timezone().localize(timezone.datetime(1980, 5, 12, 12, 0))
+        assert auto.work_started == timezone.datetime(1980, 5, 12, 12, 0).replace(tzinfo=timezone.get_current_timezone())
         assert auto.data == {
             'tests': {
                 'foo': 'bar'
