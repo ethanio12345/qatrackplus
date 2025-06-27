@@ -24,9 +24,6 @@ pyproject.toml
 * Added: ``requires-python = ">=3.9"`` to specify minimum Python version
 * Removed: ``pytz`` dependency (no longer needed)
 
-**Why necessary:** 
-Since ``zoneinfo`` is part of Python's standard library in 3.9+, ``pytz`` is no longer required as an external dependency.
-
 qatrack/qatrack_core/dates.py
 -----------------------------
 
@@ -39,8 +36,6 @@ to::
 
     ZoneInfo(settings.TIME_ZONE)
 
-**Why necessary:**
-This is the core date/time utilities module. All timezone-aware datetime operations needed to be updated to use the new zoneinfo API.
 
 qatrack/qatrack_core/scheduling.py
 -----------------------------------
@@ -90,7 +85,7 @@ This file contained the most important changes to fix the core issue.
 
 **Changes:**
 
-1. **Detection Phase (Line 431):**
+1. **Detection (Line 431):**
    ::
 
        if name == 'recurrences' and isinstance(value, str) and value.strip() and not hasattr(value, 'dtstart'):
@@ -121,10 +116,6 @@ qatrack/qa/tests/test_views.py & qatrack/qa/tests/utils.py
 **Changes:**
 Updated ``create_frequency()`` function to use proper timezone handling
 
-**Why necessary:**
-* Tests need to create realistic test data that matches production timezone handling
-* Ensures test fixtures use the same timezone library as production code
-* Prevents test failures due to timezone inconsistencies
 
 qatrack/qa/views/perform.py & qatrack/qa/views/review.py
 --------------------------------------------------------
@@ -132,17 +123,12 @@ qatrack/qa/views/perform.py & qatrack/qa/views/review.py
 **Changes:**
 Updated timezone handling in view methods
 
-**Why necessary:**
-Views that display or process time-sensitive data need consistent timezone handling for user-facing timestamps and form processing.
 
 qatrack/service_log/views.py
 ----------------------------
 
 **Changes:**
 Updated service event timezone handling
-
-**Why necessary:**
-Service events are time-critical records that must maintain accurate timestamps and integrate properly with QA scheduling.
 
 Errors Encountered
 ==================
@@ -177,14 +163,6 @@ The issue was fixed by updating the ``__setattr__`` method to use the correct ap
 **Result:**
 String assignments now create properly formatted recurrence objects with correct zoneinfo-based timezones, preventing the "malformed data" deserialization errors.
 
-Benefits of Migration
-====================
-
-* **Reduced dependencies**: No external pytz dependency required
-* **Standard library**: Uses Python's built-in timezone handling
-* **Future-proof**: Official Python recommendation for timezone handling
-* **Django compatibility**: Better integration with Django 4.0+
-* **Maintenance**: Maintained by Python core team
 
 Verification
 ============
@@ -193,5 +171,3 @@ After applying these changes:
 
 * All existing functionality continues to work
 * Previously failing tests now pass
-* No breaking changes to the API
-* Backward compatibility maintained for existing data 

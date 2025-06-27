@@ -161,6 +161,7 @@ class BaseReport(object, metaclass=ReportMeta):
             'queryset': self.filter_set.qs if self.filter_set else None,
             'include_signature': self.base_opts.get("include_signature", False),
             'include_logo': self.base_opts.get("include_logo", True),
+            'paper_size': self.base_opts.get("paper_size", "letter"),
         }
 
     def make_url(self, url, text='', title='', plain=False):
@@ -266,7 +267,8 @@ class BaseReport(object, metaclass=ReportMeta):
         context['base_template'] = "reports/pdf_report.html"
         template = self.get_template(using=None)
         content = template.render(context)
-        return chrometopdf(content, name=fname)
+        paper_size = context.get('paper_size', 'letter')
+        return chrometopdf(content, name=fname, paper_size=paper_size)
 
     def to_csv(self):
         context = self.get_context()

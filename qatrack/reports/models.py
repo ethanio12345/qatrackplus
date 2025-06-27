@@ -21,6 +21,10 @@ from qatrack.reports.reports import report_class
 class SavedReport(models.Model):
 
     FORMATS = [('pdf', _l('PDF')), ('xlsx', 'Excel'), ("csv", _l("CSV"))]
+    PAPER_SIZES = [
+        ('letter', _l('Letter (8.5" × 11")')), 
+        ('a4', _l('A4 (210mm × 297mm)'))
+    ]
 
     title = models.CharField(max_length=255, help_text=_l("Give your report a descriptive title"))
     report_type = models.CharField(max_length=255)
@@ -28,6 +32,12 @@ class SavedReport(models.Model):
     filters = models.JSONField(default=dict)
     include_signature = models.BooleanField(default=False)
     include_logo = models.BooleanField(default=True)
+    paper_size = models.CharField(
+        max_length=10, 
+        choices=PAPER_SIZES, 
+        default='letter',
+        help_text=_l("Select paper size for PDF reports")
+    )
     visible_to = models.ManyToManyField(Group, blank=True)
 
     created = models.DateTimeField(auto_now_add=True)
@@ -59,6 +69,7 @@ class SavedReport(models.Model):
             'title': self.title,
             'include_signature': self.include_signature,
             'include_logo': self.include_logo,
+            'paper_size': self.paper_size,
             'report_id': self.id,
         }
 

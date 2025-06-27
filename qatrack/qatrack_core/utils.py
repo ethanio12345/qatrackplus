@@ -8,8 +8,14 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 
-def chrometopdf(html, name=""):
-    """use headles chrome to convert an html document to pdf"""
+def chrometopdf(html, name="", paper_size="letter"):
+    """use headles chrome to convert an html document to pdf
+    
+    Args:
+        html: HTML content to convert
+        name: Optional name for temporary files
+        paper_size: Paper size for PDF ('letter' or 'a4')
+    """
 
     try:
 
@@ -24,12 +30,17 @@ def chrometopdf(html, name=""):
         tmp_html.write(html.encode("UTF-8"))
         tmp_html.close()
 
+        # Set paper size for Chrome PDF generation
+        paper_format = "Letter" if paper_size == "letter" else "A4"
+
         command = [
             settings.CHROME_PATH,
             '--headless',
             '--disable-gpu',
             '--no-sandbox',
             '--print-to-pdf=%s' % out_path,
+            '--print-to-pdf-no-header',
+            '--print-to-pdf-paper-format=%s' % paper_format,
             "file://%s" % tmp_html.name,
         ]
 
