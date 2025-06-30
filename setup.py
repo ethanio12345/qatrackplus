@@ -79,7 +79,6 @@ setup(
         "pytest-sugar>=0.9.0,<1.0",
         "pytest>=6.2.0,<7.0",
         "python-dateutil>=2.8.0,<3.0",
-        "pytz>=2021.1",
         "reportlab>=3.5.0,<4.0",
         "requests<=3",
         "scipy<=1.5.4",

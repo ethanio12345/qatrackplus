@@ -11,6 +11,9 @@ cover-module:
 cover-mo:
 	py.test --reuse-db --cov-report term-missing:skip-covered --cov ./ ${args}
 
+cover-qatrack:
+	py.test --reuse-db --cov-report term-missing --cov qatrack ${args}
+
 test:
 	py.test ${args}
 

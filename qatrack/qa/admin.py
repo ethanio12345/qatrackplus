@@ -599,7 +599,12 @@ class TestListAdminForm(forms.ModelForm):
 class TestListMembershipInlineFormSet(forms.models.BaseInlineFormSet):
 
     def __init__(self, *args, **kwargs):
-        qs = kwargs["queryset"].filter(test_list=kwargs["instance"]).select_related("test")
+        instance = kwargs.get("instance")
+        if instance is None:
+            # When creating a new TestList, there are no existing memberships
+            qs = kwargs["queryset"].none()
+        else:
+            qs = kwargs["queryset"].filter(test_list=instance).select_related("test")
         kwargs["queryset"] = qs
         super(TestListMembershipInlineFormSet, self).__init__(*args, **kwargs)
 
@@ -607,7 +612,12 @@ class TestListMembershipInlineFormSet(forms.models.BaseInlineFormSet):
 class SublistInlineFormSet(forms.models.BaseInlineFormSet):
 
     def __init__(self, *args, **kwargs):
-        qs = kwargs["queryset"].filter(parent=kwargs["instance"])
+        instance = kwargs.get("instance")
+        if instance is None:
+            # When creating a new TestList, there are no existing sublists
+            qs = kwargs["queryset"].none()
+        else:
+            qs = kwargs["queryset"].filter(parent=instance)
         kwargs["queryset"] = qs
         super(SublistInlineFormSet, self).__init__(*args, **kwargs)
 
@@ -634,7 +644,7 @@ class SublistInlineFormSet(forms.models.BaseInlineFormSet):
                     "%(test_list_names)s already has(have) a sublist and therefore can't be used as a sublist."
                 ) % {'test_list_names': names}
             )
-        elif self.instance and self.instance.sublist_set.exists() and children:
+        elif self.instance and self.instance.pk and self.instance.sublist_set.exists() and children:
             raise forms.ValidationError(
                 _(
                     "This Test List is a Sublist of Test Lists: %(sublist_name)s"

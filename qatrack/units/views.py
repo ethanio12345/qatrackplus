@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect
 from django.views.generic import TemplateView
-import pytz
+from zoneinfo import ZoneInfo
 
 from qatrack.qatrack_core.dates import format_as_date as fmt_date
 from qatrack.qatrack_core.serializers import QATrackJSONEncoder
@@ -59,7 +59,10 @@ def handle_unit_available_time(request):
 
     units = request.POST.getlist('units[]')
     tz = request.POST.get("tz", settings.TIME_ZONE)
-    tz = pytz.timezone(tz)
+    try:
+        tz = ZoneInfo(tz)
+    except Exception:
+        tz = ZoneInfo(settings.TIME_ZONE)
     day = request.POST.get('day')
     day = timezone.localtime(timezone.datetime.fromtimestamp(int(day) / 1000, tz)).date() if day else None
 
@@ -100,9 +103,20 @@ def handle_unit_available_time(request):
 @csrf_protect
 def handle_unit_available_time_edit(request):
 
+    def safe_date_str(date_obj, tz_name):
+        try:
+            tz = ZoneInfo(tz_name)
+        except Exception:
+            tz = timezone.get_current_timezone()
+
+        return date_obj.astimezone(tz).strftime("%Y-%m-%d")
+
     units = [u_models.Unit.objects.get(id=u_id) for u_id in request.POST.getlist('units[]', [])]
     tz = request.POST.get("tz", settings.TIME_ZONE)
-    tz = pytz.timezone(tz)
+    try:
+        tz = ZoneInfo(tz)
+    except Exception:
+        tz = ZoneInfo(settings.TIME_ZONE)
     days = [timezone.localtime(timezone.datetime.fromtimestamp(int(d) / 1000, tz)).date() for d in request.POST.getlist('days[]', [])]  # noqa: E501
 
     hours_mins = request.POST.get('hours_mins', None)
@@ -138,7 +152,10 @@ def delete_schedules(request):
 
     unit_ids = request.POST.getlist('units[]', [])
     tz = request.POST.get("tz", settings.TIME_ZONE)
-    tz = pytz.timezone(tz)
+    try:
+        tz = ZoneInfo(tz)
+    except Exception:
+        tz = ZoneInfo(settings.TIME_ZONE)
     days = [
         timezone.localtime(timezone.datetime.fromtimestamp(int(d) / 1000, tz)).date()
         for d in request.POST.getlist('days[]', [])

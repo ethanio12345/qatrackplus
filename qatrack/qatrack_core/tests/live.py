@@ -96,11 +96,31 @@ class SeleniumTests(StaticLiveServerSingleThreadedTestCase):
             cls.display = None
 
         if use_chrome:
+            from selenium.webdriver.chrome.service import Service as ChromeService
+            from selenium.webdriver.chrome.options import Options as ChromeOptions
+            
             chrome_driver_path = getattr(settings, 'SELENIUM_CHROME_PATH', '')
-            cls.driver = webdriver.Chrome(executable_path=chrome_driver_path)
+            chrome_options = ChromeOptions()
+            if use_virtual_display:
+                chrome_options.add_argument('--headless')
+                chrome_options.add_argument('--no-sandbox')
+                chrome_options.add_argument('--disable-dev-shm-usage')
+            
+            if chrome_driver_path:
+                service = ChromeService(executable_path=chrome_driver_path)
+                cls.driver = webdriver.Chrome(service=service, options=chrome_options)
+            else:
+                cls.driver = webdriver.Chrome(options=chrome_options)
         else:
+            from selenium.webdriver.firefox.service import Service as FirefoxService
+            
             ff_options = FirefoxOptions()
-            cls.driver = webdriver.Firefox(options=ff_options)
+            if use_virtual_display:
+                ff_options.add_argument('--headless')
+            
+            # Use the system geckodriver
+            service = FirefoxService(executable_path='/snap/bin/geckodriver')
+            cls.driver = webdriver.Firefox(service=service, options=ff_options)
 
         orig_find_element = cls.driver.find_element
 

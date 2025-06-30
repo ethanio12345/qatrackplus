@@ -1,5 +1,5 @@
 import calendar
-from datetime import datetime
+import datetime
 
 from django.conf import settings
 from django.utils import timezone
@@ -7,12 +7,12 @@ from django.utils.formats import get_format, date_format
 from zoneinfo import ZoneInfo
 
 
-def date_to_datetime(date):
+def date_to_datetime(date_obj):
     """If passed a date object will return an equivalent datetime at 00:00 in the current timezone"""
-    if isinstance(date, datetime.date):
+    if isinstance(date_obj, datetime.date) and not isinstance(date_obj, datetime.datetime):
         tz = ZoneInfo(settings.TIME_ZONE)
-        return timezone.datetime(date.year, date.month, date.day).replace(tzinfo=tz)
-    return date
+        return timezone.datetime(date_obj.year, date_obj.month, date_obj.day).replace(tzinfo=tz)
+    return date_obj
 
 
 def start_of_day(dt, naive=False):

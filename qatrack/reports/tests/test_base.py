@@ -501,8 +501,8 @@ class TestFilters(TestCase):
         for test_input in test_inputs:
             start, end = cdf.clean(test_input)
             tz = timezone.get_current_timezone()
-            expected_start = tz.localize(timezone.datetime(2019, 1, 1))
-            expected_end = tz.localize(timezone.datetime(2019, 1, 2, 23, 59, 59))
+            expected_start = timezone.datetime(2019, 1, 1).replace(tzinfo=tz)
+            expected_end = timezone.datetime(2019, 1, 2, 23, 59, 59).replace(tzinfo=tz)
             assert (start, end) == (expected_start, expected_end)
 
     def test_category_choices(self):

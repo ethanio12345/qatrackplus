@@ -1,98 +1,80 @@
 [project]
 name = "qatrackplus"
-version = "3.2.0.dev0"
+version = "3.1.1.4"
 description = "Quality Assurance software for medical physicists"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 authors = [
     {name = "Randy Taylor", email = "randy@multileaf.ca"},
 ]
+
 dependencies = [
-    # Core Django framework and essential web dependencies
-    "Django==3.2.25",
-    "django-q==1.3.4",
-    "djangorestframework>=3.14.0,<4.0",
-    "django-contrib-comments>=2.2,<2.3",
-    "django-crispy-forms>=1.14.0,<2.0",
-    "django-formtools>=2.5.1,<3.0",
-    "django-listable>=0.5.2,<1.0",
-    "django-mptt>=0.13.4,<1.0",
-    "django-mptt-admin>=0.7.2,<1.0",
-    "django-widget-tweaks>=1.4.1,<2.0",
-    "django-dynamic-raw-id==2.8",
-    "django-picklefield>=2.0,<4.0",
-    "django-registration>=3.1.1,<4.0",
-    "django-filter>=2.4.0,<23.0",
+    "black==23.1.0",
+    "Django==4.2",
+    "django-q2>=1.8.0",
+    "PyVirtualDisplay==2.0",
+    "beautifulsoup4==4.9.3",
+    "concurrent-log-handler==0.9.19",
+    "coreapi>=2.3.3,<3.0",
+    "coverage>=6.0,<8.0",
+    "django-auth-adfs>=1.7.0",
     "django-braces>=1.17,<1.18",
-    "djangorestframework-filters==1.0.0_dev0",
-    
-    # Authentication and security
-    "django-auth-adfs==1.6.0",
-    
-    # Core scientific and medical libraries
-    "numpy>=1.21.2,<2.0",
-    "scipy>=1.7.3,<2.0",
-    "matplotlib>=3.5.0,<4.0",
-    "pandas>=1.3.4,<2.0",
-    "pydicom>=2.1.2,<3.0",
-    "pylinac<3.20",
-    
-    # File processing and reporting
+    "django-contrib-comments>=2.2,<3.0",
+    "django-coverage>=1.2.4,<2.0",
+    "django-crispy-forms>=1.14.0,<2.0",
+    "django-debug-toolbar>=4.0,<5.0",
+    "django-dynamic-raw-id>=4.0",
+    "django-extensions>=3.1.0,<4.0",
+    "django-filter>=23.0",
+    "django-formtools>=2.5.1,<3.0",
+    "django-listable>=0.9.0,<1.0",
+    "django-mptt>=0.13.4,<1.0",
+    "django-mptt-admin>=2.0",
+    "django-picklefield>=3.1",
+    "django-registration>=3.2",
+    "djangorestframework>=3.14.0",
+    "djangorestframework-filters>=1.0.0.dev2",
+    "django-widget-tweaks>=1.5.0",
+    "freezegun>=1.0.0,<3.0",
+    "html5lib>=1.1,<2.0",
+    "markdown>=3.4.0,<4.0",
+    "matplotlib>=3.7.0,<4.0",
+    "numpy>=1.21.0,<2.0",
     "openpyxl>=3.0.6,<4.0",
+    "pandas>=1.3.0,<3.0",
+    "pep8>=1.7.1,<2.0",
+    "Pillow>=9.0.0,<11.0",
+    "pydicom>=2.1.2,<4.0",
+    "pylinac>=3.20,<4.0",
+    "pynliner>=0.8.0,<1.0",
+    "pytest-cov>=4.0,<5.0",
+    "pytest-django>=4.5.0,<5.0",
+    "pytest-sugar>=0.9.6,<1.0",
+    "pytest>=7.0,<8.0",
+    "python-dateutil>=2.8.1,<3.0",
+    "reportlab>=4.0.0,<5.0",
+    "requests>=2.25.0,<3.0",
+    "scipy>=1.7.0,<2.0",
+    "selenium>=4.0.0,<5.0",
+    "setuptools>=65.0",
+    "urllib3>=1.25.11,<3.0",
     "xlrd>=2.0.1,<3.0",
     "XlsxWriter>=1.3.7,<4.0",
-    "reportlab>=4.0.0,<5.0",
-    "Pillow>=8.3.0,<11.0",
-    
-    # HTML and web utilities
-    "beautifulsoup4==4.9.3",
-    "html5lib>=1.1,<2.0",
-    "markdown>=3.3.3,<4.0",
-    "pynliner>=0.8.0,<1.0",
-    
-    # Core utilities
-    "python-dateutil>=2.8.1,<3.0",
-    "requests>=2.25.0,<3.0",
-    "urllib3>=1.25.11,<2.0",
-    "setuptools>=65.0",
-    "concurrent-log-handler==0.9.19",
-    
-    # QATrack+ specific forks
-    "django-recurrence @ git+https://github.com/randlet/django-recurrence.git@b3a73e8e03952107e58382922fec37aead31fd6f",
-    "django-sql-explorer @ git+https://github.com/randlet/django-sql-explorer.git@12802fe83f9c45fd0bbe9610cb442dcfc5666d44",
+    "django-recurrence>=1.11.0",
+    "django-sql-explorer>=5.3",
+    "django-upgrade>=1.25.0",
+    "pre-commit>=4.2.0",
+    "fabric>=2.6.0",
 ]
 
 [project.optional-dependencies]
-# Development and testing dependencies
 dev = [
-    # Code formatting and linting
-    "black==23.1.0",
-    "flake8",
-    "isort", 
-    "pylint>=2.12,<3.0",
-    "pep8>=1.7.1,<2.0",
-    "yapf",
-    
-    # Testing frameworks and tools
-    "pytest>=7.0,<8.0",
-    "pytest-django>=4.1.0,<5.0",
-    "pytest-cov>=2.11.1,<3.0",
-    "pytest-sugar>=0.9.6,<1.0",
-    "coverage>=6.0,<8.0",
-    "django-coverage>=1.2.4,<2.0",
-    "freezegun>=0.3.15,<2.0",
-    "selenium==3.141.0",
-    "PyVirtualDisplay==2.0",
-    
-    # Development aids
-    "django-debug-toolbar>=3.2,<4.0",
-    "django-extensions==3.1.0",
-    "ipdb",
-    "ipython",
-    "coreapi==2.3.3",
-    
-    # Documentation tools
     "Jinja2==3.1.2",
     "Sphinx==7.4.7",
+    "flake8",
+    "ipdb",
+    "ipython",
+    "isort",
+    "pylint>=2.12,<3.0",
     "sphinx-autobuild==0.7.1",
     "sphinx-rtd-theme==3.0.2",
     "sphinxcontrib-applehelp==1.0.4",
@@ -103,16 +85,9 @@ dev = [
     "sphinxcontrib-qthelp==1.0.3",
     "sphinxcontrib-serializinghtml==2.0.0",
     "sphinxcontrib-websupport==1.2.4",
+    "yapf",
 ]
 
-# Windows-specific dependencies
-windows = [
-    "CherryPy==18.0.1",
-    "pyreadline",
-    "pywin32>=300",
-]
-
-# Database backends
 mysql = [
     "mysqlclient==2.0.3",
 ]
@@ -121,19 +96,14 @@ postgres = [
     "psycopg2-binary==2.8.6",
 ]
 
-# Deployment options
+win = [
+    "CherryPy==18.0.1",
+    "pyreadline",
+    "pywin32>=300",
+]
+
 docker = [
     "gunicorn==19.9.0",
-]
-
-# Optional PDF processing (for advanced report features)
-pdf = [
-    "PyPDF2>=3.0.0",
-]
-
-# Optional LDAP authentication
-ldap = [
-    "python-ldap>=3.4.0",
 ]
 
 [project.urls]
