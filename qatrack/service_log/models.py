@@ -36,6 +36,7 @@ LOG_TYPES = ((NEW_SERVICE_EVENT, 'New Service Event'), (MODIFIED_SERVICE_EVENT, 
 
 
 class ServiceArea(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     name = models.CharField(
         _l("name"),
@@ -63,6 +64,7 @@ class ServiceArea(models.Model):
 
 
 class UnitServiceArea(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     unit = models.ForeignKey(
         Unit,
@@ -95,6 +97,7 @@ class UnitServiceArea(models.Model):
 
 
 class ServiceType(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     name = models.CharField(
         _l("name"),
@@ -132,6 +135,7 @@ class ServiceType(models.Model):
 
 
 class ServiceEventStatus(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     name = models.CharField(
         _l("name"),
@@ -236,6 +240,7 @@ class ServiceEventManager(models.Manager):
 
 
 class ServiceEvent(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     unit_service_area = models.ForeignKey(
         UnitServiceArea,
@@ -444,6 +449,7 @@ class ThirdPartyManager(models.Manager):
 
 
 class ThirdParty(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     vendor = models.ForeignKey(
         Vendor,
@@ -477,6 +483,7 @@ class ThirdParty(models.Model):
 
 
 class Hours(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     service_event = models.ForeignKey(
         ServiceEvent,
@@ -541,6 +548,7 @@ class ReturnToServiceQAManager(models.Manager):
 
 
 class ReturnToServiceQA(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     unit_test_collection = models.ForeignKey(
         q_models.UnitTestCollection, help_text=_l('Select a TestList to perform'), on_delete=models.CASCADE
@@ -571,6 +579,7 @@ class ReturnToServiceQA(models.Model):
 
 
 class GroupLinker(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     group = models.ForeignKey(
         Group,
@@ -624,6 +633,7 @@ class GroupLinker(models.Model):
 
 
 class GroupLinkerInstance(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     group_linker = models.ForeignKey(
         GroupLinker,
@@ -696,6 +706,7 @@ class ServiceLogManager(models.Manager):
 
 
 class ServiceLog(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     user = models.ForeignKey(
         User,
@@ -768,6 +779,7 @@ class ServiceLog(models.Model):
 
 
 class ServiceEventTemplate(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     service_type = models.ForeignKey(
         ServiceType,
@@ -881,6 +893,7 @@ def ensure_hours_unique(sender, instance, raw, using, update_fields, **kwargs):
 
 
 class ServiceEventSchedule(SchedulingMixin, models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     unit_service_area = models.ForeignKey(
         UnitServiceArea,

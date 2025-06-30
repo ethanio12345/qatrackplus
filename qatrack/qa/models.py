@@ -372,6 +372,7 @@ class FrequencyManager(models.Manager):
 
 class Frequency(RecurrenceFieldMixin, models.Model):
     """Frequencies for performing QC tasks with configurable due dates"""
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     name = models.CharField(max_length=50, unique=True, help_text=_l("Display name for this frequency"))
 
@@ -567,6 +568,7 @@ class TestInstanceStatus(models.Model):
 
 
 class AutoReviewRule(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     pass_fail = models.CharField(
         help_text=_l("Pass fail state of test instances to apply this rule to."),
@@ -584,6 +586,7 @@ class AutoReviewRule(models.Model):
 
 
 class AutoReviewRuleSet(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     name = models.CharField(
         verbose_name=_l("Name"),
@@ -609,6 +612,7 @@ class AutoReviewRuleSet(models.Model):
 
 class Reference(models.Model):
     """Reference values for various QC :model:`Test`s"""
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     name = models.CharField(max_length=255, help_text=_l("Enter a short name for this reference"))
     type = models.CharField(max_length=15, choices=REF_TYPE_CHOICES, default=NUMERICAL)
@@ -651,6 +655,7 @@ class Tolerance(models.Model):
     Model for storing tolerance/action levels and tolerance/action choices
     for multiple choice type tests
     """
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     name = models.CharField(max_length=255, unique=True, editable=False)
 
@@ -843,6 +848,8 @@ class CategoryManager(TreeManager):
 
 
 class Category(MPTTModel):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
+
     """A model used for categorizing :model:`Test`s"""
 
     NK_FIELDS = ['name']
@@ -882,6 +889,8 @@ class TestManager(models.Manager):
 
 
 class Test(models.Model, TestPackMixin):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
+
     """Test to be completed as part of a QC :model:`TestList`"""
 
     NK_FIELDS = ['name']
@@ -1332,6 +1341,7 @@ class UnitTestInfoManager(models.Manager):
 
 
 class UnitTestInfo(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     unit = models.ForeignKey(Unit, on_delete=models.PROTECT)
     test = models.ForeignKey(Test, on_delete=models.PROTECT)
@@ -1392,6 +1402,7 @@ class UnitTestInfo(models.Model):
 
 
 class UnitTestInfoChange(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     unit_test_info = models.ForeignKey(UnitTestInfo, on_delete=models.PROTECT)
     reference = models.ForeignKey(
@@ -1423,6 +1434,7 @@ class TestListMembershipManager(models.Manager):
 
 class TestListMembership(models.Model):
     """Keep track of ordering for tests within a test list"""
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     NK_FIELDS = ['test_list', 'test']
 
@@ -1531,6 +1543,7 @@ class TestListManager(models.Manager):
 
 class TestList(TestCollectionInterface, TestPackMixin):
     """Container for a collection of QC :model:`Test`s"""
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     NK_FIELDS = ['slug']
 
@@ -1665,6 +1678,7 @@ class TestList(TestCollectionInterface, TestPackMixin):
 
 
 class Sublist(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     NK_FIELDS = ['parent', 'child']
 
@@ -1724,6 +1738,7 @@ class UnitTestListManager(models.Manager):
 
 class UnitTestCollection(SchedulingMixin, models.Model):
     """keeps track of which units should perform which test lists at a given frequency"""
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE)
 
@@ -1914,6 +1929,7 @@ class TestInstanceManager(models.Manager):
 
 
 class TestInstance(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
     """
     Model for storing actual value of a measured test as well as whether
     or not the test passed or failed along with the reference and tolerance
@@ -2275,6 +2291,7 @@ class TestListInstance(models.Model):
     of values so that they are grouped together and can be queried easily.
 
     """
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     unit_test_collection = models.ForeignKey(UnitTestCollection, on_delete=models.PROTECT, editable=False)
     test_list = models.ForeignKey(TestList, on_delete=models.PROTECT, editable=False)
@@ -2505,6 +2522,7 @@ class TestListInstance(models.Model):
 
 
 class AutoSave(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     unit_test_collection = models.ForeignKey(
         UnitTestCollection,

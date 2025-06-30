@@ -12,6 +12,7 @@ from qatrack.units import models as u_models
 
 
 class Supplier(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     name = models.CharField(
         verbose_name=_l("supplier"),
@@ -64,6 +65,7 @@ class Supplier(models.Model):
 
 
 class Contact(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     supplier = models.ForeignKey(
         Supplier,
@@ -113,6 +115,7 @@ class RoomManager(models.Manager):
 
 
 class Room(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     site = models.ForeignKey(
         u_models.Site,
@@ -155,6 +158,7 @@ class StorageManager(models.Manager):
 
 
 class Storage(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     room = models.ForeignKey(
         Room,
@@ -201,6 +205,7 @@ class Storage(models.Model):
 
 
 class PartCategory(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     name = models.CharField(
         verbose_name=_l("part category"),
@@ -216,6 +221,7 @@ class PartCategory(models.Model):
 
 
 class Part(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     name = models.CharField(
         verbose_name=_l("name"),
@@ -344,6 +350,7 @@ class PartStorageCollectionManager(models.Manager):
 
 
 class PartStorageCollection(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     part = models.ForeignKey(
         Part,
@@ -413,6 +420,7 @@ class PartSupplierCollection(models.Model):
 
 
 class PartUsed(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     service_event = models.ForeignKey(
         sl_models.ServiceEvent,

@@ -70,7 +70,7 @@ class FaultManager(models.Manager):
 
 
 class Fault(models.Model):
-
+    id = models.AutoField(primary_key=True, verbose_name=_l("ID"))
     unit = models.ForeignKey(
         u_models.Unit,
         verbose_name=_l("unit"),

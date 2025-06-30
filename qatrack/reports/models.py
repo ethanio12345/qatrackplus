@@ -17,6 +17,7 @@ from qatrack.reports.reports import report_class
 
 
 class SavedReport(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     FORMATS = [('pdf', _l('PDF')), ('xlsx', 'Excel'), ("csv", _l("CSV"))]
     PAPER_SIZES = [('letter', _l('Letter (8.5" × 11")')), ('a4', _l('A4 (210mm × 297mm)'))]

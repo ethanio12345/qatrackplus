@@ -18,7 +18,7 @@ from qatrack.units.models import Unit
 
 
 class RecipientGroup(models.Model):
-
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
     name = models.CharField(
         max_length=255,
         help_text=_l("Enter a name for this group of recipients"),
@@ -62,6 +62,7 @@ class RecipientGroup(models.Model):
 
 
 class TestListGroup(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     name = models.CharField(max_length=255, help_text=_l("Enter a name for this group of TestLists"))
 
@@ -77,6 +78,7 @@ class TestListGroup(models.Model):
 
 
 class UnitGroup(models.Model):
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     name = models.CharField(max_length=255, help_text=_l("Enter a name for this group of Units"))
 

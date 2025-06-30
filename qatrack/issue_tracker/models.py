@@ -32,7 +32,7 @@ class IssuePriority(models.Model):
 
 
 class IssueTag(models.Model):
-
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
     name = models.CharField(max_length=32)
     description = models.CharField(max_length=255, null=True, blank=True)
 
@@ -59,7 +59,7 @@ class IssueStatus(models.Model):
 
 
 class Issue(models.Model):
-
+    id = models.AutoField(primary_key=True, verbose_name='ID')
     issue_type = models.ForeignKey(IssueType, on_delete=models.PROTECT)
     issue_priority = models.ForeignKey(IssuePriority, null=True, on_delete=models.PROTECT)
     issue_tags = models.ManyToManyField(IssueTag, blank=True, help_text='If desired, add multiple tags to this issue')

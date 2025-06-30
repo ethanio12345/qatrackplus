@@ -25,6 +25,7 @@ class Vendor(models.Model):
 
     Stores information (just name for now) of unit vendor.
     """
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     name = models.CharField(
         verbose_name=_l("name"),
@@ -60,6 +61,7 @@ class UnitClass(models.Model):
 
     Unit class, ie. linac, CT, MR, etc.
     """
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     name = models.CharField(
         verbose_name=_l("name"),
@@ -88,6 +90,8 @@ class Site(models.Model):
 
     Allows for multiple site filtering (different campuses, buildings, hospitals, etc)
     """
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
+
     name = models.CharField(
         verbose_name=_l("name"),
         max_length=64,
@@ -124,6 +128,8 @@ class UnitType(models.Model):
     another.
 
     """
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
+
     vendor = models.ForeignKey(
         Vendor,
         null=True,
@@ -193,6 +199,7 @@ class Modality(models.Model):
     defines available treatment & imaging modalities and techniques  for a given :model:`unit1`
 
     """
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     name = models.CharField(
         _l('Name'),
@@ -228,6 +235,8 @@ class Unit(models.Model):
     """Radiation devices
     Stores a single radiation device (e.g. Linac, Tomo unit, Cyberkinfe etc.)
     """
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
+
     type = models.ForeignKey(UnitType, verbose_name=_l("Unit Type"), on_delete=models.PROTECT)
     site = models.ForeignKey(Site, null=True, blank=True, on_delete=models.PROTECT)
 

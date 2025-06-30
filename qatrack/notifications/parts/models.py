@@ -6,7 +6,7 @@ from qatrack.parts.models import PartCategory
 
 
 class PartCategoryGroup(models.Model):
-
+    id = models.AutoField(primary_key=True, verbose_name=("ID"))
     name = models.CharField(max_length=255, help_text=_l("Enter a name for this group of part categories"))
 
     part_categories = models.ManyToManyField(
