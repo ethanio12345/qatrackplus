@@ -17,7 +17,7 @@ export PATH="/home/$USER/.local/bin:$PATH"
 
 Then create a virtual environment with Python 3.10 and install all dependencies:
 cd /path/to/qatrackplus
-uv venv .venv --python python3.10
+uv venv .venv --python python3.12
 source .venv/bin/activate
 uv sync --extra dev
 
@@ -62,7 +62,7 @@ git clone https://github.com/yourusername/qatrackplus.git
 cd qatrackplus
 curl -LsSf https://astral.sh/uv/install.sh | sh
 export PATH="/home/$USER/.local/bin:$PATH"
-uv venv .venv --python python3.10
+uv venv .venv --python python3.12
 source .venv/bin/activate
 uv sync --extra dev
 cp deploy/dev/local_settings.dev.py qatrack/local_settings.py

@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('reports', '0009_auto_20250606_1553'),
+        ('reports', '0009_add_sca_logo'),
     ]
 
     operations = [
