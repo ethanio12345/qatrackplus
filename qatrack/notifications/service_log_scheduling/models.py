@@ -47,9 +47,7 @@ class ServiceEventSchedulingNotice(RecurrenceFieldMixin, models.Model):
 
     time = models.TimeField(
         verbose_name=_l("Time of day"),
-        help_text=_l(
-            "Set the time of day this notice should be sent (00:00-23:59)."
-        ),
+        help_text=_l("Set the time of day this notice should be sent (00:00-23:59)."),
         choices=TIME_CHOICES,
     )
 

@@ -1,6 +1,3 @@
-import os
-
-from django.conf import settings
 from django.test import TestCase
 import numpy as np
 import matplotlib.pyplot as plt

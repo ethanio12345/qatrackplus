@@ -73,26 +73,21 @@ class FaultAdmin(SaveUserQATrackAdmin):
             Prefetch("fault_types", queryset=models.FaultType.objects.order_by("code")),
         )
 
-    @admin.display(
-        ordering="pk"
-    )
+    @admin.display(ordering="pk")
     def name(self, obj):
         return str(obj)
 
-    @admin.display(
-        description=_l("Fault Types")
-    )
+    @admin.display(description=_l("Fault Types"))
     def get_fault_types(self, obj):
         return ", ".join(ft.code for ft in obj.fault_types.all())
+
     get_fault_types.order_field = "fault_types__code"
 
 
 class FaultReviewGroupAdmin(BaseQATrackAdmin):
 
     list_display = ("group", "required")
-    search_fields = (
-        "group__name",
-    )
+    search_fields = ("group__name",)
 
 
 admin.site.register([models.FaultType], FaultTypeAdmin)

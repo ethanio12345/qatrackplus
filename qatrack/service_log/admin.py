@@ -126,7 +126,6 @@ class ServiceEventStatusAdmin(DeleteOnlyFromOwnFormAdmin):
             "jquery/js/jquery.min.js",
             "colorpicker/js/bootstrap-colorpicker.min.js",
             "qatrack_core/js/admin_colourpicker.js",
-
         )
         css = {
             'all': (
@@ -298,10 +297,7 @@ class ServiceEventScheduleAdminForm(forms.ModelForm):
         se_template = self.cleaned_data.get('service_event_template')
         usa = self.cleaned_data.get('unit_service_area')
         mismatched_service_area = (
-            se_template and
-            usa and
-            se_template.service_area and
-            usa.service_area != se_template.service_area
+            se_template and usa and se_template.service_area and usa.service_area != se_template.service_area
         )
         if mismatched_service_area:
             msg = "The template service area (%s) does not match the unit's service area (%s)" % (
@@ -340,15 +336,7 @@ class ServiceEventScheduleAdmin(BaseQATrackAdmin):
         q_admin.ActiveFilter,
     ]
 
-    list_display = [
-        'get_name',
-        'get_site',
-        'get_unit',
-        'get_service_area',
-        freq_name,
-        assigned_to_name,
-        "active"
-    ]
+    list_display = ['get_name', 'get_site', 'get_unit', 'get_service_area', freq_name, assigned_to_name, "active"]
 
     search_fields = [
         'service_event_template__name',

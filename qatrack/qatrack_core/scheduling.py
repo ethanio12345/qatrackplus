@@ -10,7 +10,6 @@ from django.utils import timezone
 from qatrack.qatrack_core.dates import end_of_day, start_of_day
 from ..qa.models import RecurrenceField
 
-
 # due date choices. For convenience with colors/icons these are the same as the
 # pass fail choices
 
@@ -39,9 +38,10 @@ def calc_due_date(completed, due_date, frequency):
     is_classic_offset = frequency.window_start is None
     if is_classic_offset or due_date is None:
         # Check if this recurrence was created from string assignment (test compatibility)
-        if (is_classic_offset and due_date is not None and 
-            hasattr(frequency.recurrences, '_from_string_assignment') and 
-            frequency.recurrences._from_string_assignment):
+        if (
+            is_classic_offset and due_date is not None and hasattr(frequency.recurrences, '_from_string_assignment') and
+            frequency.recurrences._from_string_assignment
+        ):
             # For string-assigned recurrences, always advance from due_date to preserve time
             return frequency.recurrences.after(due_date, dtstart=due_date)
         else:

@@ -71,13 +71,15 @@ class TestListAdminViewsTest(TestCase):
     def test_export_import_integration(self):
         """Test that export and import work together"""
         # First export
-        response = self.client.post(reverse('admin:qa_export_testpack'), {
-            'name': 'test-export',
-            'description': 'Test export',
-            'testlists': str(self.test_list.id),
-            'testlistcycles': '',
-            'tests': '',
-        })
+        response = self.client.post(
+            reverse('admin:qa_export_testpack'), {
+                'name': 'test-export',
+                'description': 'Test export',
+                'testlists': str(self.test_list.id),
+                'testlistcycles': '',
+                'tests': '',
+            }
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertEqual(response['Content-Disposition'], 'attachment; filename=test-export.tpk')
@@ -88,14 +90,17 @@ class TestListAdminViewsTest(TestCase):
 
         # Now import
         testpack_data = response.content.decode('utf-8')
-        response = self.client.post(reverse('admin:qa_import_testpack'), {
-            'testpack_data': testpack_data,
-            'testlists': '[["' + self.test_list.slug + '"]]',  # Natural key format
-            'testlistcycles': '[]',
-            'tests': '[]',
-        })
+        response = self.client.post(
+            reverse('admin:qa_import_testpack'),
+            {
+                'testpack_data': testpack_data,
+                'testlists': '[["' + self.test_list.slug + '"]]',  # Natural key format
+                'testlistcycles': '[]',
+                'tests': '[]',
+            }
+        )
         self.assertEqual(response.status_code, 302)  # Redirect on success
 
         # Verify the test list and test were imported
         self.assertTrue(models.TestList.objects.filter(slug=self.test_list.slug).exists())
-        self.assertTrue(models.Test.objects.filter(slug=self.test.slug).exists()) 
+        self.assertTrue(models.Test.objects.filter(slug=self.test.slug).exists())

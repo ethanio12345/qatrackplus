@@ -543,12 +543,14 @@ def create_reviews_for_fault(fault, user):
     reviewed = timezone.now()
     reviews = []
     for frg in frgs:
-        reviews.append(models.FaultReviewInstance(
-            reviewed=reviewed,
-            reviewed_by=user,
-            fault=fault,
-            fault_review_group=frg,
-        ))
+        reviews.append(
+            models.FaultReviewInstance(
+                reviewed=reviewed,
+                reviewed_by=user,
+                fault=fault,
+                fault_review_group=frg,
+            )
+        )
     return reviews
 
 
@@ -736,9 +738,7 @@ class FaultTypeDetails(FaultList):
             "unit__name",
             "unit__number",
             "unit_id",
-        ).annotate(
-            unit_count=Count("unit__%s" % settings.ORDER_UNITS_BY)
-        ).order_by(
+        ).annotate(unit_count=Count("unit__%s" % settings.ORDER_UNITS_BY)).order_by(
             "-unit_count",
         )
         context['fault_type'] = fault_type

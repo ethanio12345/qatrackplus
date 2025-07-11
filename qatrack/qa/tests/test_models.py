@@ -245,10 +245,10 @@ class TestTestCollectionInterface(TestCase):
         # In Django 3.2+, abstract models cannot be instantiated directly
         # Instead, we'll test that the TestCollectionInterface is indeed abstract
         # and that its test_list_members method is properly defined as abstract
-        
+
         # Test that the model is abstract
         self.assertTrue(models.TestCollectionInterface._meta.abstract)
-        
+
         # Test that the test_list_members method raises NotImplementedError
         # We'll do this by checking that the method exists and contains the proper code
         source = inspect.getsource(models.TestCollectionInterface.test_list_members)
@@ -415,7 +415,8 @@ result = foo + bar
     def test_invalid_clean_slug(self):
         test = self.create_test()
 
-        invalid = ("0 foo", "foo ", " foo" "foo bar", "foo*bar", "%foo", "foo$")
+        invalid = ("0 foo", "foo ", " foo"
+                   "foo bar", "foo*bar", "%foo", "foo$")
 
         for i in invalid:
             test.slug = i
@@ -1041,11 +1042,8 @@ class TestUnitTestCollection(TestCase):
 
         self.assertEqual(scheduling.NO_DUE_DATE, utc.due_status())
 
-        weekly_statuses = ((-10, scheduling.OVERDUE),
-                           (-8, scheduling.DUE),
-                           (-7, scheduling.DUE),
-                           (-6, scheduling.NOT_DUE),
-                           (1, scheduling.NOT_DUE))
+        weekly_statuses = ((-10, scheduling.OVERDUE), (-8, scheduling.DUE), (-7, scheduling.DUE),
+                           (-6, scheduling.NOT_DUE), (1, scheduling.NOT_DUE))
         for delta, due_status in weekly_statuses:
             wc = now + timezone.timedelta(days=delta)
             utils.create_test_list_instance(unit_test_collection=utc, work_completed=wc)

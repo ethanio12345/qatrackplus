@@ -103,7 +103,7 @@ urlpatterns = [
 
     # Legacy standalone admin URLs - TODO: Remove recurrences if not needed
     url(r'^admin/recurrences/$', admin.recurrence_examples, name="qa_recurrences"),
-    
+
     # AJAX endpoint for copy refs and tolerances (used by admin interface)
     url(
         r'^admin/copy_refs_and_tols/gettestlists/(?P<source_unit>[:|\w]+)/(?P<content_type>[:|\w]+)/$',

@@ -16,8 +16,7 @@ def select_template_from_string(arg):
     template paths separated by commas.
     """
     if ',' in arg:
-        tpl = loader.select_template(
-            [tn.strip() for tn in arg.split(',')])
+        tpl = loader.select_template([tn.strip() for tn in arg.split(',')])
     else:
         tpl = loader.get_template(arg)
     return tpl

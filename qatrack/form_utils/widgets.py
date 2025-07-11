@@ -29,10 +29,10 @@ except ImportError:
 
         def thumbnail(image_path, width, height):
             thumbnail_options = dict(size=(width, height), crop=True)
-            thumbnail = get_thumbnailer(image_path).get_thumbnail(
-                thumbnail_options)
+            thumbnail = get_thumbnailer(image_path).get_thumbnail(thumbnail_options)
             return u'<img src="%s" alt="%s" />' % (thumbnail.url, image_path)
     except ImportError:
+
         def thumbnail(image_path, width, height):
             absolute_url = posixpath.join(settings.MEDIA_URL, image_path)
             return u'<img src="%s" alt="%s" />' % (absolute_url, image_path)
@@ -52,8 +52,7 @@ class ImageWidget(forms.FileInput):
         input_html = super(ImageWidget, self).render(name, value, attrs)
         if hasattr(value, 'width') and hasattr(value, 'height'):
             image_html = thumbnail(value.name, self.width, self.height)
-            output = self.template % {'input': input_html,
-                                      'image': image_html}
+            output = self.template % {'input': input_html, 'image': image_html}
         else:
             output = input_html
         return mark_safe(output)
@@ -63,14 +62,11 @@ class ClearableFileInput(forms.MultiWidget):
     default_file_widget_class = forms.FileInput
     template = '%(input)s Clear: %(checkbox)s'
 
-    def __init__(self, file_widget=None,
-                 attrs=None, template=None):
+    def __init__(self, file_widget=None, attrs=None, template=None):
         if template is not None:
             self.template = template
         file_widget = file_widget or self.default_file_widget_class()
-        super(ClearableFileInput, self).__init__(
-            widgets=[file_widget, forms.CheckboxInput()],
-            attrs=attrs)
+        super(ClearableFileInput, self).__init__(widgets=[file_widget, forms.CheckboxInput()], attrs=attrs)
 
     def render(self, name, value, attrs=None):
         if isinstance(value, list):
@@ -85,21 +81,21 @@ class ClearableFileInput(forms.MultiWidget):
 
     def format_output(self, rendered_widgets):
         if self.value:
-            return self.template % {'input': rendered_widgets[0],
-                                    'checkbox': rendered_widgets[1]}
+            return self.template % {'input': rendered_widgets[0], 'checkbox': rendered_widgets[1]}
         return rendered_widgets[0]
 
-root = lambda path: posixpath.join(settings.STATIC_URL, path)
+
+def root(path):
+    return posixpath.join(settings.STATIC_URL, path)
 
 
 class AutoResizeTextarea(forms.Textarea):
     """
     A Textarea widget that automatically resizes to accomodate its contents.
     """
+
     class Media:
-        js = (JQUERY_URL,
-              root('form_utils/js/jquery.autogrow.js'),
-              root('form_utils/js/autoresize.js'))
+        js = (JQUERY_URL, root('form_utils/js/jquery.autogrow.js'), root('form_utils/js/autoresize.js'))
 
     def __init__(self, *args, **kwargs):
         attrs = kwargs.setdefault('attrs', {})
@@ -113,6 +109,7 @@ class AutoResizeTextarea(forms.Textarea):
 
 
 class InlineAutoResizeTextarea(AutoResizeTextarea):
+
     def __init__(self, *args, **kwargs):
         attrs = kwargs.setdefault('attrs', {})
         try:

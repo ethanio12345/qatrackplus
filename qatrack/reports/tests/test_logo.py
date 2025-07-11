@@ -26,135 +26,120 @@ class TestLogoInReports(TestCase):
     def test_logo_visible_html_report_include_logo_true(self):
         """Test that logo is visible in HTML reports when include_logo=True."""
         rep = qc.TestListInstanceDetailsReport(
-            base_opts={'include_logo': True},
-            report_opts={'unit_test_collection': [self.utc.pk]}
+            base_opts={'include_logo': True}, report_opts={'unit_test_collection': [self.utc.pk]}
         )
         rep.report_format = "html"
         html_content = rep.to_html()
-        
+
         # Should contain the visible logo image with correct attributes for HTML
-        self.assertIn('alt="Saskatchewan Cancer Agency"', html_content, 
-                      "Logo image should be present")
-        self.assertIn('class="logo logo-visible"', html_content, 
-                      "Logo should be visible when include_logo=True")
-        self.assertIn('sca_logo.jpg', html_content, 
-                      "Logo should reference the correct image file")
+        self.assertIn('alt="Saskatchewan Cancer Agency"', html_content, "Logo image should be present")
+        self.assertIn('class="logo logo-visible"', html_content, "Logo should be visible when include_logo=True")
+        self.assertIn('sca_logo.jpg', html_content, "Logo should reference the correct image file")
         # Should use static path for HTML, not file:// path
-        self.assertNotIn('file://', html_content, 
-                         "Logo should not use file:// path in HTML")
+        self.assertNotIn('file://', html_content, "Logo should not use file:// path in HTML")
 
     def test_logo_hidden_html_report_include_logo_false(self):
         """Test that logo is hidden in HTML reports when include_logo=False."""
         rep = qc.TestListInstanceDetailsReport(
-            base_opts={'include_logo': False},
-            report_opts={'unit_test_collection': [self.utc.pk]}
+            base_opts={'include_logo': False}, report_opts={'unit_test_collection': [self.utc.pk]}
         )
         rep.report_format = "html"
         html_content = rep.to_html()
-        
+
         # Should contain the hidden logo image
-        self.assertIn('alt="Saskatchewan Cancer Agency"', html_content, 
-                      "Logo image should be present")
-        self.assertIn('class="logo logo-hidden"', html_content, 
-                      "Logo should be hidden when include_logo=False")
-        self.assertIn('sca_logo.jpg', html_content, 
-                      "Logo should reference the correct image file")
+        self.assertIn('alt="Saskatchewan Cancer Agency"', html_content, "Logo image should be present")
+        self.assertIn('class="logo logo-hidden"', html_content, "Logo should be hidden when include_logo=False")
+        self.assertIn('sca_logo.jpg', html_content, "Logo should reference the correct image file")
 
     @override_settings(STATIC_ROOT='/test/static/root')
     def test_logo_visible_pdf_report_include_logo_true(self):
         """Test that logo uses file:// path in PDF reports when include_logo=True."""
         rep = qc.TestListInstanceDetailsReport(
-            base_opts={'include_logo': True},
-            report_opts={'unit_test_collection': [self.utc.pk]}
+            base_opts={'include_logo': True}, report_opts={'unit_test_collection': [self.utc.pk]}
         )
         rep.report_format = "pdf"  # Set report_format before calling to_pdf()
-        
+
         # Mock the PDF generation to avoid Chrome dependency and capture HTML content
         with mock.patch('qatrack.reports.reports.chrometopdf') as mock_chrome:
             mock_chrome.return_value = b'fake pdf content'
             rep.to_pdf()
-            
+
             # Get the HTML content that would be sent to Chrome
             html_content = mock_chrome.call_args[0][0]
-            
+
         # Should contain the visible logo image with file:// path for PDF
-        self.assertIn('alt="Saskatchewan Cancer Agency"', html_content, 
-                      "Logo image should be present")
-        self.assertIn('class="logo logo-visible"', html_content, 
-                      "Logo should be visible when include_logo=True")
-        self.assertIn('file:///test/static/root/reports/img/sca_logo.jpg', html_content, 
-                      "Logo should use correct file:// path for PDF")
+        self.assertIn('alt="Saskatchewan Cancer Agency"', html_content, "Logo image should be present")
+        self.assertIn('class="logo logo-visible"', html_content, "Logo should be visible when include_logo=True")
+        self.assertIn(
+            'file:///test/static/root/reports/img/sca_logo.jpg', html_content,
+            "Logo should use correct file:// path for PDF"
+        )
 
     @override_settings(STATIC_ROOT='/test/static/root')
     def test_logo_hidden_pdf_report_include_logo_false(self):
         """Test that logo is hidden in PDF reports when include_logo=False."""
         rep = qc.TestListInstanceDetailsReport(
-            base_opts={'include_logo': False},
-            report_opts={'unit_test_collection': [self.utc.pk]}
+            base_opts={'include_logo': False}, report_opts={'unit_test_collection': [self.utc.pk]}
         )
         rep.report_format = "pdf"  # Set report_format before calling to_pdf()
-        
+
         # Mock the PDF generation to avoid Chrome dependency and capture HTML content
         with mock.patch('qatrack.reports.reports.chrometopdf') as mock_chrome:
             mock_chrome.return_value = b'fake pdf content'
             rep.to_pdf()
-            
+
             # Get the HTML content that would be sent to Chrome
             html_content = mock_chrome.call_args[0][0]
-            
+
         # Should contain the hidden logo image
-        self.assertIn('alt="Saskatchewan Cancer Agency"', html_content, 
-                      "Logo image should be present")
-        self.assertIn('class="logo logo-hidden"', html_content, 
-                      "Logo should be hidden when include_logo=False")
-        self.assertIn('file://', html_content, 
-                      "Logo should use file:// path even when hidden")
+        self.assertIn('alt="Saskatchewan Cancer Agency"', html_content, "Logo image should be present")
+        self.assertIn('class="logo logo-hidden"', html_content, "Logo should be hidden when include_logo=False")
+        self.assertIn('file://', html_content, "Logo should use file:// path even when hidden")
 
     def test_fallback_message_present_in_pdf(self):
         """Test that fallback message is present in PDF reports for error handling."""
         rep = qc.TestListInstanceDetailsReport(
-            base_opts={'include_logo': True},
-            report_opts={'unit_test_collection': [self.utc.pk]}
+            base_opts={'include_logo': True}, report_opts={'unit_test_collection': [self.utc.pk]}
         )
         rep.report_format = "pdf"  # Set report_format before calling to_pdf()
-        
+
         # Mock the PDF generation to capture HTML content
         with mock.patch('qatrack.reports.reports.chrometopdf') as mock_chrome:
             mock_chrome.return_value = b'fake pdf content'
             rep.to_pdf()
-            
+
             # Get the HTML content that would be sent to Chrome
             html_content = mock_chrome.call_args[0][0]
-            
+
         # Should contain the fallback message div and its content
-        self.assertIn('class="logo-fallback-message"', html_content, 
-                      "Fallback message div should be present")
-        self.assertIn('Saskatchewan Cancer Agency', html_content, 
-                      "Fallback message should mention Saskatchewan Cancer Agency")
-        self.assertIn('Logo not available in downloaded version', html_content, 
-                      "Fallback message should explain logo unavailability")
-        self.assertIn('onerror=', html_content, 
-                      "Logo should have error handling attribute")
+        self.assertIn('class="logo-fallback-message"', html_content, "Fallback message div should be present")
+        self.assertIn(
+            'Saskatchewan Cancer Agency', html_content, "Fallback message should mention Saskatchewan Cancer Agency"
+        )
+        self.assertIn(
+            'Logo not available in downloaded version', html_content,
+            "Fallback message should explain logo unavailability"
+        )
+        self.assertIn('onerror=', html_content, "Logo should have error handling attribute")
 
     def test_no_fallback_message_in_html(self):
         """Test that fallback message is not present in HTML reports."""
         rep = qc.TestListInstanceDetailsReport(
-            base_opts={'include_logo': True},
-            report_opts={'unit_test_collection': [self.utc.pk]}
+            base_opts={'include_logo': True}, report_opts={'unit_test_collection': [self.utc.pk]}
         )
         rep.report_format = "html"
         html_content = rep.to_html()
-        
+
         # Should not contain fallback message div since this is HTML, not PDF
-        self.assertNotIn('class="logo-fallback-message"', html_content, 
-                         "Fallback message div should not be present in HTML reports")
-        self.assertNotIn('onerror=', html_content, 
-                         "HTML version should not have error handling")
+        self.assertNotIn(
+            'class="logo-fallback-message"', html_content, "Fallback message div should not be present in HTML reports"
+        )
+        self.assertNotIn('onerror=', html_content, "HTML version should not have error handling")
 
     def test_header_template_context_for_pdf(self):
         """Test that the header template receives correct context for PDF generation."""
         template = get_template("reports/_header.html")
-        
+
         # Test PDF context
         context = {
             'for_pdf': 1,
@@ -162,39 +147,28 @@ class TestLogoInReports(TestCase):
             'STATIC_ROOT': '/test/static/root',
             'report_title': 'Test Report'
         }
-        
+
         rendered = template.render(context)
-        
+
         # Should use file:// path for PDF
-        self.assertIn('file:///test/static/root/reports/img/sca_logo.jpg', rendered, 
-                      "PDF should use file:// path")
-        self.assertIn('onerror=', rendered, 
-                      "PDF version should have error handling")
-        self.assertIn('class="logo-fallback-message"', rendered, 
-                      "PDF should have fallback message div")
+        self.assertIn('file:///test/static/root/reports/img/sca_logo.jpg', rendered, "PDF should use file:// path")
+        self.assertIn('onerror=', rendered, "PDF version should have error handling")
+        self.assertIn('class="logo-fallback-message"', rendered, "PDF should have fallback message div")
 
     def test_header_template_context_for_html(self):
         """Test that the header template receives correct context for HTML generation."""
         template = get_template("reports/_header.html")
-        
-        # Test HTML context  
-        context = {
-            'for_pdf': 0,
-            'include_logo': True,
-            'report_title': 'Test Report'
-        }
-        
+
+        # Test HTML context
+        context = {'for_pdf': 0, 'include_logo': True, 'report_title': 'Test Report'}
+
         rendered = template.render(context)
-        
+
         # Should use static template tag path for HTML
-        self.assertNotIn('file://', rendered, 
-                         "HTML should not use file:// path")
-        self.assertIn('sca_logo.jpg', rendered, 
-                      "HTML should reference logo file")
-        self.assertNotIn('onerror=', rendered, 
-                         "HTML version should not have error handling")
-        self.assertNotIn('class="logo-fallback-message"', rendered, 
-                         "HTML should not have fallback message div")
+        self.assertNotIn('file://', rendered, "HTML should not use file:// path")
+        self.assertIn('sca_logo.jpg', rendered, "HTML should reference logo file")
+        self.assertNotIn('onerror=', rendered, "HTML version should not have error handling")
+        self.assertNotIn('class="logo-fallback-message"', rendered, "HTML should not have fallback message div")
 
     def test_base_report_include_logo_default(self):
         """Test that BaseReport includes logo by default."""
@@ -211,77 +185,65 @@ class TestLogoInReports(TestCase):
     def test_logo_css_classes_applied_correctly(self):
         """Test that logo CSS classes are applied correctly based on include_logo setting."""
         template = get_template("reports/_header.html")
-        
+
         # Test with logo visible
         context = {'include_logo': True, 'for_pdf': 0, 'report_title': 'Test'}
         rendered = template.render(context)
-        self.assertIn('class="logo logo-visible"', rendered, 
-                      "Logo should have visible class when enabled")
-        
+        self.assertIn('class="logo logo-visible"', rendered, "Logo should have visible class when enabled")
+
         # Test with logo hidden
         context = {'include_logo': False, 'for_pdf': 0, 'report_title': 'Test'}
         rendered = template.render(context)
-        self.assertIn('class="logo logo-hidden"', rendered, 
-                      "Logo should have hidden class when disabled")
+        self.assertIn('class="logo logo-hidden"', rendered, "Logo should have hidden class when disabled")
 
     def test_multiple_report_types_logo_consistency(self):
         """Test that logo functionality works consistently across different report types."""
         report_types = [
-            (qc.TestListInstanceDetailsReport, {'unit_test_collection': [self.utc.pk]}),
+            (qc.TestListInstanceDetailsReport, {
+                'unit_test_collection': [self.utc.pk]
+            }),
             (qc.TestListInstanceSummaryReport, {}),
             (qc.AssignedQCReport, {}),
         ]
-        
+
         for ReportClass, report_opts in report_types:
             with self.subTest(report_type=ReportClass.__name__):
                 # Test with logo enabled
                 rep = ReportClass(base_opts={'include_logo': True}, report_opts=report_opts)
                 rep.report_format = "html"  # Set format to avoid the attribute error
                 context = rep.get_context()
-                self.assertTrue(context['include_logo'], 
-                                f"{ReportClass.__name__} should include logo when enabled")
-                
-                # Test with logo disabled  
+                self.assertTrue(context['include_logo'], f"{ReportClass.__name__} should include logo when enabled")
+
+                # Test with logo disabled
                 rep = ReportClass(base_opts={'include_logo': False}, report_opts=report_opts)
                 rep.report_format = "html"  # Set format to avoid the attribute error
                 context = rep.get_context()
-                self.assertFalse(context['include_logo'], 
-                                 f"{ReportClass.__name__} should not include logo when disabled")
+                self.assertFalse(
+                    context['include_logo'], f"{ReportClass.__name__} should not include logo when disabled"
+                )
 
     def test_logo_file_path_construction(self):
         """Test that logo file paths are constructed correctly for different contexts."""
         template = get_template("reports/_header.html")
-        
+
         static_root = '/test/static/root'
-        
+
         # Test PDF path construction
-        context = {
-            'for_pdf': 1, 
-            'include_logo': True, 
-            'STATIC_ROOT': static_root,
-            'report_title': 'Test'
-        }
+        context = {'for_pdf': 1, 'include_logo': True, 'STATIC_ROOT': static_root, 'report_title': 'Test'}
         rendered = template.render(context)
-        self.assertIn(f'file://{static_root}/reports/img/sca_logo.jpg', rendered,
-                      "PDF should use correct file:// path")
-        
+        self.assertIn(f'file://{static_root}/reports/img/sca_logo.jpg', rendered, "PDF should use correct file:// path")
+
         # Test HTML path construction (uses Django static template tag)
-        context = {
-            'for_pdf': 0, 
-            'include_logo': True,
-            'report_title': 'Test'
-        }
+        context = {'for_pdf': 0, 'include_logo': True, 'report_title': 'Test'}
         rendered = template.render(context)
         # The exact path will depend on static file handling, but should not contain file://
-        self.assertNotIn('file://', rendered, 
-                         "HTML should not use file:// path")
-        self.assertIn('sca_logo.jpg', rendered, 
-                      "HTML should reference logo file")
+        self.assertNotIn('file://', rendered, "HTML should not use file:// path")
+        self.assertIn('sca_logo.jpg', rendered, "HTML should reference logo file")
 
     def test_logo_toggle_functionality_in_forms(self):
         """Test that the include_logo toggle works correctly in form processing."""
         from qatrack.reports.forms import ReportForm
-        
+
         # Test form with logo enabled (use valid report type and proper field prefixes)
         form_data = {
             'root-title': 'Test Report',
@@ -291,7 +253,7 @@ class TestLogoInReports(TestCase):
         }
         form = ReportForm(data=form_data)
         self.assertTrue(form.is_valid(), f"Form should be valid with include_logo=True. Errors: {form.errors}")
-        
+
         # Test form with logo disabled
         form_data['root-include_logo'] = False
         form = ReportForm(data=form_data)
@@ -300,42 +262,39 @@ class TestLogoInReports(TestCase):
     def test_logo_error_handling_javascript(self):
         """Test that the JavaScript error handling is correctly implemented."""
         template = get_template("reports/_header.html")
-        
+
         context = {
             'for_pdf': 1,
             'include_logo': True,
             'STATIC_ROOT': '/test/static/root',
             'report_title': 'Test Report'
         }
-        
+
         rendered = template.render(context)
-        
+
         # Check that the JavaScript error handling is present and correct
-        self.assertIn("onerror=\"this.style.display='none'; this.nextElementSibling.style.display='block';\"", 
-                      rendered, "Error handling JavaScript should hide image and show fallback")
-        self.assertIn('style="display: none;"', rendered, 
-                      "Fallback message should be initially hidden")
+        self.assertIn(
+            "onerror=\"this.style.display='none'; this.nextElementSibling.style.display='block';\"", rendered,
+            "Error handling JavaScript should hide image and show fallback"
+        )
+        self.assertIn('style="display: none;"', rendered, "Fallback message should be initially hidden")
 
     def test_css_classes_defined(self):
         """Test that all necessary CSS classes are defined in the header template."""
         template = get_template("reports/_header.html")
-        
-        context = {
-            'for_pdf': 0,
-            'include_logo': True,
-            'report_title': 'Test Report'
-        }
-        
+
+        context = {'for_pdf': 0, 'include_logo': True, 'report_title': 'Test Report'}
+
         rendered = template.render(context)
-        
+
         # Check that CSS classes are defined
         self.assertIn('.logo-hidden', rendered, "logo-hidden class should be defined")
         self.assertIn('.logo-visible', rendered, "logo-visible class should be defined")
         self.assertIn('.logo', rendered, "logo class should be defined")
         self.assertIn('.logo-fallback-message', rendered, "logo-fallback-message class should be defined")
-        
+
         # Check CSS properties
         self.assertIn('opacity: 0', rendered, "Hidden logo should have opacity 0")
         self.assertIn('opacity: 1', rendered, "Visible logo should have opacity 1")
         self.assertIn('max-height: 60px', rendered, "Logo should have max height restriction")
-        self.assertIn('font-style: italic', rendered, "Fallback message should be italic") 
+        self.assertIn('font-style: italic', rendered, "Fallback message should be italic")

@@ -310,7 +310,9 @@ class UTCList(BaseListableView):
         qs = super(UTCList, self).get_queryset().order_by("pk")
 
         if self.visible_only:
-            qs = qs.filter(visible_to__in=self.request.user.groups.all(),).distinct()
+            qs = qs.filter(
+                visible_to__in=self.request.user.groups.all(),
+            ).distinct()
 
         if self.active_only:
             qs = qs.filter(active=True, unit__active=True)

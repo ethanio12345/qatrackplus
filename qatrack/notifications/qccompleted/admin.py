@@ -81,10 +81,11 @@ class QCCompletedAdmin(BaseQATrackAdmin):
         (
             "Filters", {
                 'fields': ['units', 'test_lists'],
-                'description': _l(
-                    "By using the below filters, you may limit this notification to "
-                    "certain units or test lists."
-                ),
+                'description':
+                    _l(
+                        "By using the below filters, you may limit this notification to "
+                        "certain units or test lists."
+                    ),
             }
         ),
     )
@@ -115,7 +116,8 @@ class QCCompletedAdmin(BaseQATrackAdmin):
     def get_notification_type(self, obj):
         if obj.notification_type == models.QCCompletedNotice.FOLLOW_UP:
             return _("#%(id)d - Follow up notification (after %(num_days)s days)") % {
-                'num_days': obj.follow_up_days, 'id': obj.id,
+                'num_days': obj.follow_up_days,
+                'id': obj.id,
             }
         return "#%s - %s" % (obj.pk, obj.get_notification_type_display())
 

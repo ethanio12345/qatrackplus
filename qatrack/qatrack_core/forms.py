@@ -10,6 +10,7 @@ class MultipleCharField(forms.CharField):
 
 
 class UserChoiceField(forms.ModelChoiceField):
+
     def label_from_instance(self, obj):
         return obj.get_full_name()
 
@@ -39,7 +40,7 @@ class BetterFormMixin:
 
     def get_fieldsets(self):
         """Get the fieldsets for this form.
-        
+
         Returns a list of (name, options) tuples where name is a label for the
         fieldset and options is a dictionary with a 'fields' key mapping to the
         list of field names in the fieldset.
@@ -52,12 +53,15 @@ class BetterFormMixin:
                     # Make sure we have access to the form's fields
                     form_fields = getattr(self, 'fields', {})
                     filtered_fields = [f for f in fields if f in form_fields]
-                    self._cached_fieldsets.append((name, {
-                        'fields': filtered_fields,
-                        'legend': options.get('legend', name.replace('_', ' ').title() if name else None),
-                        'classes': options.get('classes', ()),
-                        'description': options.get('description', ''),
-                    }))
+                    self._cached_fieldsets.append((
+                        name, {
+                            'fields': filtered_fields,
+                            'legend': options.get('legend',
+                                                  name.replace('_', ' ').title() if name else None),
+                            'classes': options.get('classes', ()),
+                            'description': options.get('description', ''),
+                        }
+                    ))
             else:
                 # Make sure we have access to the form's fields
                 form_fields = getattr(self, 'fields', {})
@@ -66,7 +70,7 @@ class BetterFormMixin:
 
     def add_fieldset(self, name, options):
         """Add a fieldset to the form.
-        
+
         Args:
             name: The name/label for the fieldset
             options: Dictionary containing fieldset options (fields, legend, classes, description)

@@ -166,7 +166,7 @@ class SeleniumTests(StaticLiveServerSingleThreadedTestCase):
 
     @contextmanager
     def wait_for_page_load(self, timeout=10):
-        old_page = self.driver.find_element(By.TAG_NAME,'html')
+        old_page = self.driver.find_element(By.TAG_NAME, 'html')
         yield
         WebDriverWait(self.driver, timeout).until(staleness_of(old_page))
 
@@ -178,16 +178,16 @@ class SeleniumTests(StaticLiveServerSingleThreadedTestCase):
     def login(self):
         self.open("/accounts/login/")
 
-        self.driver.find_element(By.ID,'id_username').send_keys(self.user.username)
-        self.driver.find_element(By.ID,'id_password').send_keys(self.password)
-        self.driver.find_element(By.CSS_SELECTOR,'button').click()
+        self.driver.find_element(By.ID, 'id_username').send_keys(self.user.username)
+        self.driver.find_element(By.ID, 'id_password').send_keys(self.password)
+        self.driver.find_element(By.CSS_SELECTOR, 'button').click()
         self.wait.until(e_c.presence_of_element_located((By.CSS_SELECTOR, "head > title")))
 
     def load_admin(self):
         self.open("/admin/")
-        self.driver.find_element(By.ID,'id_username').send_keys(self.user.username)
-        self.driver.find_element(By.ID,'id_password').send_keys(self.password)
-        self.driver.find_element(By.CSS_SELECTOR,'button').click()
+        self.driver.find_element(By.ID, 'id_username').send_keys(self.user.username)
+        self.driver.find_element(By.ID, 'id_password').send_keys(self.password)
+        self.driver.find_element(By.CSS_SELECTOR, 'button').click()
 
         self.wait.until(e_c.presence_of_element_located((By.CSS_SELECTOR, "head > title")))
 

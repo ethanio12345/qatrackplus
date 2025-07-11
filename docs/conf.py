@@ -28,7 +28,7 @@ author = 'Randle Taylor, Ryan Bottema & Contributors'
 # The short X.Y version
 settingsf = open(os.path.join("..", 'qatrack', 'settings.py'), 'r')
 
-version = re.findall("""VERSION\s+=\s+['"]+(.*)['"]""", settingsf.read())[0]
+version = re.findall(r"""VERSION\s+=\s+['"]+(.*)['"]""", settingsf.read())[0]
 
 # The full version, including alpha/beta/rc tags
 release = version

@@ -49,10 +49,7 @@ def label(boundfield, contents=None):
     label_text = contents or boundfield.label
     id_ = boundfield.field.widget.attrs.get('id') or boundfield.auto_id
 
-    return render_to_string("forms/_label.html", {
-        "label_text": label_text,
-        "id": id_,
-        "field": boundfield})
+    return render_to_string("forms/_label.html", {"label_text": label_text, "id": id_, "field": boundfield})
 
 
 @register.filter
@@ -60,8 +57,7 @@ def value_text(boundfield):
     """Return the value for given boundfield as human-readable text."""
     val = boundfield.value()
     # If choices is set, use the display label
-    return six.text_type(
-        dict(getattr(boundfield.field, "choices", [])).get(val, val))
+    return six.text_type(dict(getattr(boundfield.field, "choices", [])).get(val, val))
 
 
 @register.filter

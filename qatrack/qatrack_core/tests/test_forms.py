@@ -11,12 +11,14 @@ class TestForm(BetterFormMixin, forms.Form):
     email = forms.EmailField()
 
     fieldsets = [
-        ('personal', {
-            'fields': ['name', 'age'],
-            'legend': 'Personal Information',
-            'classes': ['personal-info'],
-            'description': 'Your personal details',
-        }),
+        (
+            'personal', {
+                'fields': ['name', 'age'],
+                'legend': 'Personal Information',
+                'classes': ['personal-info'],
+                'description': 'Your personal details',
+            }
+        ),
         ('contact', {
             'fields': ['email'],
         }),
@@ -53,12 +55,12 @@ class BetterFormMixinTest(TestCase):
     def test_as_fieldset(self):
         """Test that as_fieldset renders the correct HTML."""
         html = self.form.as_fieldset()
-        
+
         # Check for fieldset elements
         self.assertIn('<fieldset class="personal-info">', html)
         self.assertIn('<legend>Personal Information</legend>', html)
         self.assertIn('<p class="description">Your personal details</p>', html)
-        
+
         # Check for form fields
         self.assertIn('name="name"', html)
         self.assertIn('name="age"', html)
@@ -66,12 +68,13 @@ class BetterFormMixinTest(TestCase):
 
     def test_no_fieldsets(self):
         """Test form without fieldsets defined."""
+
         class NoFieldsetsForm(BetterFormMixin, forms.Form):
             name = forms.CharField()
 
         form = NoFieldsetsForm()
         fieldsets = form.get_fieldsets()
-        
+
         self.assertEqual(len(fieldsets), 1)
         name, options = fieldsets[0]
         self.assertIsNone(name)
@@ -79,6 +82,7 @@ class BetterFormMixinTest(TestCase):
 
     def test_missing_field(self):
         """Test that fieldsets handle missing fields gracefully."""
+
         class MissingFieldForm(BetterFormMixin, forms.Form):
             name = forms.CharField()
             fieldsets = [
@@ -89,7 +93,7 @@ class BetterFormMixinTest(TestCase):
 
         form = MissingFieldForm()
         fieldsets = form.get_fieldsets()
-        
+
         self.assertEqual(len(fieldsets), 1)
         name, options = fieldsets[0]
-        self.assertEqual(options['fields'], ['name'])  # nonexistent_field should be filtered out 
+        self.assertEqual(options['fields'], ['name'])  # nonexistent_field should be filtered out

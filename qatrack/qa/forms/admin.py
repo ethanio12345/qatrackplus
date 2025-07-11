@@ -1,10 +1,10 @@
 from django import forms
-from django.utils.translation import gettext as _
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ValidationError
+from django.utils.translation import gettext as _
 from qatrack.units.models import Unit
 from qatrack.units.forms import unit_site_unit_type_choices
 from qatrack.qa import models
+
 
 class CopyReferencesAndTolerancesForm(forms.Form):
     """Form for copying references and tolerances from TestList Unit 'x' to TestList Unit 'y' """
@@ -86,8 +86,10 @@ class CopyReferencesAndTolerancesForm(forms.Form):
             ctype = ContentType.objects.get(model=ctype)
             try:
                 models.UnitTestCollection.objects.get(
-                    unit=source_unit, object_id=source_testlist, content_type=ctype,
+                    unit=source_unit,
+                    object_id=source_testlist,
+                    content_type=ctype,
                 )
             except models.UnitTestCollection.DoesNotExist:
                 self.add_error("source_testlist", _("The selected test list does not exist on the source unit"))
-        return cleaned_data 
+        return cleaned_data

@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
 """
-Unified Translation Manager for QATrack+
-Combines all translation tasks: extraction, PO generation, translation, duplicate removal, and variable fixing.
+Translation Script for QATrack+
+Translates .po files to a target language.
 """
 
 import os
 import re
-import json
 import sys
 import time
 from pathlib import Path
-from collections import defaultdict
-from datetime import datetime
 
 # Google Translate API setup
 try:
@@ -20,148 +17,46 @@ try:
 except ImportError:
     GOOGLE_TRANSLATE_AVAILABLE = False
 
-def extract_all_translatable_strings():
-    """Extract all translatable strings from the codebase"""
-    
-    qatrack_dir = Path('qatrack')
-    all_strings = set()
-    string_locations = defaultdict(list)
-    
-    # Patterns to search for
-    patterns = [
-        # Django translation functions
-        r'_l\([\'"]([^\'"]+)[\'"]\)',  # _l("string")
-        r'gettext\([\'"]([^\'"]+)[\'"]\)',  # gettext("string")
-        r'ugettext\([\'"]([^\'"]+)[\'"]\)',  # ugettext("string")
-        r'pgettext\([^,]+,\s*[\'"]([^\'"]+)[\'"]\)',  # pgettext("context", "string")
-        r'ngettext\([\'"]([^\'"]+)[\'"]',  # ngettext("singular", "plural", count)
-        
-        # Template tags
-        r'{%\s*trans\s+[\'"]([^\'"]+)[\'"]\s*%}',  # {% trans "string" %}
-        r'{%\s*blocktrans\s+%}(.*?){%\s*endblocktrans\s*%}',  # {% blocktrans %}string{% endblocktrans %}
-        
-        # Model field strings that should be translated
-        r'verbose_name\s*=\s*[\'"]([^\'"]+)[\'"]',  # verbose_name="string"
-        r'help_text\s*=\s*[\'"]([^\'"]+)[\'"]',  # help_text="string"
-        r'error_messages\s*=\s*\{[^}]*[\'"]([^\'"]+)[\'"]\s*:',  # error_messages={"key": "string"}
-        
-        # Settings and constants
-        r'DATETIME_HELP\s*=\s*[\'"]([^\'"]+)[\'"]',  # DATETIME_HELP = "string"
-        
-        # JavaScript translations
-        r'gettext\([\'"]([^\'"]+)[\'"]\)',  # JavaScript gettext
-    ]
-    
-    # File patterns to search
-    file_patterns = ['*.py', '*.html', '*.js', '*.txt', '*.md']
-    
-    # Directories to exclude
-    exclude_dirs = {'.git', '__pycache__', 'migrations', 'static', 'media', 'node_modules', '.venv', 'venv', 'env', 'docs'}
-    
-    print("🔍 Searching for translatable strings...")
-    
-    for file_pattern in file_patterns:
-        for file_path in qatrack_dir.rglob(file_pattern):
-            if any(exclude_dir in file_path.parts for exclude_dir in exclude_dirs):
-                continue
-                
-            if file_path.is_file():
-                try:
-                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                        content = f.read()
-                        file_rel_path = str(file_path.relative_to(qatrack_dir))
-                        
-                        for pattern in patterns:
-                            matches = re.finditer(pattern, content, re.MULTILINE | re.DOTALL)
-                            for match in matches:
-                                if len(match.groups()) > 0:
-                                    string = match.group(1)
-                                    if string and len(string.strip()) > 0:
-                                        all_strings.add(string.strip())
-                                        string_locations[string.strip()].append(f"{file_rel_path}:{match.start()}")
-                except Exception as e:
-                    print(f"⚠️  Error reading {file_path}: {e}")
-    
-    # Check settings for constants
-    settings_file = qatrack_dir / 'settings.py'
-    if settings_file.exists():
-        try:
-            with open(settings_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-                datetime_help_match = re.search(r'DATETIME_HELP\s*=\s*[\'"]([^\'"]+)[\'"]', content)
-                if datetime_help_match:
-                    all_strings.add(datetime_help_match.group(1))
-                    string_locations[datetime_help_match.group(1)].append("settings.py")
-        except Exception as e:
-            print(f"⚠️  Error reading settings.py: {e}")
-    
-    return sorted(list(all_strings)), string_locations
 
-def generate_po_file(strings, language_code='fr'):
-    """Generate a complete django.po file with all extracted strings"""
+def find_po_files(language_code=None):
+    """Find all .po files, optionally filtered by language code"""
+    po_files = []
+    locale_dir = Path('qatrack/locale')
     
-    # Create locale directory structure
-    locale_dir = Path(f'qatrack/locale/{language_code}/LC_MESSAGES')
-    locale_dir.mkdir(parents=True, exist_ok=True)
+    if language_code:
+        po_file = locale_dir / language_code / 'LC_MESSAGES' / 'django.po'
+        if po_file.exists():
+            po_files.append(po_file)
+    else:
+        # Find all .po files
+        for lang_dir in locale_dir.iterdir():
+            if lang_dir.is_dir():
+                po_file = lang_dir / 'LC_MESSAGES' / 'django.po'
+                if po_file.exists():
+                    po_files.append(po_file)
     
-    # Get current date
-    current_date = datetime.now().strftime("%Y-%m-%d %H:%M+0000")
-    
-    # Generate PO content
-    po_content = f'''# QATrack+ Translation File
-# Copyright (C) 2024 QATrack+ Contributors
-# This file is distributed under the same license as the QATrack+ package.
-# Generated automatically from extracted translation strings.
-# Language: {language_code}
-#
-msgid ""
-msgstr ""
-"Project-Id-Version: QATrack+ 1.0\\n"
-"Report-Msgid-Bugs-To: \\n"
-"POT-Creation-Date: {current_date}\\n"
-"PO-Revision-Date: {current_date}\\n"
-"Last-Translator: Generated by script\\n"
-"Language-Team: LANGUAGE <LL@li.org>\\n"
-"Language: {language_code}\\n"
-"MIME-Version: 1.0\\n"
-"Content-Type: text/plain; charset=UTF-8\\n"
-"Content-Transfer-Encoding: 8bit\\n"
-"Plural-Forms: nplurals=2; plural=(n > 1);\\n"
+    return po_files
 
-# Extracted strings follow
-'''
-    
-    # Add all strings
-    for string in strings:
-        po_content += f'msgid "{string}"\nmsgstr ""\n\n'
-    
-    # Write to file
-    po_file = locale_dir / 'django.po'
-    with open(po_file, 'w', encoding='utf-8') as f:
-        f.write(po_content)
-    
-    print(f"📄 Generated PO file: {po_file}")
-    return po_file
 
 def remove_duplicates_from_po(po_file_path):
     """Remove duplicate msgid entries from a .po file"""
     
     with open(po_file_path, 'r', encoding='utf-8') as f:
         content = f.read()
-    
+
     # Split content into sections
     sections = content.split('\n\n')
     header = sections[0]
     translation_entries = sections[1:]
-    
+
     # Track seen msgids to remove duplicates
     seen_msgids = set()
     unique_entries = []
-    
+
     for entry in translation_entries:
         if not entry.strip():
             continue
-            
+
         # Extract msgid
         msgid_match = re.search(r'msgid\s+"([^"]*)"', entry)
         if msgid_match:
@@ -172,22 +67,23 @@ def remove_duplicates_from_po(po_file_path):
         else:
             # Keep entries without msgid (like comments)
             unique_entries.append(entry)
-    
+
     # Reconstruct the file
     fixed_content = header + '\n\n' + '\n\n'.join(unique_entries)
-    
+
     with open(po_file_path, 'w', encoding='utf-8') as f:
         f.write(fixed_content)
-    
+
     print(f"🧹 Removed duplicates from {po_file_path}")
+
 
 def fix_translation_variables(po_file_path):
     """Fix variable names in translations to avoid formatting issues"""
     
     with open(po_file_path, 'r', encoding='utf-8') as f:
         content = f.read()
-    
-    # Define variable name mappings (French -> English)
+
+    # Define variable name mappings (translated -> English)
     variable_mappings = {
         '{tolérance}': '{tolerance}',
         '{catégorie}': '{category}',
@@ -224,46 +120,47 @@ def fix_translation_variables(po_file_path):
         '{item_counts}': '{item_counts}',
         '{verbose_name}': '{verbose_name}',
     }
-    
+
     # Apply the mappings
     fixed_content = content
-    for french_var, english_var in variable_mappings.items():
-        fixed_content = fixed_content.replace(french_var, english_var)
-    
+    for translated_var, english_var in variable_mappings.items():
+        fixed_content = fixed_content.replace(translated_var, english_var)
+
     with open(po_file_path, 'w', encoding='utf-8') as f:
         f.write(fixed_content)
-    
+
     print(f"🔧 Fixed variable names in {po_file_path}")
+
 
 def translate_po_file(po_file_path, target_language='fr', source_language='en'):
     """Translate all msgid strings in a .po file using Google Translate API"""
     
     if not GOOGLE_TRANSLATE_AVAILABLE:
-        print("❌ Google Translate library not available. Install with: uv add googletrans==4.0.0rc1")
+        print("❌ Google Translate library not available. Install with: pip install googletrans==4.0.0rc1")
         return False
-    
+
     translator = Translator()
-    
+
     # Read the PO file
     with open(po_file_path, 'r', encoding='utf-8') as f:
         content = f.read()
-    
+
     # Split into sections
     sections = content.split('\n\n')
     header = sections[0]
     translation_entries = sections[1:]
-    
+
     print(f"🌐 Translating strings to {target_language}...")
-    
+
     translated_entries = []
     total_entries = len(translation_entries)
     failed_translations = []
-    
+
     for i, entry in enumerate(translation_entries):
         if not entry.strip():
             translated_entries.append(entry)
             continue
-        
+
         # Extract msgid
         msgid_match = re.search(r'msgid\s+"([^"]*)"', entry)
         if msgid_match:
@@ -271,7 +168,7 @@ def translate_po_file(po_file_path, target_language='fr', source_language='en'):
             if msgid:  # Skip empty msgid (header)
                 translated = False
                 max_retries = 3
-                
+
                 for attempt in range(max_retries):
                     try:
                         # Add delay between requests to avoid rate limiting
@@ -279,96 +176,97 @@ def translate_po_file(po_file_path, target_language='fr', source_language='en'):
                             time.sleep(2)  # Wait 2 seconds before retry
                         else:
                             time.sleep(0.5)  # Small delay between requests
-                        
+
                         # Translate the string
                         translation = translator.translate(msgid, src=source_language, dest=target_language)
-                        
+
                         # Check if translation was successful
                         if translation is None:
                             raise Exception("Translation returned None")
-                        
+
                         translated_text = translation.text
-                        
+
                         # Check if translated text is valid
                         if not translated_text or translated_text.strip() == "":
                             raise Exception("Translation result is empty")
-                        
+
                         # Replace the msgstr
                         entry = re.sub(r'msgstr\s+""', f'msgstr "{translated_text}"', entry)
                         translated = True
                         break
-                        
+
                     except Exception as e:
                         if attempt < max_retries - 1:
                             print(f"⚠️  Retry {attempt + 1}/{max_retries} for '{msgid[:50]}...': {str(e)[:100]}")
                         else:
                             print(f"❌ Failed to translate '{msgid[:50]}...' after {max_retries} attempts: {str(e)[:100]}")
                             failed_translations.append(msgid)
-                
+
                 if not translated:
                     # Keep original English if translation failed
                     entry = re.sub(r'msgstr\s+""', f'msgstr "{msgid}"', entry)
-                
+
                 # Progress indicator
                 if (i + 1) % 25 == 0:
                     print(f"   Progress: {i + 1}/{total_entries}")
-        
+
         translated_entries.append(entry)
-    
+
     # Reconstruct the file
     translated_content = header + '\n\n' + '\n\n'.join(translated_entries)
-    
+
     with open(po_file_path, 'w', encoding='utf-8') as f:
         f.write(translated_content)
-    
+
     print(f"✅ Translation completed for {po_file_path}")
     if failed_translations:
         print(f"⚠️  {len(failed_translations)} translations failed and kept original English text")
         print("   Failed strings saved to: scripts/failed_translations.txt")
-        
+
         # Save failed translations for manual review
         with open('scripts/failed_translations.txt', 'w', encoding='utf-8') as f:
             for failed in failed_translations:
                 f.write(f"{failed}\n")
-    
+
     return True
+
 
 def translate_po_file_batch(po_file_path, target_language='fr', source_language='en', batch_size=50):
     """Translate PO file in smaller batches to avoid timeouts"""
     
     if not GOOGLE_TRANSLATE_AVAILABLE:
-        print("❌ Google Translate library not available. Install with: uv add googletrans==4.0.0rc1")
+        print("❌ Google Translate library not available. Install with: pip install googletrans==4.0.0rc1")
         return False
-    
+
     translator = Translator()
-    
+
     # Read the PO file
     with open(po_file_path, 'r', encoding='utf-8') as f:
         content = f.read()
-    
+
     # Split into sections
     sections = content.split('\n\n')
     header = sections[0]
     translation_entries = sections[1:]
-    
+
     print(f"🌐 Translating strings to {target_language} in batches of {batch_size}...")
-    
+
     translated_entries = []
     total_entries = len(translation_entries)
     failed_translations = []
-    
+
     # Process in batches
     for batch_start in range(0, total_entries, batch_size):
         batch_end = min(batch_start + batch_size, total_entries)
         batch_entries = translation_entries[batch_start:batch_end]
-        
+
         print(f"   Processing batch {batch_start//batch_size + 1}/{(total_entries + batch_size - 1)//batch_size}")
-        
+
         for entry in batch_entries:
             if not entry.strip():
                 translated_entries.append(entry)
                 continue
-            
+
             # Extract msgid
             msgid_match = re.search(r'msgid\s+"([^"]*)"', entry)
             if msgid_match:
@@ -376,7 +274,7 @@ def translate_po_file_batch(po_file_path, target_language='fr', source_language=
                 if msgid:  # Skip empty msgid (header)
                     translated = False
                     max_retries = 3
-                    
+
                     for attempt in range(max_retries):
                         try:
                             # Add delay between requests
@@ -384,63 +282,63 @@ def translate_po_file_batch(po_file_path, target_language='fr', source_language=
                                 time.sleep(3)  # Longer delay for retries
                             else:
                                 time.sleep(1)  # Delay between requests
-                            
+
                             # Translate the string
                             translation = translator.translate(msgid, src=source_language, dest=target_language)
-                            
+
                             # Check if translation was successful
                             if translation is None:
                                 raise Exception("Translation returned None")
-                            
+
                             translated_text = translation.text
-                            
+
                             # Check if translated text is valid
                             if not translated_text or translated_text.strip() == "":
                                 raise Exception("Translation result is empty")
-                            
+
                             # Replace the msgstr
                             entry = re.sub(r'msgstr\s+""', f'msgstr "{translated_text}"', entry)
                             translated = True
                             break
-                            
+
                         except Exception as e:
                             if attempt < max_retries - 1:
                                 print(f"     ⚠️  Retry {attempt + 1}/{max_retries} for '{msgid[:30]}...': {str(e)[:100]}")
                             else:
                                 print(f"     ❌ Failed: '{msgid[:30]}...': {str(e)[:100]}")
                                 failed_translations.append(msgid)
-                    
+
                     if not translated:
                         # Keep original English if translation failed
                         entry = re.sub(r'msgstr\s+""', f'msgstr "{msgid}"', entry)
-            
+
             translated_entries.append(entry)
-        
+
         # Save progress after each batch
         temp_content = header + '\n\n' + '\n\n'.join(translated_entries)
         with open(po_file_path, 'w', encoding='utf-8') as f:
             f.write(temp_content)
-        
+
         print(f"     ✅ Batch completed. Progress saved.")
-    
+
     print(f"✅ Translation completed for {po_file_path}")
     if failed_translations:
         print(f"⚠️  {len(failed_translations)} translations failed and kept original English text")
         print("   Failed strings saved to: scripts/failed_translations.txt")
-        
+
         # Save failed translations for manual review
         with open('scripts/failed_translations.txt', 'w', encoding='utf-8') as f:
             for failed in failed_translations:
                 f.write(f"{failed}\n")
-    
+
     return True
 
+
 def compile_messages():
-    """Compile the PO file to MO format"""
+    """Compile the PO file to MO format using Django's compilemessages command"""
     try:
         import subprocess
-        result = subprocess.run(['python3', 'manage.py', 'compilemessages'], 
-                              capture_output=True, text=True)
+        result = subprocess.run(['python', 'manage.py', 'compilemessages'], capture_output=True, text=True)
         if result.returncode == 0:
             print("✅ Messages compiled successfully")
             return True
@@ -451,85 +349,108 @@ def compile_messages():
         print(f"❌ Error compiling messages: {e}")
         return False
 
+
+def list_available_languages():
+    """List all available language codes with existing .po files"""
+    po_files = find_po_files()
+    if not po_files:
+        print("❌ No .po files found in qatrack/locale/")
+        return
+    
+    print("📋 Available languages with .po files:")
+    for po_file in po_files:
+        lang_code = po_file.parent.parent.name
+        print(f"   {lang_code}: {po_file}")
+
+
 def main():
-    """Main function to run the unified translation process"""
+    """Main function to run the translation process"""
     
     if len(sys.argv) < 2:
         print("""
-🚀 Unified Translation Manager for QATrack+
+🌐 Translation Manager for QATrack+
+
+This script translates existing .po files using Google Translate API.
+Use Django's makemessages command to generate .po files first.
 
 Usage:
-  python3 scripts/unified_translation_manager.py <command> [options]
+  python scripts/unified_translation_manager.py <command> [language_code]
 
 Commands:
-  extract [lang]     - Extract strings and generate PO file
-  translate [lang]   - Translate existing PO file
-  batch [lang]       - Translate existing PO file in batches (recommended)
-  full [lang]        - Complete process: extract, translate, compile
-  full-batch [lang]  - Complete process with batch translation
-  compile            - Compile existing PO file to MO
+  list                    - List available languages with .po files
+  translate <lang>        - Translate existing .po file for specified language
+  batch <lang>           - Translate existing .po file in batches (recommended)
+  clean <lang>           - Clean and fix variables in existing .po file
+  compile                - Compile all .po files to .mo format
+  all <lang>             - Complete process: clean, translate, compile
 
 Examples:
-  python3 scripts/unified_translation_manager.py extract fr
-  python3 scripts/unified_translation_manager.py batch fr
-  python3 scripts/unified_translation_manager.py full-batch fr
-  python3 scripts/unified_translation_manager.py compile
+  # First, generate .po files using Django
+  python manage.py makemessages -l fr
+  python manage.py makemessages -l es
+  
+  # Then translate them
+  python scripts/unified_translation_manager.py list
+  python scripts/unified_translation_manager.py batch fr
+  python scripts/unified_translation_manager.py all es
+  python scripts/unified_translation_manager.py compile
+
+Supported language codes: fr, es, de, it, pt, zh, ja, ko, ru, etc.
+(Any language code supported by Google Translate)
         """)
         return
-    
+
     command = sys.argv[1]
-    language_code = sys.argv[2] if len(sys.argv) > 2 else 'fr'
+
+    if command == 'list':
+        list_available_languages()
+        return
     
-    if command == 'extract':
-        print(f"🔄 Starting extraction for language: {language_code}")
-        strings, locations = extract_all_translatable_strings()
-        po_file = generate_po_file(strings, language_code)
-        remove_duplicates_from_po(po_file)
-        fix_translation_variables(po_file)
-        print(f"✅ Extraction complete! Found {len(strings)} strings")
-        
-    elif command == 'translate':
+    if command == 'compile':
+        print("🔄 Compiling messages...")
+        compile_messages()
+        return
+
+    # Commands that require a language code
+    if len(sys.argv) < 3:
+        print("❌ Language code required for this command")
+        print("Usage: python scripts/unified_translation_manager.py <command> <language_code>")
+        return
+    
+    language_code = sys.argv[2]
+    po_file = Path(f'qatrack/locale/{language_code}/LC_MESSAGES/django.po')
+    
+    if not po_file.exists():
+        print(f"❌ PO file not found: {po_file}")
+        print(f"Generate it first with: python manage.py makemessages -l {language_code}")
+        return
+
+    if command == 'translate':
         print(f"🔄 Starting translation for language: {language_code}")
-        po_file = Path(f'qatrack/locale/{language_code}/LC_MESSAGES/django.po')
-        if po_file.exists():
-            translate_po_file(po_file, language_code)
-        else:
-            print(f"❌ PO file not found: {po_file}")
-            
+        translate_po_file(po_file, language_code)
+        
     elif command == 'batch':
         print(f"🔄 Starting batch translation for language: {language_code}")
-        po_file = Path(f'qatrack/locale/{language_code}/LC_MESSAGES/django.po')
-        if po_file.exists():
-            translate_po_file_batch(po_file, language_code)
-        else:
-            print(f"❌ PO file not found: {po_file}")
-            
-    elif command == 'full':
-        print(f"🔄 Starting complete translation process for language: {language_code}")
-        strings, locations = extract_all_translatable_strings()
-        po_file = generate_po_file(strings, language_code)
+        translate_po_file_batch(po_file, language_code)
+        
+    elif command == 'clean':
+        print(f"🔄 Cleaning .po file for language: {language_code}")
         remove_duplicates_from_po(po_file)
         fix_translation_variables(po_file)
-        translate_po_file(po_file, language_code)
-        compile_messages()
-        print(f"✅ Complete translation process finished!")
+        print(f"✅ Cleaning completed for {language_code}")
         
-    elif command == 'full-batch':
-        print(f"🔄 Starting complete translation process with batch translation for language: {language_code}")
-        strings, locations = extract_all_translatable_strings()
-        po_file = generate_po_file(strings, language_code)
+    elif command == 'all':
+        print(f"🔄 Starting complete translation process for language: {language_code}")
         remove_duplicates_from_po(po_file)
         fix_translation_variables(po_file)
         translate_po_file_batch(po_file, language_code)
         compile_messages()
-        print(f"✅ Complete translation process finished!")
-        
-    elif command == 'compile':
-        print("🔄 Compiling messages...")
-        compile_messages()
+        print(f"✅ Complete translation process finished for {language_code}!")
         
     else:
         print(f"❌ Unknown command: {command}")
+        print("Valid commands: list, translate, batch, clean, compile, all")
+
 
 if __name__ == "__main__":
-    main() 
+    main()

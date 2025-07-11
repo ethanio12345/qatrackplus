@@ -21,9 +21,12 @@ def max_24hr(value):
 
 year_select = forms.ChoiceField(
     required=False,
-    choices=[(y, y) for y in range(timezone.now().year - 20, timezone.now().year + 10)],
+    choices=[(y, y) for y in range(timezone.now().year - 20,
+                                   timezone.now().year + 10)],
     initial=timezone.now().year
-).widget.render('year_select', timezone.now().year, attrs={'id': 'id_year_select'})
+).widget.render(
+    'year_select', timezone.now().year, attrs={'id': 'id_year_select'}
+)
 
 month_select = forms.ChoiceField(
     required=False,
@@ -167,9 +170,7 @@ def unit_site_unit_type_choices(include_empty=False, serviceable_only=False, vis
 def units_visible_to_user(user: User):
     """Return a queryset containing the units which the user can view QC on"""
     units = u_models.Unit.objects.filter(
-        active=True,
-        unittestcollection__active=True,
-        unittestcollection__visible_to__in=user.groups.all()
+        active=True, unittestcollection__active=True, unittestcollection__visible_to__in=user.groups.all()
     ).distinct()
     return units
 

@@ -3,7 +3,7 @@ import datetime
 
 from django.conf import settings
 from django.utils import timezone
-from django.utils.formats import get_format, date_format
+from django.utils.formats import get_format
 from zoneinfo import ZoneInfo
 
 

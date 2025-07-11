@@ -31,19 +31,13 @@ class UnitFormAdmin(ModelForm):
     service_areas = ModelMultipleChoiceField(
         queryset=ServiceArea.objects.all(),
         required=False,
-        widget=FilteredSelectMultiple(
-            verbose_name=_l('Service areas'),
-            is_stacked=False
-        )
+        widget=FilteredSelectMultiple(verbose_name=_l('Service areas'), is_stacked=False)
     )
     modalities = ModelMultipleChoiceField(
         queryset=Modality.objects.all(),
         required=False,
         label=_l('Treatment and Imaging Modalities'),
-        widget=FilteredSelectMultiple(
-            verbose_name=_l('Treatment and Imaging Modalities'),
-            is_stacked=False
-        )
+        widget=FilteredSelectMultiple(verbose_name=_l('Treatment and Imaging Modalities'), is_stacked=False)
     )
 
     class Meta:
@@ -107,8 +101,7 @@ class UnitFormAdmin(ModelForm):
                     )
                     self.data = data_copy
                     self.add_error(
-                        'service_areas',
-                        (
+                        'service_areas', (
                             'Cannot remove {} from unit {}. '
                             'There exists Service Event(s) with that Unit and Service Area.'
                         ).format(usa.service_area.name, unit.name)
@@ -164,9 +157,7 @@ class UnitAdmin(BaseQATrackAdmin):
             'inputmask/js/jquery.inputmask.bundle.min.js',
         )
         css = {
-            'all': (
-                'units/css/admin.css',
-            ),
+            'all': ('units/css/admin.css',),
         }
 
     def get_queryset(self, request):
@@ -212,11 +203,10 @@ class ModalityAdmin(BaseQATrackAdmin):
 @admin.register(Site)
 class SiteAdmin(BaseQATrackAdmin):
     """QC categories admin"""
-    prepopulated_fields = {'slug': ('name',)}
-    list_display = (
-        "name",
-        "slug"
-    )
+    prepopulated_fields = {
+        'slug': ('name',)
+    }
+    list_display = ("name", "slug")
 
 
 admin.site.register([UnitClass, Vendor], BaseQATrackAdmin)

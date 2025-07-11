@@ -18,7 +18,12 @@ class RecipientGroupForm(forms.ModelForm):
 
     class Meta:
         model = models.RecipientGroup
-        fields = ("name", "groups", "users", "emails",)
+        fields = (
+            "name",
+            "groups",
+            "users",
+            "emails",
+        )
 
     def clean_emails(self):
         emails = self.cleaned_data.get("emails", "")
@@ -78,9 +83,7 @@ class RecipientGroupAdmin(BaseQATrackAdmin):
             "js/notification_admin.js",
         )
         css = {
-            'all': (
-                "select2/css/select2.css",
-            ),
+            'all': ("select2/css/select2.css",),
         }
 
     @admin.display(
@@ -90,9 +93,7 @@ class RecipientGroupAdmin(BaseQATrackAdmin):
     def get_groups(self, obj):
         return trim(', '.join(obj.groups.values_list("name", flat=True)))
 
-    @admin.display(
-        ordering="users__username"
-    )
+    @admin.display(ordering="users__username")
     @admin.display(
         description=_l("Users"),
         ordering="emails",
@@ -100,9 +101,7 @@ class RecipientGroupAdmin(BaseQATrackAdmin):
     def get_users(self, obj):
         return trim(', '.join("%s (%s)" % (u.username, u.email) for u in obj.users.all()))
 
-    @admin.display(
-        description=_l("Emails")
-    )
+    @admin.display(description=_l("Emails"))
     def get_emails(self, obj):
         return trim(obj.emails)
 
@@ -137,9 +136,7 @@ class TestListGroupAdmin(BaseQATrackAdmin):
             "js/notification_admin.js",
         )
         css = {
-            'all': (
-                "select2/css/select2.css",
-            ),
+            'all': ("select2/css/select2.css",),
         }
 
     @admin.display(

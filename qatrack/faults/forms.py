@@ -1,7 +1,8 @@
 from django import forms
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from django.utils.text import gettext_lazy as _l
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _l
 from qatrack.qatrack_core.forms import BetterModelForm
 
 from qatrack.faults import models
@@ -12,6 +13,7 @@ from qatrack.units import models as u_models
 from qatrack.units.forms import unit_site_unit_type_choices
 
 NEW_FAULT_TYPE_MARKER = "newft:"
+
 
 class FaultForm(BetterModelForm):
 
@@ -104,7 +106,8 @@ class FaultForm(BetterModelForm):
                     self.fields['related_service_events'].widget.attrs.update({'disabled': True})
 
         self.fields['unit'].choices = unit_site_unit_type_choices(
-            include_empty=True, serviceable_only=True, visible_for_user=user)
+            include_empty=True, serviceable_only=True, visible_for_user=user
+        )
 
         for f in self.fields:
             self.fields[f].widget.attrs['class'] = 'form-control'

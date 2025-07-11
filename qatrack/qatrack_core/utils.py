@@ -10,7 +10,7 @@ from django.utils.text import slugify
 
 def chrometopdf(html, name="", paper_size="letter"):
     """use headles chrome to convert an html document to pdf
-    
+
     Args:
         html: HTML content to convert
         name: Optional name for temporary files

@@ -79,10 +79,8 @@ class ServiceEventSchedulingAdmin(BaseQATrackAdmin):
         (
             "Filters", {
                 'fields': ['units'],
-                'description': _l(
-                    "By using the below filters, you may limit this notification to "
-                    "certain units."
-                ),
+                'description': _l("By using the below filters, you may limit this notification to "
+                                  "certain units."),
             }
         ),
     )

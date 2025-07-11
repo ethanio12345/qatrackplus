@@ -4,14 +4,10 @@ from django import VERSION, forms
 from django.apps import apps
 from django.conf import settings
 from django.contrib import admin, messages
-from django.contrib.admin import ModelAdmin, options, widgets, helpers
+from django.contrib.admin import options, widgets, helpers
 from django.contrib.admin.helpers import flatten_fieldsets
-from django.contrib.admin.models import CHANGE, LogEntry
-from django.contrib.auth.mixins import PermissionRequiredMixin
-from django.contrib.contenttypes.models import ContentType
 from django.db.models import Count, Q
-from django.forms.widgets import HiddenInput
-from django.shortcuts import HttpResponseRedirect, redirect, render
+
 from django.template import loader
 from django.template.defaultfilters import date as date_formatter
 from django.template.response import TemplateResponse
@@ -48,7 +44,9 @@ admin.site.disable_action("delete_selected")
 
 class CategoryAdmin(DjangoMpttAdmin):
     """QC categories admin"""
-    prepopulated_fields = {'slug': ('name',)}
+    prepopulated_fields = {
+        'slug': ('name',)
+    }
     list_display = (
         "name",
         "get_description",
@@ -57,6 +55,7 @@ class CategoryAdmin(DjangoMpttAdmin):
     def get_description(self, obj):
         """Just used to disable ordering by description"""
         return obj.description if obj else ""
+
     get_description.short_name = _l("Description")
 
 
@@ -79,13 +78,17 @@ class UnitTestInfoForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(UnitTestInfoForm, self).__init__(*args, **kwargs)
-        readonly = ("test_type", "reference_set_by", "reference_set",)
+        readonly = (
+            "test_type",
+            "reference_set_by",
+            "reference_set",
+        )
         instance = kwargs.get('instance')
 
         if instance and instance.test:
             # Set test type
             self.fields['test_type'].initial = instance.test.get_type_display()
-            
+
             # Set reference information if reference exists
             if instance.reference:
                 self.fields['reference_set_by'].initial = getattr(instance.reference, 'created_by', 'Unknown')
@@ -100,14 +103,12 @@ class UnitTestInfoForm(forms.ModelForm):
                     self.fields['reference_set'].initial = local_date.strftime('%Y-%m-%d %H:%M:%S')
                 else:
                     self.fields['reference_set'].initial = 'Unknown'
-            
+
             # Filter tolerances based on test type
             if instance.test.type == models.BOOLEAN:
                 self.fields['tolerance'].queryset = models.Tolerance.objects.filter(type=models.BOOLEAN)
                 self.fields['reference_value'] = forms.ChoiceField(
-                    choices=[("", "---"), (0, "No"), (1, "Yes")],
-                    required=False,
-                    label=_("New reference value")
+                    choices=[("", "---"), (0, "No"), (1, "Yes")], required=False, label=_("New reference value")
                 )
             elif instance.test.type == models.MULTIPLE_CHOICE:
                 self.fields['tolerance'].queryset = models.Tolerance.objects.filter(type=models.MULTIPLE_CHOICE)
@@ -140,13 +141,11 @@ class UnitTestInfoForm(forms.ModelForm):
                     val = float(reference_value)
                     if val == 0:
                         self.add_error(
-                            'reference_value',
-                            _("Reference value cannot be zero when using a percent tolerance")
+                            'reference_value', _("Reference value cannot be zero when using a percent tolerance")
                         )
                 except ValueError:
                     self.add_error(
-                        'reference_value',
-                        _("A numerical reference value is required when using a percent tolerance")
+                        'reference_value', _("A numerical reference value is required when using a percent tolerance")
                     )
 
         # Validate wraparound tests
@@ -169,13 +168,13 @@ class UnitTestInfoForm(forms.ModelForm):
 
     def save(self, commit=True):
         instance = super(UnitTestInfoForm, self).save(commit=False)
-        
+
         # Handle reference value conversion
         reference_value = self.cleaned_data.get('reference_value')
-        
+
         # Get the user from the form's initial data (set by FormWithRequest)
         user = self.initial.get('modified_by')
-        
+
         if reference_value is not None and reference_value != '':  # Non-empty reference value
             if instance.test.type == models.BOOLEAN:
                 value = bool(int(reference_value))
@@ -213,16 +212,12 @@ class UnitTestInfoForm(forms.ModelForm):
         return instance
 
 
-@admin.display(
-    ordering="test__name"
-)
+@admin.display(ordering="test__name")
 def test_name(obj):
     return obj.test.name
 
 
-@admin.display(
-    ordering="test__type"
-)
+@admin.display(ordering="test__type")
 def test_type(obj):
     for tt, display in models.TEST_TYPE_CHOICES:
         if obj.test.type == tt:
@@ -286,7 +281,7 @@ class UnitTestInfoAdmin(BaseQATrackAdmin):
 
     change_list_template = "admin/qa/unittestinfo/change_list.html"
     form = UnitTestInfoForm
-    
+
     fieldsets = (
         (None, {
             'fields': (
@@ -296,15 +291,17 @@ class UnitTestInfoAdmin(BaseQATrackAdmin):
                 'tolerance',
             )
         }),
-        (_('Reference Value'), {
-            'fields': (
-                'test_type',
-                'reference_value',
-                'reference_set_by',
-                'reference_set',
-                'comment',
-            ),
-        }),
+        (
+            _('Reference Value'), {
+                'fields': (
+                    'test_type',
+                    'reference_value',
+                    'reference_set_by',
+                    'reference_set',
+                    'comment',
+                ),
+            }
+        ),
         (_('History'), {
             'fields': ('history',),
         }),
@@ -329,25 +326,22 @@ class UnitTestInfoAdmin(BaseQATrackAdmin):
         else:
             fields = flatten_fieldsets(self.get_fieldsets(request, obj))
         FormClass = super().get_form(request, obj, fields=fields, **kwargs)
-        
+
         class FormWithRequest(FormClass):
+
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
                 self.initial['modified_by'] = request.user
-        
+
         return FormWithRequest
 
-    @admin.display(
-        description=_("Reference & Tolerance History")
-    )
+    @admin.display(description=_("Reference & Tolerance History"))
     def history(self, obj):
         """Display history of reference and tolerance changes"""
         if not obj:
             return _("No history available")
 
-        changes = models.UnitTestInfoChange.objects.filter(
-            unit_test_info=obj
-        ).order_by('-changed')
+        changes = models.UnitTestInfoChange.objects.filter(unit_test_info=obj).order_by('-changed')
 
         if not changes:
             return _("No history available")
@@ -358,7 +352,7 @@ class UnitTestInfoAdmin(BaseQATrackAdmin):
             'reference': obj.reference,
             'tolerance': obj.tolerance,
         }
-        
+
         for change in changes:
             history.append((current, change))
             current = {
@@ -395,9 +389,7 @@ class UnitTestInfoAdmin(BaseQATrackAdmin):
                     changed_by=request.user,
                 )
 
-    @admin.action(
-        description=_("Set references and tolerances for selected tests")
-    )
+    @admin.action(description=_("Set references and tolerances for selected tests"))
     def set_multiple_references_and_tolerances(self, request, queryset):
         """Set references and tolerances for multiple UnitTestInfo objects"""
         if request.POST.get('post') == 'yes':
@@ -424,12 +416,12 @@ class UnitTestInfoAdmin(BaseQATrackAdmin):
                 return None
 
             test_type = test_types.pop() if test_types else None
-            
+
             # Check for incompatible tolerance/test type combinations
             if test_type and tolerance:
                 incompatible = False
-                
-                # Boolean tests can only use boolean tolerances  
+
+                # Boolean tests can only use boolean tolerances
                 if test_type == models.BOOLEAN and tolerance.type != models.BOOLEAN:
                     incompatible = True
                 # Multiple choice tests can only use multiple choice tolerances
@@ -440,18 +432,16 @@ class UnitTestInfoAdmin(BaseQATrackAdmin):
                     incompatible = True
                 elif tolerance.type == models.MULTIPLE_CHOICE and test_type != models.MULTIPLE_CHOICE:
                     incompatible = True
-                
+
                 if incompatible:
                     self.message_user(
-                        request,
-                        _("The selected tolerance is not compatible with the test type"),
-                        level=messages.ERROR
+                        request, _("The selected tolerance is not compatible with the test type"), level=messages.ERROR
                     )
                     return None
 
             for uti in queryset:
                 changed = False
-                
+
                 if tolerance:
                     uti.tolerance = tolerance
                     changed = True
@@ -461,18 +451,12 @@ class UnitTestInfoAdmin(BaseQATrackAdmin):
                         try:
                             value = bool(int(reference_value))
                         except (ValueError, TypeError):
-                            self.message_user(
-                                request,
-                                _("Invalid boolean value"),
-                                level=messages.ERROR
-                            )
+                            self.message_user(request, _("Invalid boolean value"), level=messages.ERROR)
                             return None
                     elif uti.test.type == models.MULTIPLE_CHOICE:
                         if not uti.test.choices or reference_value not in uti.test.choices.split(","):
                             self.message_user(
-                                request,
-                                _("Invalid choice for multiple choice test"),
-                                level=messages.ERROR
+                                request, _("Invalid choice for multiple choice test"), level=messages.ERROR
                             )
                             return None
                         value = reference_value
@@ -481,11 +465,7 @@ class UnitTestInfoAdmin(BaseQATrackAdmin):
                             # For numerical tests, convert to float since the test expects float values
                             value = float(reference_value)
                         except (ValueError, TypeError):
-                            self.message_user(
-                                request,
-                                _("Invalid numerical value"),
-                                level=messages.ERROR
-                            )
+                            self.message_user(request, _("Invalid numerical value"), level=messages.ERROR)
                             return None
 
                     ref = models.Reference(
@@ -497,7 +477,7 @@ class UnitTestInfoAdmin(BaseQATrackAdmin):
                     ref.save()
                     uti.reference = ref
                     changed = True
-                    
+
                 if changed:
                     uti.save()
 
@@ -529,9 +509,11 @@ class UnitTestInfoAdmin(BaseQATrackAdmin):
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
-            path('copy-refs-tols/', 
-                 self.admin_site.admin_view(admin_views.CopyReferencesTolerancesView.as_view()),
-                 name='qa_copy_refs_and_tols'),
+            path(
+                'copy-refs-tols/',
+                self.admin_site.admin_view(admin_views.CopyReferencesTolerancesView.as_view()),
+                name='qa_copy_refs_and_tols'
+            ),
         ]
         return custom_urls + urls
 
@@ -580,9 +562,9 @@ class TestListAdminForm(forms.ModelForm):
             slugs.extend(tl.all_tests().values_list("slug", flat=True))
 
         if len(slugs) > settings.MAX_TESTS_PER_TESTLIST:
-            msg = _(
-                "This test list has {test_count} tests but the maximum number allowed is {max_tests}."
-            ).format(test_count=len(slugs), max_tests=settings.MAX_TESTS_PER_TESTLIST)
+            msg = _("This test list has {test_count} tests but the maximum number allowed is {max_tests}.").format(
+                test_count=len(slugs), max_tests=settings.MAX_TESTS_PER_TESTLIST
+            )
             raise forms.ValidationError(msg)
 
         duplicates = list(set([sn for sn in slugs if slugs.count(sn) > 1]))
@@ -629,7 +611,9 @@ class SublistInlineFormSet(forms.models.BaseInlineFormSet):
             # something else went wrong already
             return {}
 
-        children = [f.instance.child for f in self.forms if hasattr(f.instance, 'child') and not f.cleaned_data.get("DELETE")]  # noqa: E501
+        children = [
+            f.instance.child for f in self.forms if hasattr(f.instance, 'child') and not f.cleaned_data.get("DELETE")
+        ]  # noqa: E501
         children_with_child = [child for child in children if child.children.exists()]
         if self.instance and self.instance in children:
             raise forms.ValidationError(
@@ -721,12 +705,15 @@ class TestListMembershipInline(DynamicRawIDMixin, admin.TabularInline):
             kwargs['widget'] = DynamicRawIDWidget(rel, self.admin_site)
             return db_field.formfield(**kwargs)
         elif db_field.name in self.raw_id_fields:
-            kwargs['widget'] = widgets.ForeignKeyRawIdWidget(db_field.remote_field if VERSION[0] >= 2 else db_field.rel,
-                                                             self.admin_site, using=db)
+            kwargs['widget'] = widgets.ForeignKeyRawIdWidget(
+                db_field.remote_field if VERSION[0] >= 2 else db_field.rel, self.admin_site, using=db
+            )
         elif db_field.name in self.radio_fields:
-            kwargs['widget'] = widgets.AdminRadioSelect(attrs={
-                'class': options.get_ul_class(self.radio_fields[db_field.name]),
-            })
+            kwargs['widget'] = widgets.AdminRadioSelect(
+                attrs={
+                    'class': options.get_ul_class(self.radio_fields[db_field.name]),
+                }
+            )
             kwargs['empty_label'] = db_field.blank and _('None') or None
         return db_field.formfield(**kwargs)
 
@@ -774,12 +761,15 @@ class SublistInline(DynamicRawIDMixin, admin.TabularInline):
             return db_field.formfield(**kwargs)
 
         elif db_field.name in self.raw_id_fields:
-            kwargs['widget'] = widgets.ForeignKeyRawIdWidget(db_field.remote_field if VERSION[0] >= 2 else db_field.rel,
-                                                             self.admin_site, using=db)
+            kwargs['widget'] = widgets.ForeignKeyRawIdWidget(
+                db_field.remote_field if VERSION[0] >= 2 else db_field.rel, self.admin_site, using=db
+            )
         elif db_field.name in self.radio_fields:
-            kwargs['widget'] = widgets.AdminRadioSelect(attrs={
-                'class': options.get_ul_class(self.radio_fields[db_field.name]),
-            })
+            kwargs['widget'] = widgets.AdminRadioSelect(
+                attrs={
+                    'class': options.get_ul_class(self.radio_fields[db_field.name]),
+                }
+            )
             kwargs['empty_label'] = db_field.blank and _('None') or None
         return db_field.formfield(**kwargs)
 
@@ -811,20 +801,16 @@ class ActiveTestListFilter(admin.SimpleListFilter):
 
     def queryset(self, request, qs):
         active_tl_ids = models.get_utc_tl_ids(active=True)
-        active_sub_tl_ids = list(models.TestList.objects.filter(
-            id__in=active_tl_ids, children__isnull=False
-        ).values_list('children__child__id', flat=True).distinct())
+        active_sub_tl_ids = list(
+            models.TestList.objects.filter(id__in=active_tl_ids,
+                                           children__isnull=False).values_list('children__child__id',
+                                                                               flat=True).distinct()
+        )
 
         if self.value() == self.NOACTIVEUTCS:
-            return qs.exclude(
-                Q(id__in=active_tl_ids) |
-                Q(id__in=active_sub_tl_ids)
-            )
+            return qs.exclude(Q(id__in=active_tl_ids) | Q(id__in=active_sub_tl_ids))
         elif self.value() == self.HASACTIVEUTCS:
-            return qs.filter(
-                Q(id__in=active_tl_ids) |
-                Q(id__in=active_sub_tl_ids)
-            )
+            return qs.filter(Q(id__in=active_tl_ids) | Q(id__in=active_sub_tl_ids))
         return qs
 
 
@@ -895,7 +881,9 @@ class FrequencyTestListFilter(admin.SimpleListFilter):
 
 class TestListAdmin(SaveUserMixin, SaveInlineAttachmentUserMixin, BaseQATrackAdmin):
 
-    prepopulated_fields = {'slug': ('name',)}
+    prepopulated_fields = {
+        'slug': ('name',)
+    }
     search_fields = ("name", "description", "slug", "sublist__parent__name", "sublist__child__name")
     readonly_fields = ("id",)
 
@@ -946,12 +934,16 @@ class TestListAdmin(SaveUserMixin, SaveInlineAttachmentUserMixin, BaseQATrackAdm
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
-            path('export-testpack/', 
-                 self.admin_site.admin_view(admin_views.ExportTestPack.as_view()),
-                 name='qa_export_testpack'),
-            path('import-testpack/', 
-                 self.admin_site.admin_view(admin_views.ImportTestPack.as_view()),
-                 name='qa_import_testpack'),
+            path(
+                'export-testpack/',
+                self.admin_site.admin_view(admin_views.ExportTestPack.as_view()),
+                name='qa_export_testpack'
+            ),
+            path(
+                'import-testpack/',
+                self.admin_site.admin_view(admin_views.ImportTestPack.as_view()),
+                name='qa_import_testpack'
+            ),
         ]
         return custom_urls + urls
 
@@ -983,8 +975,7 @@ class TestListAdmin(SaveUserMixin, SaveInlineAttachmentUserMixin, BaseQATrackAdm
     @mark_safe
     def parent_of(self, obj):
         title = _("Click to view child test list")
-        links = [(sl.child.name, reverse("admin:qa_testlist_change", args=(sl.child.pk,)))
-                 for sl in obj.children.all()]
+        links = [(sl.child.name, reverse("admin:qa_testlist_change", args=(sl.child.pk,))) for sl in obj.children.all()]
         html_links = format_html_join(
             ", ", '<a href="{}" title="{}" target="_blank">{}</a>', ((url, title, name) for (name, url) in links)
         )
@@ -1042,7 +1033,9 @@ class TestForm(forms.ModelForm):
             if existing_ref_tols.exists():
                 links = []
                 for uti, name in existing_ref_tols.order_by("unit__name").values_list("pk", "unit__name"):
-                    url = reverse("admin:qa_unittestinfo_change", args=(uti,))
+                    url = reverse(
+                        "admin:qa_unittestinfo_change", args=(uti,)
+                    )
                     links.append((url, name))
 
                 title = _(_("Click to edit the reference and tolerance l(opens in new window)"))
@@ -1192,7 +1185,6 @@ class TestAdmin(SaveUserMixin, SaveInlineAttachmentUserMixin, BaseQATrackAdmin):
         return '<abbr title="%s">%s</abbr>' % (link_title, dt)
 
 
-
 @admin.display(
     description=_l("Unit"),
     ordering="unit__name",
@@ -1296,10 +1288,7 @@ class ActiveFilter(admin.SimpleListFilter):
     parameter_name = "activefilter"
 
     def lookups(self, request, model_admin):
-        return (
-            (1, _('Active')),
-            (0, _('Not active'))
-        )
+        return ((1, _('Active')), (0, _('Not active')))
 
     def queryset(self, request, queryset):
         if self.value():
@@ -1399,8 +1388,13 @@ class TestListCycleMembershipInline(DynamicRawIDMixin, admin.TabularInline):
 class TestListCycleAdmin(SaveUserMixin, SaveInlineAttachmentUserMixin, BaseQATrackAdmin):
     """Admin for daily test list cycles"""
     inlines = [TestListCycleMembershipInline, get_attachment_inline("testlistcycle")]
-    prepopulated_fields = {'slug': ('name',)}
-    search_fields = ("name", "slug",)
+    prepopulated_fields = {
+        'slug': ('name',)
+    }
+    search_fields = (
+        "name",
+        "slug",
+    )
     list_display = ["name", "all_lists"]
 
     class Media:
@@ -1443,19 +1437,19 @@ class FrequencyForm(forms.ModelForm):
         recurrences = self.cleaned_data.get('recurrences')
         if recurrences and not scheduling.calc_nominal_interval(recurrences):
             self.add_error(
-                'recurrences',
-                'This frequency has zero occurences. Please adjust the schedule and try again'
+                'recurrences', 'This frequency has zero occurences. Please adjust the schedule and try again'
             )
         elif recurrences and len(recurrences.rrules) == 0:
             self.add_error(
-                'recurrences',
-                'This frequency has exclusion rules only. Please adjust the schedule and try again'
+                'recurrences', 'This frequency has exclusion rules only. Please adjust the schedule and try again'
             )
         return self.cleaned_data
 
 
 class FrequencyAdmin(BaseQATrackAdmin):
-    prepopulated_fields = {'slug': ('name',)}
+    prepopulated_fields = {
+        'slug': ('name',)
+    }
     form = FrequencyForm
     fields = (
         "name",
@@ -1488,9 +1482,7 @@ class FrequencyAdmin(BaseQATrackAdmin):
             'all': ["cal-heatmap/css/cal-heatmap.css"],
         }
 
-    @admin.display(
-        description=_l("Recurrences")
-    )
+    @admin.display(description=_l("Recurrences"))
     @mark_safe
     def get_recurrences(self, obj):
         rules = str(obj.recurrences).replace("RRULE:", "").split("\n")[1:]
@@ -1508,7 +1500,9 @@ class FrequencyAdmin(BaseQATrackAdmin):
 
 
 class StatusAdmin(BaseQATrackAdmin):
-    prepopulated_fields = {'slug': ('name',)}
+    prepopulated_fields = {
+        'slug': ('name',)
+    }
     model = models.TestInstanceStatus
 
     list_display = (
@@ -1525,7 +1519,6 @@ class StatusAdmin(BaseQATrackAdmin):
             "jquery/js/jquery.min.js",
             "colorpicker/js/bootstrap-colorpicker.min.js",
             "qatrack_core/js/admin_colourpicker.js",
-
         )
         css = {
             'all': (
@@ -1535,9 +1528,7 @@ class StatusAdmin(BaseQATrackAdmin):
             ),
         }
 
-    @admin.display(
-        description=_l("Color")
-    )
+    @admin.display(description=_l("Color"))
     @mark_safe
     def get_colour(self, obj):
         return '<div style="display: inline-block; width: 20px; height:20px; background-color: %s;"></div>' % obj.colour
@@ -1553,7 +1544,10 @@ def utc_unit_name(obj):
 
 class TestListInstanceAdmin(SaveInlineAttachmentUserMixin, BaseQATrackAdmin):
     list_display = ["__str__", utc_unit_name, "test_list", "work_completed", "created_by"]
-    list_filter = ["unit_test_collection__unit", "test_list", ]
+    list_filter = [
+        "unit_test_collection__unit",
+        "test_list",
+    ]
     inlines = [get_attachment_inline("testlistinstance")]
 
     def render_delete_form(self, request, context):
@@ -1562,16 +1556,10 @@ class TestListInstanceAdmin(SaveInlineAttachmentUserMixin, BaseQATrackAdmin):
         # Find related Service events with rtsqa and with initiated by
         ServiceEvent = apps.get_model('service_log', 'ServiceEvent')
         ServiceEventStatus = apps.get_model('service_log', 'ServiceEventStatus')
-        se_rtsqa_qs = ServiceEvent.objects.filter(
-            returntoserviceqa__test_list_instance=context['object']
-        )
+        se_rtsqa_qs = ServiceEvent.objects.filter(returntoserviceqa__test_list_instance=context['object'])
         se_ib_qs = instance.serviceevents_initiated.all()
         default_ses = ServiceEventStatus.get_default()
-        context.update({
-            'se_rtsqa_qs': se_rtsqa_qs,
-            'se_ib_qs': se_ib_qs,
-            'default_ses': default_ses
-        })
+        context.update({'se_rtsqa_qs': se_rtsqa_qs, 'se_ib_qs': se_ib_qs, 'default_ses': default_ses})
         return super().render_delete_form(request, context)
 
     def has_add_permission(self, request):
@@ -1595,10 +1583,7 @@ class TestInstanceAdmin(SaveInlineAttachmentUserMixin, BaseQATrackAdmin):
     def get_queryset(self, request):
         qs = super(TestInstanceAdmin, self).get_queryset(request)
         return qs.select_related(
-            "test_list_instance",
-            "test_list_instance__test_list",
-            "unit_test_info",
-            "unit_test_info__test",
+            "test_list_instance", "test_list_instance__test_list", "unit_test_info", "unit_test_info__test",
             "created_by"
         )
 
@@ -1693,9 +1678,7 @@ class AutoReviewRuleSetAdmin(BaseQATrackAdmin):
 
     form = AutoReviewRuleSetAdminForm
 
-    @admin.display(
-        description=_l("Rules")
-    )
+    @admin.display(description=_l("Rules"))
     @mark_safe
     def get_rules_display(self, obj):
         return "<br>".join(str(rule) for rule in obj.rules.all().order_by('pass_fail'))

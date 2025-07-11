@@ -16,10 +16,12 @@ class ReportForm(forms.ModelForm):
     controls/filters"""
 
     prefix = "root"
-    
+
     class Meta:
         model = models.SavedReport
-        fields = ("title", "report_type", "report_format", "visible_to", "include_signature", "include_logo", "paper_size")
+        fields = (
+            "title", "report_type", "report_format", "visible_to", "include_signature", "include_logo", "paper_size"
+        )
 
     def __init__(self, *args, **kwargs):
 
@@ -32,7 +34,7 @@ class ReportForm(forms.ModelForm):
         self.fields['include_logo'].help_text = _("Include the Saskatchewan Cancer Agency logo in reports?")
         self.fields['paper_size'].label = _("Paper Size")
         self.fields['paper_size'].required = False  # Make not required since model has default
-        
+
         # Set default if no initial value provided
         if not self.initial.get('paper_size') and not self.data.get('root-paper_size'):
             self.fields['paper_size'].initial = 'letter'

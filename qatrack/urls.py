@@ -11,7 +11,6 @@ from qatrack.qatrack_core import views
 
 admin.autodiscover()
 
-
 favicon_view = RedirectView.as_view(url=static_url("qatrack_core/img/favicon.ico"), permanent=True)
 touch_view = RedirectView.as_view(url=static_url("qatrack_core/img/apple-touch-icon.png"), permanent=True)
 
@@ -55,12 +54,14 @@ urlpatterns = [
 ]
 
 js_info_dict = {
-    'packages': ('recurrence', ),
+    'packages': ('recurrence',),
 }
 urlpatterns += [url(r'^jsi18n/$', JavaScriptCatalog.as_view(), js_info_dict)]
 
 if settings.USE_SQL_REPORTS:
-    urlpatterns.append(url(r'^sql-reports/', include('explorer.urls')),)
+    urlpatterns.append(
+        url(r'^sql-reports/', include('explorer.urls')),
+    )
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

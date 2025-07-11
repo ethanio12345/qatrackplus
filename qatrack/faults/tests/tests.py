@@ -19,6 +19,7 @@ from qatrack.units import models as u_models
 
 
 class TestFaultType:
+
     def test_str(self):
         assert str(FaultType(code="code")) == "code"
 
@@ -141,7 +142,8 @@ class TestModalityFilter(TestCase):
         f = utils.create_fault(unit=self.unit, user=self.user, fault_type=self.fault_type)
 
         correct_modality = utils.create_fault(
-            unit=self.unit, user=self.user, fault_type=f.fault_types.first(), modality=self.modality)
+            unit=self.unit, user=self.user, fault_type=f.fault_types.first(), modality=self.modality
+        )
 
         with mock.patch.object(self.mf, "value", return_value=self.modality.id):
             qs = self.mf.queryset(None, Fault.objects.all())
@@ -192,7 +194,9 @@ class TestFaultList(TestCase):
     def test_load_result_set(self):
         """Calling via ajax should return a single object in the queryset"""
         utils.create_fault()
-        resp = self.client.get(self.url, {}, content_type='application/json', headers={"x-requested-with": 'XMLHttpRequest'})
+        resp = self.client.get(
+            self.url, {}, content_type='application/json', headers={"x-requested-with": 'XMLHttpRequest'}
+        )
         assert len(resp.json()['aaData']) == 1
 
     def test_get_fields_one_site(self):
@@ -915,12 +919,7 @@ class TestFaultTypeAutocomplete(TestCase):
 
         fts = [FaultType.objects.create(code="ft %d" % i) for i in range(3)]
         results = self.client.get(self.url, {'q': 'ft 2'}).json()['results']
-        expected = [{
-            'id': fts[2].code,
-            'text': "ft 2",
-            'code': fts[2].code,
-            'description': ''
-        }]
+        expected = [{'id': fts[2].code, 'text': "ft 2", 'code': fts[2].code, 'description': ''}]
         assert results == expected
 
     def test_query_exact_case_insensitive_match(self):
@@ -929,12 +928,7 @@ class TestFaultTypeAutocomplete(TestCase):
 
         fts = [FaultType.objects.create(code="ft %d" % i) for i in range(3)]
         results = self.client.get(self.url, {'q': 'FT 2'}).json()['results']
-        expected = [{
-            'id': fts[2].code,
-            'text': "ft 2",
-            'code': fts[2].code,
-            'description': ''
-        }]
+        expected = [{'id': fts[2].code, 'text': "ft 2", 'code': fts[2].code, 'description': ''}]
         assert results == expected
 
     def test_query_exact_match_plus_others(self):
@@ -947,9 +941,24 @@ class TestFaultTypeAutocomplete(TestCase):
 
         results = self.client.get(self.url, {'q': 'ft 21'}).json()['results']
         assert results == [
-            {'id': "ft 21", 'text': "ft 21", 'code': "ft 21", 'description': ''},
-            {'id': "ft 212", 'text': "ft 212: description", 'code': "ft 212", 'description': 'description'},
-            {'id': "ft 213", 'text': "ft 213", 'code': "ft 213", 'description': ''},
+            {
+                'id': "ft 21",
+                'text': "ft 21",
+                'code': "ft 21",
+                'description': ''
+            },
+            {
+                'id': "ft 212",
+                'text': "ft 212: description",
+                'code': "ft 212",
+                'description': 'description'
+            },
+            {
+                'id': "ft 213",
+                'text': "ft 213",
+                'code': "ft 213",
+                'description': ''
+            },
         ]
 
     def test_query_exact_match_with_whitespace_plus_others(self):
@@ -963,9 +972,24 @@ class TestFaultTypeAutocomplete(TestCase):
 
         results = self.client.get(self.url, {'q': ' ft 21 '}).json()['results']
         assert results == [
-            {'id': "ft 21", 'text': "ft 21", 'code': "ft 21", 'description': ''},
-            {'id': "ft 212", 'text': "ft 212: description", 'code': "ft 212", 'description': 'description'},
-            {'id': "ft 213", 'text': "ft 213", 'code': "ft 213", 'description': ''},
+            {
+                'id': "ft 21",
+                'text': "ft 21",
+                'code': "ft 21",
+                'description': ''
+            },
+            {
+                'id': "ft 212",
+                'text': "ft 212: description",
+                'code': "ft 212",
+                'description': 'description'
+            },
+            {
+                'id': "ft 213",
+                'text': "ft 213",
+                'code': "ft 213",
+                'description': ''
+            },
         ]
 
 
@@ -1098,7 +1122,9 @@ class TestFaultTypeList(TestCase):
     def test_load_result_set(self):
         """Calling via ajax should return a single object in the queryset"""
         utils.create_fault(fault_type=self.fault_type)
-        resp = self.client.get(self.url, {}, content_type='application/json', headers={"x-requested-with": 'XMLHttpRequest'})
+        resp = self.client.get(
+            self.url, {}, content_type='application/json', headers={"x-requested-with": 'XMLHttpRequest'}
+        )
         assert len(resp.json()['aaData']) == 1
 
 

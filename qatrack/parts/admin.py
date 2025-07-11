@@ -68,9 +68,10 @@ class StorageInline(admin.TabularInline):
 
     def get_queryset(self, request):
 
-        qs = p_models.Storage.objects.get_queryset_for_room(room=self.parent_instance).prefetch_related(
-            'partstoragecollection_set__part', 'partstoragecollection_set'
-        ).select_related('room', 'room__site')
+        qs = p_models.Storage.objects.get_queryset_for_room(
+            room=self.parent_instance
+        ).prefetch_related('partstoragecollection_set__part',
+                           'partstoragecollection_set').select_related('room', 'room__site')
 
         return qs
 
@@ -124,9 +125,10 @@ class ContactInline(admin.TabularInline):
 
     def _get_queryset(self, request):
 
-        qs = p_models.Storage.objects.get_queryset_for_room(room=self.parent_instance).prefetch_related(
-            'partstoragecollection_set__part', 'partstoragecollection_set'
-        ).select_related('room', 'room__site')
+        qs = p_models.Storage.objects.get_queryset_for_room(
+            room=self.parent_instance
+        ).prefetch_related('partstoragecollection_set__part',
+                           'partstoragecollection_set').select_related('room', 'room__site')
 
         return qs
 

@@ -15,6 +15,7 @@ logger = logging.getLogger('django-q')
 
 
 def qatrack_task_wrapper(func):
+
     @wraps(func)
     def wrapped(*args, **kwargs):
         if os.name.lower() == "nt":
@@ -23,6 +24,7 @@ def qatrack_task_wrapper(func):
             except ProgrammingError:
                 connection.connect()
         return func(*args, **kwargs)
+
     return wrapped
 
 
