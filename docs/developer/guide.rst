@@ -21,15 +21,14 @@ there are lots of steps involved which can be intimidating to newcomers
 or have questions about using git or contributing code then please post to the
 :mailinglist:`mailing list <>` so we can help you out!
 
-In order to develop for QATrack+ you first need to make sure you have a few
-requirements installed.
+Prerequisites
+~~~~~~~~~~~~
 
-Python 3.6+
-~~~~~~~~~~~
+QATrack+ is developed using Python 3.12. We recommend using the latest stable
+version of Python 3.12 for the best development experience and compatibility.
 
-QATrack+ is developed using Python 3 (Python 3.6-3.9).  Depending on your
-operating system, Python 3 may already be installed but if not you can find
-instructions for installing the proper version on https://python.org.
+The easiest way to manage virtual environments and ensure a consistent Python version is by using uv,
+which installs the specified Python version within the virtual environment and handles package management automatically.
 
 Git
 ~~~
@@ -44,52 +43,69 @@ installed it is recommended you go through a git tutorial to learn about git
 branches, commiting code and pull requests. There are many tutorials available
 online including a `tutorial by the Django team
 <https://dont-be-afraid-to-commit.readthedocs.io/en/latest/>`__ as well as
-a tutorial on and `GitHub <https://try.github.io/>`__.
+a tutorial on `GitHub <https://try.github.io/>`__.
 
-
-GitHub
-~~~~~~
+GitHub Account
+~~~~~~~~~~~~~~
 
 The QATrack+ project currently uses `GitHub <https://github.com>`__ for
-hosting its source code repository.  In general, to contribute code to QATrack+
+hosting its source code repository. To contribute code to QATrack+
 you will need to create a fork of QATrack+ on GitHub, make your changes,
 then make a pull request to the main QATrack+ project.
-
-Creating a fork of QATrack+
-...........................
 
 Creating a fork of QATrack+ is explained in the `GitHub documentation
 <https://guides.github.com/activities/forking/>`__.
 
-Cloning your fork to your local system
-......................................
+uv Package Manager
+~~~~~~~~~~~~~~~~~~~
 
-Once you have created a fork of QATrack+ on GitHub, you will want to
-download your fork to your local system to work on. This can either be done
-using the command line or one of the graphical git apps that are available.
-This page assumes you are using bash on linux or the Git Bash shell on Windows.
+QATrack+ development uses `uv <https://docs.astral.sh/uv/>`__, a fast Python
+package and project manager. uv handles Python version management, virtual environments,
+and dependency management in a single tool.
 
+Install uv using the official installer (recommended):
+
+.. code-block:: shell
+
+    # On macOS and Linux
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+
+Alternatively, if you already have Python and pip installed, you can use:
+
+.. code-block:: shell
+
+    # Alternative method using pip
+    pip install uv
+
+For other installation methods or troubleshooting, see the full installation guide at https://docs.astral.sh/uv/getting-started/installation/
 
 Setting up your development environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In order to keep your QATrack+ development environment separate from your
-system Python installation, you will want to set up a virtual environment to
-install QATrack+'s Python dependencies in it. Using the command line change to
-the directory where you installed QATrack+, create a new virtual environment,
-and activate the virtual environment:
+First, clone your fork and navigate to the directory:
 
 .. code-block:: shell
 
-    cd /path/to/qatrackplus
-    python3 -m venv env
-    source env/bin/activate
+    git clone https://github.com/YOUR_USERNAME/qatrackplus.git
+    cd qatrackplus
 
-Then install the development libraries:
+Create a virtual environment with Python 3.12 using uv:
 
 .. code-block:: shell
 
-    pip install -r requirements/dev.txt
+    # Create virtual environment with Python 3.12
+    uv venv --python 3.12
+
+    # Activate the virtual environment on macOS/Linux:
+    source .venv/bin/activate
+
+Install development dependencies:
+
+.. code-block:: shell
+
+    # Install all development dependencies
+    uv sync --dev
+
 
 
 Creating your development database
@@ -124,10 +140,10 @@ and then run the development server:
 
 .. code-block:: shell
 
-    python manage.py runserver
+    python manage.py runserver 
 
 Once the development server is running you should be able to visit
-http://127.0.0.1/ in your browser and log into QATrack+.
+http://127.0.0.1:8000/ in your browser and log into QATrack+.
 
 Next Steps
 ~~~~~~~~~~
@@ -135,7 +151,7 @@ Next Steps
 Now that you have the development server running, you are ready to begin
 modifying the code!  If you have never used Django before it is highly
 recommended that you go through the official `Django tutorial
-<https://docs.djangoproject.com/en/1.11/intro/tutorial01/>`__ which is an
+<https://docs.djangoproject.com/en/4.2/intro/tutorial01/>`__ which is an
 excellent introduction to writing Django applications.
 
 Once you are happy with your modifications, commit them to your source code
@@ -157,7 +173,32 @@ Please mark all strings and templates in QATrack+ for translation. This will
 allow for QATrack+ to be made avaialable in multiple languages.  For discussion
 of how to mark templates and strings for translation please read the `Django
 docs on translation
-<https://docs.djangoproject.com/en/1.11/topics/i18n/translation/>`__.
+<https://docs.djangoproject.com/en/4.2/topics/i18n/translation/>`__.
+
+To work with translations in development:
+
+.. code-block:: shell
+
+    # Step 1: Extract translatable strings to .po files
+    python manage.py makemessages -l fr  # Replace 'fr' with your desired language code (e.g., es, de, it, etc.)
+
+    # Step 2: Translate .po files using the translation script
+    python scripts/translation.py batch fr  # Replace 'fr' with your language code
+
+    # Step 3: Compile translations to .mo files
+    python manage.py compilemessages
+
+    # Step 4: Update your local settings to use the new language
+    # Add this to your qatrack/local_settings.py:
+    # LANGUAGE_CODE = 'fr'  # Replace 'fr' with your language code
+
+After completing these steps, restart your development server to see the translations in action:
+
+.. code-block:: shell
+
+    python manage.py runserver
+
+You can also test multiple languages by temporarily changing the ``LANGUAGE_CODE`` setting in your ``local_settings.py`` file and restarting the server. 
 
 
 Tool Tips And User Hints
@@ -273,8 +314,8 @@ suite from the root QATrack+ directory using the `py.test` command:
     ./qatrackplus> py.test
     Test session starts (platform: linux, Python 3.6.5, pytest 3.5.0, pytest-sugar 0.9.1)
     Django settings: qatrack.settings (from ini file)
-    rootdir: /home/randlet/projects/qatrack/qatrackplus, inifile: pytest.ini
-    plugins: sugar-0.9.1, django-3.1.2, cov-2.5.1
+    rootdir: /home/dev/projects/qatrackplus, inifile: pytest.ini
+    plugins: django-4.5.2, cov-3.0.0
 
     qatrack/accounts/tests.py ✓✓✓
 
@@ -345,11 +386,12 @@ QATrack+ but still wants to help the project out.  Here are a couple of ways
 that you can contribute to the QATrack+ project without doing any software
 development:
 
-* **Translations:** Starting in QATrack+ v3.1.0 (sorry this didn't happen yet),
-  QATrack+ will have the infrastructure in place to support languages other
-  than English.  We will be making translation files available so that the
-  community can create translation files for their native languages. Please get
-  in touch with randy@multileaf.ca if you are able to help out with this task!
+
+* **Translations:** QATrack+ supports multiple languages through its
+  internationalization infrastructure. We welcome community contributions for
+  translation files in different languages. Use the translation manager script
+  to help automate translations, then refine them manually for accuracy.
+  See the "Internationalization & Translation" section above for detailed commands.
 
 * **Tutorials:** :ref:`Tutorials <tutorials>` are a great way for newcomers to
   learn their way around QATrack+.  If you have an idea for a tutorial, we

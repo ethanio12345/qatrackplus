@@ -15,6 +15,8 @@ from qatrack.qa.tests import utils
 from qatrack.qatrack_core.dates import format_as_date
 from qatrack.qatrack_core.tests.live import SeleniumTests
 from qatrack.service_log.tests import utils as sl_utils
+from django.db import transaction
+from django.test import TransactionTestCase
 
 objects = {
 
@@ -137,12 +139,12 @@ objects = {
 }  # yapf: disable
 
 
-class BaseQATests(SeleniumTests):
+class BaseQATests(SeleniumTests, TransactionTestCase):
 
     def setUp(self):
-
-        self.password = 'password'
-        self.user = create_user(pwd=self.password)
+        with transaction.atomic():
+            self.password = 'password'
+            self.user = create_user(pwd=self.password)
 
     def login(self):
         self.open("/accounts/login/")
@@ -575,64 +577,65 @@ class LiveQATests(BaseQATests):
 class TestPerformQC(BaseQATests):
 
     def setUp(self):
+        with transaction.atomic():
+            super().setUp()
 
-        super().setUp()
+            self.unit = utils.create_unit()
+            self.group = utils.create_group()
+            for p in Permission.objects.all():
+                self.group.permissions.add(p)
+            self.user.groups.add(self.group)
+            self.test_list = utils.create_test_list()
 
-        self.unit = utils.create_unit()
-        self.group = utils.create_group()
-        for p in Permission.objects.all():
-            self.group.permissions.add(p)
-        self.user.groups.add(self.group)
-        self.test_list = utils.create_test_list()
+            self.tnum_1 = utils.create_test(name="test1")
+            self.tnum_2 = utils.create_test(name="test2")
+            self.tcomp = utils.create_test(name="testc", test_type=models.COMPOSITE)
+            self.tcomp.calculation_procedure = "result = test1 + test2 + 2"
+            self.tcomp.save()
 
-        self.tnum_1 = utils.create_test(name="test1")
-        self.tnum_2 = utils.create_test(name="test2")
-        self.tcomp = utils.create_test(name="testc", test_type=models.COMPOSITE)
-        self.tcomp.calculation_procedure = "result = test1 + test2 + 2"
-        self.tcomp.save()
+            self.tdate = utils.create_test(name="testdate", test_type=models.DATE)
+            self.tdatetime = utils.create_test(name="testdatetime", test_type=models.DATETIME)
 
-        self.tdate = utils.create_test(name="testdate", test_type=models.DATE)
-        self.tdatetime = utils.create_test(name="testdatetime", test_type=models.DATETIME)
+            self.tmult = utils.create_test(name="testmult", choices="choicea,choiceb", test_type=models.MULTIPLE_CHOICE)
+            self.tstring = utils.create_test(name="teststring", test_type=models.STRING)
+            self.tstringcomp = utils.create_test(name="teststringcomp", test_type=models.STRING_COMPOSITE)
+            self.tstringcomp.calculation_procedure = "teststringcomp = teststring + testmult"
+            self.tstringcomp.save()
 
-        self.tmult = utils.create_test(name="testmult", choices="choicea,choiceb", test_type=models.MULTIPLE_CHOICE)
-        self.tstring = utils.create_test(name="teststring", test_type=models.STRING)
-        self.tstringcomp = utils.create_test(name="teststringcomp", test_type=models.STRING_COMPOSITE)
-        self.tstringcomp.calculation_procedure = "teststringcomp = teststring + testmult"
-        self.tstringcomp.save()
+            all_tests = [
+                self.tnum_1,
+                self.tnum_2,
+                self.tcomp,
+                self.tdate,
+                self.tdatetime,
+                self.tmult,
+                self.tstring,
+                self.tstringcomp,
+            ]
 
-        all_tests = [
-            self.tnum_1,
-            self.tnum_2,
-            self.tcomp,
-            self.tdate,
-            self.tdatetime,
-            self.tmult,
-            self.tstring,
-            self.tstringcomp,
-        ]
+            for o, t in enumerate(all_tests):
+                utils.create_test_list_membership(self.test_list, t, order=o)
 
-        for o, t in enumerate(all_tests):
-            utils.create_test_list_membership(self.test_list, t, order=o)
+            self.utc = utils.create_unit_test_collection(unit=self.unit, test_collection=self.test_list)
 
-        self.utc = utils.create_unit_test_collection(unit=self.unit, test_collection=self.test_list)
+            self.utc.visible_to.add(self.group)
+            self.url = reverse("perform_qa", kwargs={'pk': self.utc.pk})
+            self.status = models.TestInstanceStatus.objects.create(
+                name="foo",
+                slug="foo",
+                is_default=True,
+            )
 
-        self.utc.visible_to.add(self.group)
-        self.url = reverse("perform_qa", kwargs={'pk': self.utc.pk})
-        self.status = models.TestInstanceStatus.objects.create(
-            name="foo",
-            slug="foo",
-            is_default=True,
-        )
-
-        sl_utils.create_service_event_status(is_default=True)
-        sl_utils.create_unit_service_area(self.utc.unit)
-        sl_utils.create_service_type()
+            sl_utils.create_service_event_status(is_default=True)
+            sl_utils.create_unit_service_area(self.utc.unit)
+            sl_utils.create_service_type()
 
     def test_ok_on_load(self):
         """Ensure that no failed tests on load and 3 "NO TOL" tests present"""
-        self.login()
-        self.open(self.url)
-        assert len(self.driver.find_elements(By.CSS_SELECTOR, ".qa-status.btn-danger")) == 0
+        with transaction.atomic():
+            self.login()
+            self.open(self.url)
+            assert len(self.driver.find_elements(By.CSS_SELECTOR, ".qa-status.btn-danger")) == 0
 
     def fill_testlist(self):
 
@@ -894,26 +897,27 @@ class TestPerformQC(BaseQATests):
 class TestReviewQC(BaseQATests):
 
     def setUp(self):
+        with transaction.atomic():
+            super().setUp()
 
-        super().setUp()
+            self.unreviewed = utils.create_status(name="Unreviewed", slug="unreviewed")
+            self.reviewed = utils.create_status(name="Approved", slug="approved", is_default=False, requires_review=False)
+            utils.create_test_instance()
 
-        self.unreviewed = utils.create_status(name="Unreviewed", slug="unreviewed")
-        self.reviewed = utils.create_status(name="Approved", slug="approved", is_default=False, requires_review=False)
-        utils.create_test_instance()
-
-        self.url = "/qc/session/unreviewed/"
+            self.url = "/qc/session/unreviewed/"
 
     @override_settings(REVIEW_BULK=True)
     def test_review_ok(self):
         """Ensure that no failed tests on load and 3 "NO TOL" tests present"""
-        self.login()
-        self.open(self.url)
-        time.sleep(0.1)
-        self.driver.find_elements(By.CLASS_NAME, "test-selected-toggle")[0].click()
-        self.select_by_text("bulk-status", "Approved")
-        self.click("submit-review")
-        assert models.TestListInstance.objects.unreviewed().count() == 1
+        with transaction.atomic():
+            self.login()
+            self.open(self.url)
+            time.sleep(0.1)
+            self.driver.find_elements(By.CLASS_NAME, "test-selected-toggle")[0].click()
+            self.select_by_text("bulk-status", "Approved")
+            self.click("submit-review")
+            assert models.TestListInstance.objects.unreviewed().count() == 1
 
-        self.click("confirm-update")
-        self.wait.until(e_c.presence_of_element_located((By.CLASS_NAME, 'alert-success')))
-        assert models.TestListInstance.objects.unreviewed().count() == 0
+            self.click("confirm-update")
+            self.wait.until(e_c.presence_of_element_located((By.CLASS_NAME, 'alert-success')))
+            assert models.TestListInstance.objects.unreviewed().count() == 0

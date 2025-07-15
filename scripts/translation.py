@@ -19,7 +19,7 @@ except ImportError:
 
 
 def find_po_files(language_code=None):
-    """Find all .po files, optionally filtered by language code"""
+    """Find all .po files, filtered by language code"""
     po_files = []
     locale_dir = Path('qatrack/locale')
     
@@ -78,58 +78,8 @@ def remove_duplicates_from_po(po_file_path):
 
 
 def fix_translation_variables(po_file_path):
-    """Fix variable names in translations to avoid formatting issues"""
+    """Preserve Python format variables in translations"""
     
-    with open(po_file_path, 'r', encoding='utf-8') as f:
-        content = f.read()
-
-    # Define variable name mappings (translated -> English)
-    variable_mappings = {
-        '{tolérance}': '{tolerance}',
-        '{catégorie}': '{category}',
-        '{fréquence}': '{frequency}',
-        '{test_count}': '{test_count}',
-        '{max_tests}': '{max_tests}',
-        '{fault_id}': '{fault_id}',
-        '{status_code}': '{status_code}',
-        '{phrase}': '{phrase}',
-        '{traceback}': '{traceback}',
-        '{sublist_id}': '{sublist_id}',
-        '{test_name}': '{test_name}',
-        '{num_days}': '{num_days}',
-        '{frequency_names}': '{frequency_names}',
-        '{unit_names}': '{unit_names}',
-        '{id}': '{id}',
-        '{test_result}': '{test_result}',
-        '{test_type}': '{test_type}',
-        '{error}': '{error}',
-        '{username}': '{username}',
-        '{unit_name}': '{unit_name}',
-        '{unit_test_collection_name}': '{unit_test_collection_name}',
-        '{day_number}': '{day_number}',
-        '{low}': '{low}',
-        '{high}': '{high}',
-        '{current_datetime}': '{current_datetime}',
-        '{count}': '{count}',
-        '{test_list_name}': '{test_list_name}',
-        '{se_needing_review_count}': '{se_needing_review_count}',
-        '{se_rts_incomplete_qa_count}': '{se_rts_incomplete_qa_count}',
-        '{se_rts_unreviewed_qa_count}': '{se_rts_unreviewed_qa_count}',
-        '{unit_test_info_id}': '{unit_test_info_id}',
-        '{group_name}': '{group_name}',
-        '{item_counts}': '{item_counts}',
-        '{verbose_name}': '{verbose_name}',
-    }
-
-    # Apply the mappings
-    fixed_content = content
-    for translated_var, english_var in variable_mappings.items():
-        fixed_content = fixed_content.replace(translated_var, english_var)
-
-    with open(po_file_path, 'w', encoding='utf-8') as f:
-        f.write(fixed_content)
-
-    print(f"🔧 Fixed variable names in {po_file_path}")
 
 
 def translate_po_file(po_file_path, target_language='fr', source_language='en'):
@@ -374,7 +324,7 @@ This script translates existing .po files using Google Translate API.
 Use Django's makemessages command to generate .po files first.
 
 Usage:
-  python scripts/unified_translation_manager.py <command> [language_code]
+  python scripts/translation.py <command> [language_code]
 
 Commands:
   list                    - List available languages with .po files
@@ -390,10 +340,10 @@ Examples:
   python manage.py makemessages -l es
   
   # Then translate them
-  python scripts/unified_translation_manager.py list
-  python scripts/unified_translation_manager.py batch fr
-  python scripts/unified_translation_manager.py all es
-  python scripts/unified_translation_manager.py compile
+  python scripts/translation.py list
+  python scripts/translation.py batch fr
+  python scripts/translation.py all es
+  python scripts/translation.py compile
 
 Supported language codes: fr, es, de, it, pt, zh, ja, ko, ru, etc.
 (Any language code supported by Google Translate)
@@ -414,7 +364,7 @@ Supported language codes: fr, es, de, it, pt, zh, ja, ko, ru, etc.
     # Commands that require a language code
     if len(sys.argv) < 3:
         print("❌ Language code required for this command")
-        print("Usage: python scripts/unified_translation_manager.py <command> <language_code>")
+        print("Usage: python scripts/translation.py <command> <language_code>")
         return
     
     language_code = sys.argv[2]

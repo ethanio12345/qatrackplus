@@ -58,4 +58,3 @@ described here:
    config
    authentication_backends
    backup
-   sca_logo

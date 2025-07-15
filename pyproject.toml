@@ -67,27 +67,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = [
-    "Jinja2==3.1.2",
-    "Sphinx==7.4.7",
-    "flake8",
-    "ipdb",
-    "ipython",
-    "isort",
-    "pylint>=2.12,<3.0",
-    "sphinx-autobuild==0.7.1",
-    "sphinx-rtd-theme==3.0.2",
-    "sphinxcontrib-applehelp==1.0.4",
-    "sphinxcontrib-devhelp==1.0.2",
-    "sphinxcontrib-htmlhelp==2.0.1",
-    "sphinxcontrib-jquery==4.1",
-    "sphinxcontrib-jsmath==1.0.1",
-    "sphinxcontrib-qthelp==1.0.3",
-    "sphinxcontrib-serializinghtml==2.0.0",
-    "sphinxcontrib-websupport==1.2.4",
-    "yapf",
-]
-
 mysql = [
     "mysqlclient==2.0.3",
 ]
@@ -139,3 +118,25 @@ python_files = ["test_*.py", "*_test.py"]
 addopts = "-ra -q"
 django_find_project = true
 DJANGO_SETTINGS_MODULE = "qatrack.settings"
+
+[dependency-groups]
+dev = [
+    "Jinja2==3.1.2",
+    "Sphinx==7.4.7",
+    "flake8",
+    "ipdb",
+    "ipython",
+    "isort",
+    "pylint>=2.12,<3.0",
+    "sphinx-autobuild==0.7.1",
+    "sphinx-rtd-theme==3.0.2",
+    "sphinxcontrib-applehelp==1.0.4",
+    "sphinxcontrib-devhelp==1.0.2",
+    "sphinxcontrib-htmlhelp==2.0.1",
+    "sphinxcontrib-jquery==4.1",
+    "sphinxcontrib-jsmath==1.0.1",
+    "sphinxcontrib-qthelp==1.0.3",
+    "sphinxcontrib-serializinghtml==2.0.0",
+    "sphinxcontrib-websupport==1.2.4",
+    "yapf",
+]
