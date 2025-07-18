@@ -17,7 +17,7 @@ from django.utils.translation import gettext_lazy as _l
 import xlsxwriter
 
 from qatrack.qatrack_core.dates import format_as_date, format_datetime
-from qatrack.qatrack_core.utils import chrometopdf, relative_dates
+from qatrack.qatrack_core.utils import chrometopdf, weasyprint_to_pdf, relative_dates
 
 CSV = "csv"
 XLS = "xlsx"
@@ -268,7 +268,22 @@ class BaseReport(object, metaclass=ReportMeta):
         template = self.get_template(using=None)
         content = template.render(context)
         paper_size = context.get('paper_size', 'letter')
-        return chrometopdf(content, name=fname, paper_size=paper_size)
+        
+        # Use WeasyPrint for reliable paper size support, fall back to Chrome
+        try:
+            return weasyprint_to_pdf(content, name=fname, paper_size=paper_size)
+        except ImportError:
+            # WeasyPrint not available, fall back to Chrome
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning("WeasyPrint not available, falling back to Chrome")
+            return chrometopdf(content, name=fname, paper_size=paper_size)
+        except Exception as e:
+            # WeasyPrint failed for some other reason, fall back to Chrome
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"WeasyPrint failed, falling back to Chrome: {e}")
+            return chrometopdf(content, name=fname, paper_size=paper_size)
 
     def to_csv(self):
         context = self.get_context()

@@ -8,6 +8,60 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 
+def weasyprint_to_pdf(html, name="", paper_size="letter"):
+    """Convert HTML to PDF using WeasyPrint with proper paper size support
+    
+    Args:
+        html: HTML content to convert
+        name: Optional name for temporary files
+        paper_size: Paper size for PDF ('letter' or 'a4')
+    """
+    try:
+        from weasyprint import HTML, CSS
+    except ImportError:
+        raise ImportError("WeasyPrint not installed. Install with: uv pip install weasyprint")
+    
+    import tempfile
+    import uuid
+    
+    if not name:
+        name = uuid.uuid4().hex[:10]
+    
+    # Define CSS for paper size
+    if paper_size.lower() == "letter":
+        page_css = """
+        @page {
+            size: letter;
+            margin: 0.5in;
+        }
+        """
+    elif paper_size.lower() == "a4":
+        page_css = """
+        @page {
+            size: A4;
+            margin: 13mm;
+        }
+        """
+    else:
+        # Default to letter
+        page_css = """
+        @page {
+            size: letter;
+            margin: 0.5in;
+        }
+        """
+    
+    # Create WeasyPrint documents
+    html_doc = HTML(string=html)
+    css_doc = CSS(string=page_css)
+    
+    # Generate PDF and return as bytes
+    with tempfile.NamedTemporaryFile() as pdf_file:
+        html_doc.write_pdf(pdf_file.name, stylesheets=[css_doc])
+        pdf_file.seek(0)
+        return pdf_file.read()
+
+
 def chrometopdf(html, name="", paper_size="letter"):
     """use headles chrome to convert an html document to pdf
 
@@ -16,6 +70,9 @@ def chrometopdf(html, name="", paper_size="letter"):
         name: Optional name for temporary files
         paper_size: Paper size for PDF ('letter' or 'a4')
     """
+
+    tmp_html = None
+    out_file = None
 
     try:
 
@@ -58,12 +115,18 @@ def chrometopdf(html, name="", paper_size="letter"):
     except OSError:
         raise OSError("chrome '%s' executable not found" % (settings.CHROME_PATH))
     finally:
-        if not tmp_html.closed:
+        if tmp_html and not tmp_html.closed:
             tmp_html.close()
-        if not out_file.closed:
+        if out_file and not out_file.closed:
             out_file.close()
         try:
-            os.unlink(tmp_html.name)
+            if tmp_html:
+                os.unlink(tmp_html.name)
+        except:  # noqa: E722
+            pass
+        try:
+            if out_file:
+                os.unlink(out_file.name)
         except:  # noqa: E722
             pass
 

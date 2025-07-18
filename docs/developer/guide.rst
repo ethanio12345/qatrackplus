@@ -175,31 +175,6 @@ of how to mark templates and strings for translation please read the `Django
 docs on translation
 <https://docs.djangoproject.com/en/4.2/topics/i18n/translation/>`__.
 
-To work with translations in development:
-
-.. code-block:: shell
-
-    # Step 1: Extract translatable strings to .po files
-    python manage.py makemessages -l fr  # Replace 'fr' with your desired language code (e.g., es, de, it, etc.)
-
-    # Step 2: Translate .po files using the translation script
-    python scripts/translation.py batch fr  # Replace 'fr' with your language code
-
-    # Step 3: Compile translations to .mo files
-    python manage.py compilemessages
-
-    # Step 4: Update your local settings to use the new language
-    # Add this to your qatrack/local_settings.py:
-    # LANGUAGE_CODE = 'fr'  # Replace 'fr' with your language code
-
-After completing these steps, restart your development server to see the translations in action:
-
-.. code-block:: shell
-
-    python manage.py runserver
-
-You can also test multiple languages by temporarily changing the ``LANGUAGE_CODE`` setting in your ``local_settings.py`` file and restarting the server. 
-
 
 Tool Tips And User Hints
 ~~~~~~~~~~~~~~~~~~~~~~~~
