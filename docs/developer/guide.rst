@@ -342,6 +342,36 @@ browser (at http://127.0.0.1:8008) by running one of the following commands:
     sphinx-autobuild docs docs/_build/html -p 8008
 
 
+Version Naming Convention
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+QATrack+ uses **Eff Ver (Effort Versioning)** for its version naming convention. 
+Eff Ver is a versioning strategy that focuses on the effort required to upgrade 
+rather than semantic meaning. This approach prioritizes the practical impact on 
+users and developers when considering version changes.
+
+For more information about Eff Ver, see the `Eff Ver documentation 
+<https://effver.org>`__.
+
+**Version Number Structure**
+
+The version number follows the format `X.Y.Z` where:
+
+- **X (Major)**: Corresponds to the Django LTS release version
+  - Currently at 4.0.0 (Django 4.2 LTS)
+  - When upgrading to Django 5.2 LTS, version will become 5.0.0
+  - This ensures compatibility and upgrade path alignment with Django
+
+- **Y (Minor)**: Feature releases within the same Django LTS cycle
+- **Z (Patch)**: Bug fixes and minor improvements
+
+**Examples:**
+- 4.0.0: Initial release on Django 4.2 LTS
+- 4.1.0: Major feature release while staying on Django 4.2 LTS
+- 4.1.1: Bug fix release
+- 5.0.0: Upgrade to Django 5.2 LTS
+
+
 Copyright & Licensing
 ---------------------
 

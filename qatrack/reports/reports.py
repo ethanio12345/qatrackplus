@@ -269,7 +269,7 @@ class BaseReport(object, metaclass=ReportMeta):
         content = template.render(context)
         paper_size = context.get('paper_size', 'letter')
         
-        # Use WeasyPrint for reliable paper size support, fall back to Chrome
+        # Use WeasyPrint for paper size support
         try:
             return weasyprint_to_pdf(content, name=fname, paper_size=paper_size)
         except ImportError:

@@ -4,7 +4,7 @@
 
   @page {
     margin: 20px 20px 20px 30px;
-    /* size removed - let WeasyPrint control paper size */
+    /* size removed */
   }
 
   body {
