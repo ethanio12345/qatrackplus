@@ -277,11 +277,132 @@ other html files) should use 2 spaces for indentation.  Javascript code should
 use 4 spaces for indentation.
 
 
+Setting Up Selenium Browser Testing
+----------------------------------
+
+QATrack+ includes Selenium tests that require a web browser to run. These tests
+simulate user interactions with the web interface and are marked with the
+``@pytest.mark.selenium`` decorator. **This setup should be completed before
+running the test suite if you want to see the Selenium tests in action.**
+
+**Browser Requirements**
+
+You need to install both a browser and its corresponding driver:
+
+1. **Firefox + geckodriver**
+2. **Chromium + chromedriver**
+
+**Finding Browser and Driver Paths**
+
+.. code-block:: shell
+
+    # Check for Firefox browser
+    which firefox
+    
+    # Check for geckodriver
+    which geckodriver
+    
+    # Check for Chromium browser
+    which chromium
+    
+    # Check for chromedriver
+    which chromedriver
+
+**Example Output:**
+::
+
+    /usr/bin/firefox
+    /snap/bin/geckodriver
+    /snap/bin/chromium
+    /usr/bin/chromedriver
+
+**Installing Missing Components**
+
+If you do not have both firefix and geckodriver or both chromium and chromedriver,
+you can install one or the other.
+
+**Ubuntu/Debian:**
+.. code-block:: shell
+
+     sudo apt update
+
+    # Option 1: Install Firefox and geckodriver
+    sudo apt install firefox geckodriver
+    
+    # Option 2: Install Chromium and chromedriver
+    sudo apt install chromium-browser chromium-chromedriver
+
+
+**Configuring Selenium Tests**
+
+Edit ``qatrack/settings.py`` and locate the Selenium configuration section:
+
+.. code-block:: python
+
+    # Selenium Browser Configuration
+    # Options: 'firefox', 'chromium'
+    SELENIUM_BROWSER = 'firefox'  # or 'chromium' on line 741 of qatrack/settings.py
+    
+    # Browser Driver Paths (leave empty to use system default)
+    SELENIUM_FIREFOX_DRIVER_PATH = ''  # Path to geckodriver
+    SELENIUM_CHROMIUM_DRIVER_PATH = ''   # Path to chromedriver
+    
+    # Headless Mode
+    # Set to True to run browsers in headless mode (no visible browser window)
+    # Set to False to see the browser during test execution
+    SELENIUM_VIRTUAL_DISPLAY = False  # Set to True to use headless browser for testing
+
+**Important**: For consistency, also set `SELENIUM_VIRTUAL_DISPLAY` in both files:
+
+.. code-block:: python
+
+    # In qatrack/settings.py:
+    SELENIUM_VIRTUAL_DISPLAY = False  # Set to True for headless mode
+    
+    # In qatrack/test_settings.py:
+    SELENIUM_VIRTUAL_DISPLAY = False  # Set to True for headless mode
+
+**Configuration Examples**
+
+**Firefox with visible browser:**
+.. code-block:: python
+
+    # In qatrack/settings.py:
+    SELENIUM_BROWSER = 'firefox'
+    SELENIUM_VIRTUAL_DISPLAY = False
+    SELENIUM_FIREFOX_DRIVER_PATH = '/snap/bin/geckodriver' 
+    
+    # In qatrack/test_settings.py:
+    SELENIUM_VIRTUAL_DISPLAY = False
+
+**Chromium with visible browser:**
+.. code-block:: python
+
+    # In qatrack/settings.py:
+    SELENIUM_BROWSER = 'chromium'
+    SELENIUM_VIRTUAL_DISPLAY = False
+    SELENIUM_CHROMIUM_DRIVER_PATH = '/usr/bin/chromedriver'
+    
+    # In qatrack/test_settings.py:
+    SELENIUM_VIRTUAL_DISPLAY = False
+
+**Headless mode (for CI/CD):**
+.. code-block:: python
+
+    # In qatrack/settings.py:
+    SELENIUM_BROWSER = ''  # This can either be filled in or left blank
+    SELENIUM_VIRTUAL_DISPLAY = True
+    
+    # In qatrack/test_settings.py:
+    SELENIUM_VIRTUAL_DISPLAY = True
+
+
 Running The Test Suite
 ----------------------
 
-Once you have QATrack+ and its dependencies installed you can run the test
-suite from the root QATrack+ directory using the `py.test` command:
+Once you have QATrack+ and its dependencies installed (and optionally configured
+Selenium browser testing above), you can run the test suite from the root
+QATrack+ directory using the `py.test` command:
 
 
 .. code-block:: sh
@@ -293,6 +414,23 @@ suite from the root QATrack+ directory using the `py.test` command:
     plugins: django-4.5.2, cov-3.0.0
 
     qatrack/accounts/tests.py ✓✓✓
+
+**Running Different Types of Tests**
+
+Run all tests (including Selenium):
+.. code-block:: shell
+
+    py.test
+
+Run only Selenium tests:
+.. code-block:: shell
+
+    pytest -m selenium
+
+Run only non-Selenium tests (faster):
+.. code-block:: shell
+
+    pytest -m "not selenium"
 
 For more information on using py.test, refer to the `py.test documentation
 <https://pytest.org>`__.

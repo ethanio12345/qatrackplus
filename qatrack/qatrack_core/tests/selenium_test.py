@@ -110,7 +110,7 @@ class SeleniumTests(StaticLiveServerSingleThreadedTestCase):
     @classmethod
     def setUpClass(cls):
         use_virtual_display = getattr(settings, 'SELENIUM_VIRTUAL_DISPLAY', False)
-        use_chrome = getattr(settings, 'SELENIUM_USE_CHROME', False)
+        browser_setting = getattr(settings, 'SELENIUM_BROWSER', 'firefox')
 
         if use_virtual_display:
             # Make sure xvfb is installed

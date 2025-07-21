@@ -94,7 +94,7 @@ class SeleniumTests(StaticLiveServerSingleThreadedTestCase):
     @classmethod
     def setUpClass(cls):
         use_virtual_display = getattr(settings, 'SELENIUM_VIRTUAL_DISPLAY', False)
-        use_chrome = getattr(settings, 'SELENIUM_USE_CHROME', False)
+        browser_setting = getattr(settings, 'SELENIUM_BROWSER', 'firefox')
 
         if use_virtual_display:
             # Make sure xvfb is installed
@@ -104,31 +104,40 @@ class SeleniumTests(StaticLiveServerSingleThreadedTestCase):
         else:
             cls.display = None
 
-        if use_chrome:
+        if browser_setting == 'chromium':
             from selenium.webdriver.chrome.service import Service as ChromeService
             from selenium.webdriver.chrome.options import Options as ChromeOptions
 
-            chrome_driver_path = getattr(settings, 'SELENIUM_CHROME_PATH', '')
+            chromium_driver_path = getattr(settings, 'SELENIUM_CHROMIUM_DRIVER_PATH', '')
             chrome_options = ChromeOptions()
             if use_virtual_display:
                 chrome_options.add_argument('--headless')
                 chrome_options.add_argument('--no-sandbox')
                 chrome_options.add_argument('--disable-dev-shm-usage')
 
-            if chrome_driver_path:
-                service = ChromeService(executable_path=chrome_driver_path)
+            if chromium_driver_path:
+                service = ChromeService(executable_path=chromium_driver_path)
                 cls.driver = webdriver.Chrome(service=service, options=chrome_options)
             else:
                 cls.driver = webdriver.Chrome(options=chrome_options)
         else:
             from selenium.webdriver.firefox.service import Service as FirefoxService
+            from selenium.webdriver.firefox.options import Options as FirefoxOptions
 
             ff_options = FirefoxOptions()
             if use_virtual_display:
                 ff_options.add_argument('--headless')
+            else:
+                ff_options.add_argument('--disable-headless')
 
-            # Use the system geckodriver
-            service = FirefoxService(executable_path='/snap/bin/geckodriver')
+            firefox_driver_path = getattr(settings, 'SELENIUM_FIREFOX_DRIVER_PATH', '')
+            
+            if firefox_driver_path:
+                service = FirefoxService(executable_path=firefox_driver_path)
+            else:
+                # Try to use system geckodriver
+                service = FirefoxService(executable_path='/snap/bin/geckodriver')
+                
             cls.driver = webdriver.Firefox(service=service, options=ff_options)
 
         orig_find_element = cls.driver.find_element
