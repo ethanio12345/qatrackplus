@@ -2,10 +2,11 @@
 name = "qatrackplus"
 version = "4.0.0"
 description = "Quality Assurance software for medical physicists"
-requires-python = ">=3.12"
+requires-python = ">=3.12, <=3.13"
 authors = [
     {name = "Randy Taylor", email = "randy@multileaf.ca"},
 ]
+package-mode = false
 
 dependencies = [
     "Django==4.2",
@@ -64,6 +65,9 @@ win = [
     "CherryPy==18.0.1",
     "pyreadline",
     "pywin32>=300",
+    "mssql-django>=1.5",
+    "python-ldap",
+    "django-auth-ldap<4.9",
 ]
 
 docker = [
@@ -103,6 +107,9 @@ python_files = ["test_*.py", "*_test.py"]
 addopts = "-ra -q"
 django_find_project = true
 DJANGO_SETTINGS_MODULE = "qatrack.settings"
+
+[tool.uv.sources]
+python-ldap = { url = "https://github.com/cgohlke/python-ldap-build/releases/download/v3.4.4-1/python_ldap-3.4.4-cp312-cp312-win_amd64.whl" }
 
 [dependency-groups]
 dev = [
