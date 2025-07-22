@@ -45,6 +45,7 @@ online including a `tutorial by the Django team
 <https://dont-be-afraid-to-commit.readthedocs.io/en/latest/>`__ as well as
 a tutorial on `GitHub <https://try.github.io/>`__.
 
+.. _forking-repo:
 GitHub Account
 ~~~~~~~~~~~~~~
 
@@ -59,18 +60,16 @@ Creating a fork of QATrack+ is explained in the `GitHub documentation
 uv Package Manager
 ~~~~~~~~~~~~~~~~~~~
 
-QATrack+ development uses `uv <https://docs.astral.sh/uv/>`__, a fast Python
+The QATrack+ project uses `uv <https://docs.astral.sh/uv/>`__, a fast Python
 package and project manager. uv handles Python version management, virtual environments,
-and dependency management in a single tool.
+and dependency management.
 
 Install uv using the official installer (recommended):
 
 .. code-block:: shell
 
-    # On macOS and Linux
+    # On Linux
     curl -LsSf https://astral.sh/uv/install.sh | sh
-
-Alternatively, if you already have Python and pip installed, you can use:
 
 .. code-block:: shell
 
@@ -82,21 +81,38 @@ For other installation methods or troubleshooting, see the full installation gui
 Setting up your development environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-First, clone your fork and navigate to the directory:
+First create a :ref:`fork <forking-repo>` of the QATrack+ repository on GitHub.
+
+Then clone your fork to your local machine:
 
 .. code-block:: shell
 
     git clone https://github.com/YOUR_USERNAME/qatrackplus.git
-    cd qatrackplus
 
-Create a virtual environment with Python 3.12 using uv:
+Selecting an Editor or IDE
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can use a variety of tools to edit and work on the QATrack+ codebase. Some popular options include:
+
+- **VS Code**: A free, open-source editor with Python and Django support.
+- **Cursor**: An AI-powered code editor that integrates with GitHub Copilot and other AI tools.
+- **PyCharm**: A Python IDE with advanced Django support.
+- **Vim/Neovim**: Lightweight, keyboard-driven editors.
+- **Emacs**: Highly customizable editor.
+
+Choose the editor or IDE that best fits your workflow. All you need is a text editor and a terminal to get started!
+
+Creating a Virtual Environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Once you have decided on a text editor or IDE, create a virtual environment with Python 3.12 using uv:
 
 .. code-block:: shell
 
     # Create virtual environment with Python 3.12
     uv venv --python 3.12
 
-    # Activate the virtual environment on macOS/Linux:
+    # Activate the virtual environment:
     source .venv/bin/activate
 
 Install development dependencies:
@@ -126,6 +142,15 @@ file from the deploy subdirectory and then create your database:
 
 
 this will put a database called `default.db` in the `db` subdirectory.
+
+Collect Static Files
+~~~~~~~~~~~~~~~~~~~
+
+Before running the development server, you need to collect all static files to the STATIC_ROOT directory:
+
+.. code-block:: shell
+
+    python manage.py collectstatic --noinput
 
 Running the development server
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -280,19 +305,20 @@ use 4 spaces for indentation.
 Setting Up Selenium Browser Testing
 ----------------------------------
 
-QATrack+ includes Selenium tests that require a web browser to run. These tests
-simulate user interactions with the web interface and are marked with the
-``@pytest.mark.selenium`` decorator. **This setup should be completed before
-running the test suite if you want to see the Selenium tests in action.**
+QATrack+ includes Selenium tests that simulate user interactions with the web interface and are marked with the `@pytest.mark.selenium` decorator.
+
+**This setup should be completed before running the test suite if you want to see the Selenium tests in action.**
 
 **Browser Requirements**
 
-You need to install both a browser and its corresponding driver:
+You will need to have both a browser and its corresponding driver installed on your system:
 
-1. **Firefox + geckodriver**
-2. **Chromium + chromedriver**
+* Option 1. **Firefox + geckodriver**
+* Option 2. **Chromium + chromedriver**
 
-**Finding Browser and Driver Paths**
+If you are unsure whether or not you have both a browser and its corresponding driver installed, you can run the following commands to check:
+
+**Finding Browser and Driver Paths:**
 
 .. code-block:: shell
 
@@ -309,7 +335,8 @@ You need to install both a browser and its corresponding driver:
     which chromedriver
 
 **Example Output:**
-::
+
+.. code-block::
 
     /usr/bin/firefox
     /snap/bin/geckodriver
@@ -318,13 +345,10 @@ You need to install both a browser and its corresponding driver:
 
 **Installing Missing Components**
 
-If you do not have both firefix and geckodriver or both chromium and chromedriver,
-you can install one or the other.
+If you do not have both firefox and geckodriver or both chromium and chromedriver,
+you can install either pair using the following commands:
 
-**Ubuntu/Debian:**
 .. code-block:: shell
-
-     sudo apt update
 
     # Option 1: Install Firefox and geckodriver
     sudo apt install firefox geckodriver
@@ -335,37 +359,35 @@ you can install one or the other.
 
 **Configuring Selenium Tests**
 
-Edit ``qatrack/settings.py`` and locate the Selenium configuration section:
+You'll need to configure your browser settings in two files. First, update the Selenium configuration in `qatrack/settings.py`:
 
-.. code-block:: python
+.. code-block::
 
     # Selenium Browser Configuration
     # Options: 'firefox', 'chromium'
-    SELENIUM_BROWSER = 'firefox'  # or 'chromium' on line 741 of qatrack/settings.py
+    SELENIUM_BROWSER = ''
     
     # Browser Driver Paths (leave empty to use system default)
-    SELENIUM_FIREFOX_DRIVER_PATH = ''  # Path to geckodriver
-    SELENIUM_CHROMIUM_DRIVER_PATH = ''   # Path to chromedriver
+    SELENIUM_FIREFOX_DRIVER_PATH = ''  # Path to geckodriver as shown above
+    SELENIUM_CHROMIUM_DRIVER_PATH = ''   # Path to chromedriver as shown above
     
     # Headless Mode
     # Set to True to run browsers in headless mode (no visible browser window)
     # Set to False to see the browser during test execution
-    SELENIUM_VIRTUAL_DISPLAY = False  # Set to True to use headless browser for testing
+    SELENIUM_VIRTUAL_DISPLAY = True
 
-**Important**: For consistency, also set `SELENIUM_VIRTUAL_DISPLAY` in both files:
+Then also update `SELENIUM_VIRTUAL_DISPLAY` in `qatrack/test_settings.py`:
 
-.. code-block:: python
-
-    # In qatrack/settings.py:
-    SELENIUM_VIRTUAL_DISPLAY = False  # Set to True for headless mode
+.. code-block::
     
     # In qatrack/test_settings.py:
-    SELENIUM_VIRTUAL_DISPLAY = False  # Set to True for headless mode
+    SELENIUM_VIRTUAL_DISPLAY = True  # Set to False to enable visible browser
 
 **Configuration Examples**
 
 **Firefox with visible browser:**
-.. code-block:: python
+
+.. code-block::
 
     # In qatrack/settings.py:
     SELENIUM_BROWSER = 'firefox'
@@ -376,7 +398,8 @@ Edit ``qatrack/settings.py`` and locate the Selenium configuration section:
     SELENIUM_VIRTUAL_DISPLAY = False
 
 **Chromium with visible browser:**
-.. code-block:: python
+
+.. code-block::
 
     # In qatrack/settings.py:
     SELENIUM_BROWSER = 'chromium'
@@ -386,8 +409,9 @@ Edit ``qatrack/settings.py`` and locate the Selenium configuration section:
     # In qatrack/test_settings.py:
     SELENIUM_VIRTUAL_DISPLAY = False
 
-**Headless mode (for CI/CD):**
-.. code-block:: python
+**Headless mode**
+
+.. code-block::
 
     # In qatrack/settings.py:
     SELENIUM_BROWSER = ''  # This can either be filled in or left blank
@@ -418,16 +442,19 @@ QATrack+ directory using the `py.test` command:
 **Running Different Types of Tests**
 
 Run all tests (including Selenium):
+
 .. code-block:: shell
 
     py.test
 
 Run only Selenium tests:
+
 .. code-block:: shell
 
     pytest -m selenium
 
 Run only non-Selenium tests (faster):
+
 .. code-block:: shell
 
     pytest -m "not selenium"
