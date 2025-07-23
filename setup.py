@@ -40,7 +40,6 @@ setup(
         "PyVirtualDisplay>=2.0,<3.0",
         "beautifulsoup4>=4.9.0,<5.0",
         "concurrent-log-handler>=0.9.0,<1.0",
-        "coreapi>=2.3.0,<3.0",
         "coverage>=5.4,<6.0",
         "django-auth-adfs>=1.6.0,<2.0",
         "django-braces>=1.17,<1.18",
