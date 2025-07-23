@@ -9,7 +9,7 @@ from qatrack.notifications.models import ServiceEventSchedulingNotice
 from qatrack.qatrack_core.email import send_email_to_users
 from qatrack.qatrack_core.tasks import run_periodic_scheduler
 
-logger = logging.getLogger('django-q')
+logger = logging.getLogger('django-q2')
 
 
 def run_scheduling_notices():

@@ -8,7 +8,7 @@ from recurrence.fields import RecurrenceField
 from qatrack.qatrack_core.fields import JSONField
 from qatrack.qatrack_core.scheduling import RecurrenceFieldMixin
 
-# ensure Django-Q can pick up all report types on Windows
+# ensure Django-Q2 can pick up all report types on Windows
 from qatrack.reports import (  # noqa: F401
     faults, qc, service_log,
 )

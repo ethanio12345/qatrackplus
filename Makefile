@@ -57,8 +57,8 @@ qatrack_daemon.conf:
 	sudo service apache2 restart
 
 supervisor.conf:
-	sudo sed 's/YOURUSERNAMEHERE/$(USER)/g' deploy/supervisor/django-q.conf > django-q.conf
-	sudo mv django-q.conf /etc/supervisor/conf.d/
+	sudo sed 's/YOURUSERNAMEHERE/$(USER)/g' deploy/supervisor/django-q.conf > django-q2.conf
+	sudo mv django-q2.conf /etc/supervisor/conf.d/
 	sudo supervisorctl reread
 	sudo supervisorctl update
 

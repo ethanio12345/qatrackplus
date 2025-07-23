@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 
 from qatrack.qatrack_core.utils import today_start_end
 
-logger = logging.getLogger('django-q')
+logger = logging.getLogger('django-q2')
 
 
 def qatrack_task_wrapper(func):

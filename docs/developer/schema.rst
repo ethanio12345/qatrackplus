@@ -25,7 +25,7 @@ generating the schema diagram:
 .. code-block:: sh
 
     sudo apt install python-dev graphviz libgraphviz-dev pkg-config 
-    uv add pygraphviz         
+    uv pip install pygraphviz         
 
 and then you can generate your schema with:
 

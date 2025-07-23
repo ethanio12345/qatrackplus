@@ -36,7 +36,7 @@ setup(
     ],
     install_requires=[
         "Django>=3.2.0,<3.3",
-        "django-q>=1.0.0,<1.4",
+        "django-q2>=1.8.0",
         "PyVirtualDisplay>=2.0,<3.0",
         "beautifulsoup4>=4.9.0,<5.0",
         "concurrent-log-handler>=0.9.0,<1.0",
