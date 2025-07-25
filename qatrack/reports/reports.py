@@ -165,7 +165,12 @@ class BaseReport(object, metaclass=ReportMeta):
     def make_url(self, url, text='', title='', plain=False):
 
         slash = "/" if not (self.domain.endswith("/") or url.startswith("/")) else ""
-        full_url = '%s://%s%s%s' % (settings.HTTP_OR_HTTPS, self.domain, slash, url)
+        full_url = "%s://%s%s%s" % (
+            settings.HTTP_OR_HTTPS,
+            self.domain,
+            slash,
+            url[1:] if (self.domain.endswith("/") and url.startswith("/")) else url,
+        )
         if plain or self.plain:
             return full_url
 
