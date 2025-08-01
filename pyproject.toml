@@ -1,10 +1,41 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["qatrack"]
+include = [
+    "qatrack/**/*",
+    "manage.py",
+    "README.md",
+    "LICENSE",
+]
+
 [project]
 name = "qatrackplus"
 version = "4.0.0"
-description = "Quality Assurance software for medical physicists"
+description = "QATrack+ is an open source application for managing QC data in radiotherapy and diagnostic imaging clinics"
+readme = "README.md"
 requires-python = ">=3.12, <=3.13"
+license = {text = "MIT"}
 authors = [
-    {name = "Randy Taylor", email = "randy@multileaf.ca"},
+    {name = "QATrack+ contributors", email = "randy@multileaf.ca"},
+]
+keywords = ["QATrack+", "medical physics", "TG142", "quality assurance", "linac", "CT", "MRI", "radiotherapy", "diagnostic imaging"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Framework :: Django",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Healthcare Industry", 
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python",
+    "Programming Language :: JavaScript",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Software Development :: Version Control :: Git",
 ]
 package-mode = false
 
@@ -44,7 +75,6 @@ dependencies = [
     "reportlab>=4.0.0,<5.0",
     "requests>=2.25.0,<3.0",
     "scipy>=1.7.0,<2.0",
-    "setuptools>=65.0",
     "urllib3>=1.25.11,<3.0",
     "weasyprint>=65.0,<66.0",
     "xlrd>=2.0.1,<3.0",
@@ -142,7 +172,7 @@ dev = [
     # Documentation
     "Jinja2==3.1.2",
     "Sphinx==7.4.7",
-    "sphinx-autobuild==0.7.1",
+    "sphinx-autobuild>=1.0.0",
     "sphinx-rtd-theme==3.0.2",
     "sphinxcontrib-applehelp==1.0.4",
     "sphinxcontrib-devhelp==1.0.2",

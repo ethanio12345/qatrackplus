@@ -504,7 +504,7 @@ browser (at http://127.0.0.1:8008) by running one of the following commands:
 
     make docs-autobuild
     # -or-
-    sphinx-autobuild docs docs/_build/html -p 8008
+    sphinx-autobuild docs docs/_build/html --port 8008
 
 
 Version Naming Convention

@@ -45,7 +45,7 @@ docs:
 	cd docs && make html
 
 docs-autobuild:
-	sphinx-autobuild docs docs/_build/html -p 8009
+	sphinx-autobuild docs docs/_build/html --port 8009
 
 qatrack_daemon.conf:
 	sudo a2enmod headers
