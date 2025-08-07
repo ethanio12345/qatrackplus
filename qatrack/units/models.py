@@ -107,8 +107,8 @@ class Site(models.Model):
 
     class Meta:
         ordering = ("name",)
-        verbose_name = _l("site")
-        verbose_name_plural = _l("sites")
+        verbose_name = _l("Clinical Site")
+        verbose_name_plural = _l("Clinical Sites")
 
     def __str__(self):
         return self.name
@@ -238,7 +238,7 @@ class Unit(models.Model):
     id = models.AutoField(primary_key=True, verbose_name=("ID"))
 
     type = models.ForeignKey(UnitType, verbose_name=_l("Unit Type"), on_delete=models.PROTECT)
-    site = models.ForeignKey(Site, null=True, blank=True, on_delete=models.PROTECT)
+    site = models.ForeignKey(Site, null=True, blank=True, on_delete=models.PROTECT, verbose_name=_l("Clinical Site"))
 
     number = models.PositiveIntegerField(
         null=False,
