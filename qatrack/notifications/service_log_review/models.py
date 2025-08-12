@@ -65,6 +65,7 @@ class ServiceEventReviewNotice(RecurrenceFieldMixin, models.Model):
 
     class Meta:
         verbose_name = _l("Service Event Review Notice")
+        verbose_name_plural = _l("Service Event Review Notices")
 
     @property
     def is_unreviewed(self):

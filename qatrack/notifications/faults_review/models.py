@@ -65,6 +65,7 @@ class FaultsReviewNotice(RecurrenceFieldMixin, models.Model):
 
     class Meta:
         verbose_name = _l("Fault Review Notice")
+        verbose_name_plural = _l("Fault Review Notices")
 
     @property
     def is_unreviewed(self):

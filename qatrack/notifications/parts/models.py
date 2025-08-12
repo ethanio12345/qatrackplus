@@ -14,6 +14,10 @@ class PartCategoryGroup(models.Model):
         help_text=_l("Select which Part Categories should be included in this notification group."),
     )
 
+    class Meta:
+        verbose_name = _l("Part Category Group")
+        verbose_name_plural = _l("Part Category Groups")
+
     def __str__(self):
         return self.name
 
@@ -54,3 +58,4 @@ class PartNotice(models.Model):
 
     class Meta:
         verbose_name = _l("Part Notice")
+        verbose_name_plural = _l("Part Notices")

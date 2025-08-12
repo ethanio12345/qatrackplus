@@ -344,7 +344,7 @@ class ServiceEventForm(BetterModelForm):
     service_area_field = forms.ModelChoiceField(queryset=models.ServiceArea.objects.all(), required=True)
     service_area_field_fake = forms.ModelChoiceField(
         queryset=models.ServiceArea.objects.all(),
-        label='Service area',
+        label=_l('Service area'),
         required=True,
     )
     duration_service_time = HoursMinDurationField(

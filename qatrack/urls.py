@@ -43,6 +43,7 @@ urlpatterns = [
 
     # Uncomment the next line to enable the admin:
     path(r'admin/', admin.site.urls),
+    path('i18n/', include('django.conf.urls.i18n')),
     url(r'^favicon\.ico$', favicon_view),
     url(r'^apple-touch-icon\.png$', touch_view),
 

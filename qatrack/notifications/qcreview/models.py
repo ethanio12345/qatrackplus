@@ -81,6 +81,7 @@ class QCReviewNotice(RecurrenceFieldMixin, models.Model):
 
     class Meta:
         verbose_name = _l("QC Review Notice")
+        verbose_name_plural = _l("QC Review Notices")
 
     @property
     def is_unreviewed(self):

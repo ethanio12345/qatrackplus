@@ -57,6 +57,10 @@ class RecipientGroup(models.Model):
         self._sort_emails()
         super().save(*args, **kwargs)
 
+    class Meta:
+        verbose_name = _l("Recipient Group")
+        verbose_name_plural = _l("Recipient Groups")
+
     def __str__(self):
         return self.name
 
@@ -70,6 +74,10 @@ class TestListGroup(models.Model):
         TestList,
         help_text=_l("Select which Test Lists should be included in this notification group."),
     )
+
+    class Meta:
+        verbose_name = _l("Test List Group")
+        verbose_name_plural = _l("Test List Groups")
 
     __test__ = False  # supress pytest warning
 
@@ -86,6 +94,10 @@ class UnitGroup(models.Model):
         Unit,
         help_text=_l("Select which Units should be included in this notification group."),
     )
+
+    class Meta:
+        verbose_name = _l("Unit Group")
+        verbose_name_plural = _l("Unit Groups")
 
     def __str__(self):
         return self.name

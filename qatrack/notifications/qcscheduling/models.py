@@ -100,6 +100,7 @@ class QCSchedulingNotice(RecurrenceFieldMixin, models.Model):
 
     class Meta:
         verbose_name = _l("QC Scheduling Notice")
+        verbose_name_plural = _l("QC Scheduling Notices")
 
     @property
     def is_all(self):

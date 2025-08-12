@@ -35,6 +35,7 @@ class FaultNotice(models.Model):
 
     class Meta:
         verbose_name = _l("Fault Logged Notice")
+        verbose_name_plural = _l("Fault Logged Notices")
 
     def __str__(self):
         return "<FaultNotice(%d, %s)>" % (self.pk, self.get_notification_type_display())

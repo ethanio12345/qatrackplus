@@ -169,9 +169,12 @@ class Attachment(models.Model):
             self.move_tmp_file()
 
     def clean(self):
-        nowners = sum(1 for o in self._possible_owners if o)
-        if nowners > 1:
-            raise ValidationError(_l("An attachment should only have one owner"))
+        if not self.has_owner:
+            raise ValidationError(_("Attachment must have exactly one owner"))
+
+    class Meta:
+        verbose_name = _l("Attachment")
+        verbose_name_plural = _l("Attachments")
 
     @property
     def is_image(self):

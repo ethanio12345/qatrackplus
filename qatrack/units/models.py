@@ -46,7 +46,7 @@ class Vendor(models.Model):
     class Meta:
         ordering = ("name",)
         verbose_name = _l("Vendor")
-        verbose_name_plural = _l("Vendor")
+        verbose_name_plural = _l("Vendors")
 
     def natural_key(self):
         return (self.name,)
@@ -69,12 +69,13 @@ class UnitClass(models.Model):
         unique=True,
         help_text=_l('Name of this unit class'),
     )
+    description = models.TextField(blank=True, null=True)
 
     objects = NameNaturalKeyManager()
 
     class Meta:
-        verbose_name = _l("unit class")
-        verbose_name_plural = _l("unit classes")
+        verbose_name = _l("Unit Class")
+        verbose_name_plural = _l("Unit Classes")
         ordering = ("name",)
 
     def natural_key(self):
@@ -178,8 +179,8 @@ class UnitType(models.Model):
             "vendor__name",
             "name",
         )
-        verbose_name = _l("unit type")
-        verbose_name_plural = _l("unit types")
+        verbose_name = _l("Unit Type")
+        verbose_name_plural = _l("Unit Types")
 
     def natural_key(self):
         vendor = self.vendor.natural_key() if self.vendor else ()
@@ -211,8 +212,8 @@ class Modality(models.Model):
     objects = NameNaturalKeyManager()
 
     class Meta:
-        verbose_name = _l("treatment and imaging modality")
-        verbose_name_plural = _l('treatment and imaging modalities')
+        verbose_name = _l("Treatment and Imaging Modality")
+        verbose_name_plural = _l('Treatment and Imaging Modalities')
 
     def natural_key(self):
         return (self.name,)
@@ -264,8 +265,8 @@ class Unit(models.Model):
 
     class Meta:
         ordering = [settings.ORDER_UNITS_BY]
-        verbose_name = _l("unit")
-        verbose_name_plural = _l('units')
+        verbose_name = _l("Unit")
+        verbose_name_plural = _l('Units')
 
     def __str__(self):
         return self.name
@@ -346,8 +347,8 @@ class UnitAvailableTimeEdit(models.Model):
         get_latest_by = 'date'
         unique_together = [('unit', 'date')]
         default_permissions = ()
-        verbose_name = _l("unit available time edit")
-        verbose_name_plural = _l('unit available time edits')
+        verbose_name = _l("Unit Available Time Edit")
+        verbose_name_plural = _l('Unit Available Time Edits')
 
     def __str__(self):
         return '%s (%s)' % (self.name, fmt_date(self.date))
@@ -371,8 +372,8 @@ class UnitAvailableTime(models.Model):
         default_permissions = ('change',)
         get_latest_by = 'date_changed'
         unique_together = [('unit', 'date_changed')]
-        verbose_name = _l("unit available time")
-        verbose_name_plural = _l('unit available times')
+        verbose_name = _l("Unit Available Time")
+        verbose_name_plural = _l('Unit Available Times')
 
     def __str__(self):
         return 'Available time schedule change'

@@ -54,13 +54,13 @@ class ServiceArea(models.Model):
     class Meta:
         ordering = ("name",)
         verbose_name = _l('service area')
-        verbose_name_plural = _l('service area')
+        verbose_name_plural = _l('service areas')
 
     def natural_key(self):
         return (self.name,)
 
     def __str__(self):
-        return self.name
+        return str(_l('service area'))
 
 
 class UnitServiceArea(models.Model):
@@ -84,8 +84,8 @@ class UnitServiceArea(models.Model):
     )
 
     class Meta:
-        verbose_name = _l('unit service area')
-        verbose_name_plural = _l('unit service area memberships')
+        verbose_name = _l('Unit Service Area')
+        verbose_name_plural = _l('Unit Service Area Assignments')
         unique_together = (
             'unit',
             'service_area',
@@ -124,8 +124,8 @@ class ServiceType(models.Model):
     )
 
     class Meta:
-        verbose_name = _l('service type')
-        verbose_name_plural = _l('service types')
+        verbose_name = _l('Service Type')
+        verbose_name_plural = _l('Service Types')
 
     def natural_key(self):
         return (self.name,)
@@ -187,8 +187,8 @@ class ServiceEventStatus(models.Model):
     objects = NameNaturalKeyManager()
 
     class Meta:
-        verbose_name = _l('service event status')
-        verbose_name_plural = _l('service event statuses')
+        verbose_name = _l('Service Event Status')
+        verbose_name_plural = _l('Service Event Statuses')
         ordering = ("order", "pk")
 
     def save(self, *args, **kwargs):
@@ -381,8 +381,8 @@ class ServiceEvent(models.Model):
     all_objects = models.Manager()
 
     class Meta:
-        verbose_name = _l('service event')
-        verbose_name_plural = _l('service events')
+        verbose_name = _l('Service Event')
+        verbose_name_plural = _l('Service Events')
         get_latest_by = "datetime_service"
 
         permissions = (
@@ -471,8 +471,8 @@ class ThirdParty(models.Model):
     objects = ThirdPartyManager()
 
     class Meta:
-        verbose_name = _l('third party')
-        verbose_name_plural = _l('third parties')
+        verbose_name = _l('Third Party')
+        verbose_name_plural = _l('Third Parties')
         unique_together = ('first_name', 'last_name', 'vendor')
 
     def __str__(self):
@@ -511,8 +511,8 @@ class Hours(models.Model):
     )
 
     class Meta:
-        verbose_name = _l("hours")
-        verbose_name_plural = _l("hours")
+        verbose_name = _l("Hours")
+        verbose_name_plural = _l("Hours")
         unique_together = (
             'service_event',
             'third_party',
@@ -564,8 +564,8 @@ class ReturnToServiceQA(models.Model):
     objects = ReturnToServiceQAManager()
 
     class Meta:
-        verbose_name = _l("return to service qc")
-        verbose_name_plural = _l("return to service qc")
+        verbose_name = _l("Return To Service QA")
+        verbose_name_plural = _l("Return To Service QA")
         permissions = (
             ('view_returntoserviceqa', _l('Can view Return To Service QC')),
             ('perform_returntoserviceqa', _l('Can perform Return To Service QC')),
@@ -625,8 +625,8 @@ class GroupLinker(models.Model):
 
     class Meta:
         unique_together = ('name', 'group')
-        verbose_name = _l("group linker")
-        verbose_name_plural = _l("group linkers")
+        verbose_name = _l("Group Linker")
+        verbose_name_plural = _l("Group Linkers")
 
     def __str__(self):
         return self.name
@@ -657,8 +657,8 @@ class GroupLinkerInstance(models.Model):
 
     class Meta:
         default_permissions = ()
-        verbose_name = _l("group linker instance")
-        verbose_name_plural = _l("group linker instances")
+        verbose_name = _l("Group Linker Instance")
+        verbose_name_plural = _l("Group Linker Instances")
 
 
 class ServiceLogManager(models.Manager):
@@ -741,8 +741,8 @@ class ServiceLog(models.Model):
     class Meta:
         ordering = ('-datetime',)
         default_permissions = ()
-        verbose_name = _l("service event log")
-        verbose_name_plural = _l("service event logs")
+        verbose_name = _l("Service Event Log")
+        verbose_name_plural = _l("Service Event Logs")
 
     def info(self):
         if self.extra_info and isinstance(self.extra_info, str):
@@ -865,8 +865,8 @@ class ServiceEventTemplate(models.Model):
     )
 
     class Meta:
-        verbose_name = _l("service event template")
-        verbose_name_plural = _l("service event templates")
+        verbose_name = _l("Service Event Template")
+        verbose_name_plural = _l("Service Event Templates")
         ordering = ("name",)
 
     def __str__(self):
@@ -957,7 +957,7 @@ class ServiceEventSchedule(SchedulingMixin, models.Model):
 
     class Meta:
         unique_together = ('unit_service_area', 'service_event_template', 'frequency')
-        verbose_name = _l("service event schedule")
+        verbose_name = _l("Service Event Schedule")
         verbose_name_plural = _l("Assign Service Event Templates to Units")
 
     def get_last_instance(self):

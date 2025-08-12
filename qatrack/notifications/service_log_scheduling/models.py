@@ -83,6 +83,7 @@ class ServiceEventSchedulingNotice(RecurrenceFieldMixin, models.Model):
 
     class Meta:
         verbose_name = _l("Service Event Scheduling Notice")
+        verbose_name_plural = _l("Service Event Scheduling Notices")
 
     @property
     def is_all(self):
