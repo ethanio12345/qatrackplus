@@ -3,6 +3,7 @@ import re
 from django.contrib.auth.models import User
 from django.core.validators import RegexValidator
 from django.db import models
+from django.utils.translation import gettext_lazy as _l
 
 re_255 = r'([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])'
 color_re = re.compile(r'^rgba\(' + re_255 + ',' + re_255 + ',' + re_255 + r',(0(\.[0-9][0-9]?)?|1)\)$')
@@ -13,46 +14,51 @@ class IssueType(models.Model):
 
     name = models.CharField(max_length=32)
 
+    class Meta:
+        verbose_name = _l("Issue Type")
+        verbose_name_plural = _l("Issue Types")
+
     def __str__(self):
         return self.name
 
 
 class IssuePriority(models.Model):
-
     name = models.CharField(max_length=32)
     colour = models.CharField(max_length=22, validators=[validate_color], blank=True, null=True)
     order = models.PositiveIntegerField(default=0)
 
     class Meta:
-        verbose_name_plural = 'Priorities'
-        ordering = ['order']
+        verbose_name = _l("Issue Priority")
+        verbose_name_plural = _l("Issue Priorities")
+        ordering = ('order',)
 
     def __str__(self):
         return self.name
 
 
 class IssueTag(models.Model):
-    id = models.AutoField(primary_key=True, verbose_name=("ID"))
     name = models.CharField(max_length=32)
     description = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
-        ordering = ['name']
+        ordering = ('name',)
+        verbose_name = _l("Issue Tag")
+        verbose_name_plural = _l("Issue Tags")
 
     def __str__(self):
         return self.name
 
 
 class IssueStatus(models.Model):
-
     name = models.CharField(max_length=32)
     description = models.CharField(max_length=255, null=True, blank=True)
     colour = models.CharField(max_length=22, validators=[validate_color], blank=True, null=True)
     order = models.PositiveIntegerField(default=0, unique=True)
 
     class Meta:
-        verbose_name_plural = 'Statuses'
-        ordering = ['order']
+        verbose_name = _l("Issue Status")
+        verbose_name_plural = _l("Issue Statuses")
+        ordering = ('order',)
 
     def __str__(self):
         return self.name
@@ -76,3 +82,10 @@ class Issue(models.Model):
         help_text=
         'Any error screen details. (Note the ability to click "Switch to copy-and-paste view" to copy Traceback)'
     )
+
+    class Meta:
+        verbose_name = _l("Issue")
+        verbose_name_plural = _l("Issues")
+
+    def __str__(self):
+        return self.name

@@ -69,7 +69,6 @@ class UnitClass(models.Model):
         unique=True,
         help_text=_l('Name of this unit class'),
     )
-    description = models.TextField(blank=True, null=True)
 
     objects = NameNaturalKeyManager()
 

@@ -25,6 +25,7 @@ from qatrack.qatrack_core.dates import (
 )
 from qatrack.service_log import models as sl_models
 from qatrack.units.models import Site, Unit
+from django.utils.translation import gettext_lazy as _l
 
 from .. import models
 
@@ -125,7 +126,7 @@ class ChartView(PermissionRequiredMixin, TemplateView):
             'service_types': sl_models.ServiceType.objects.all(),
             'sites': [{
                 "pk": "",
-                "name": "Other"
+                "name": _l("Other")
             }] + list(Site.objects.values('pk', 'name')),
             'units': Unit.objects.values('pk', 'name', 'active', 'site_id'),
             'unit_frequencies': json.dumps(self.unit_frequencies, cls=SetEncoder),

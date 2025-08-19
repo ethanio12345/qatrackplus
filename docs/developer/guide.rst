@@ -195,10 +195,127 @@ Internationalization & Translation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Please mark all strings and templates in QATrack+ for translation. This will
-allow for QATrack+ to be made avaialable in multiple languages.  For discussion
+allow for QATrack+ to be made available in multiple languages. For discussion
 of how to mark templates and strings for translation please read the `Django
 docs on translation
 <https://docs.djangoproject.com/en/4.2/topics/i18n/translation/>`__.
+
+**Adding a New Language to QATrack+**
+
+QATrack+ includes a translation script that automates the translation
+process using the Google Translate library. Here's the complete workflow for adding a
+new language:
+
+**Step 1: Generate .po files**
+Generate the translation files for your target language:
+
+.. code-block:: shell
+
+    python manage.py makemessages -l fr  # Replace 'fr' with your language code
+
+
+    #Maybe a better command for getting messages:
+
+    python manage.py makemessages -l fr --no-default-ignore --extension=py,html,txt,js --ignore=".venv/*"
+
+**Step 2: Install Google Translate library**
+Install the required library for automated translation:
+
+.. code-block:: shell
+
+    uv pip install googletrans==4.0.0rc1
+
+**Step 3: Translate the .po file**
+Use the translation script to automatically translate the strings:
+
+.. code-block:: shell
+
+    python scripts/translation.py translate fr
+
+**Step 4: Compile the translations**
+Compile the .po files to .mo format for Django to use:
+
+.. code-block:: shell
+
+    python manage.py compilemessages
+
+    python manage.py compilemessages -l fr # for a specific language
+
+**Step 5: Configure the language in settings**
+Add your new language to both settings files:
+
+**In qatrack/settings.py:**
+.. code-block:: python
+
+    LANGUAGES = [
+        ('en', 'English'),
+        ('fr', 'French'),
+        ('es', 'Spanish'),
+        # Add your new language here
+    ]
+
+    # Set the default language
+    LANGUAGE_CODE = 'en-us'
+
+**In qatrack/local_settings.py:**
+.. code-block:: python
+
+    # Language Configuration
+    USE_I18N = True
+    USE_L10N = True
+    LANGUAGE_CODE = 'fr'  # Change to your language code
+
+    # Available languages for translation
+    LANGUAGES = [
+        ('en', 'English'),
+        ('fr', 'French'),
+        ('es', 'Spanish'),
+        # Add your new language here
+    ]
+
+    # Add locale paths to tell Django where to find translation files
+    LOCALE_PATHS = [
+        os.path.join(os.path.dirname(__file__), 'locale'),
+    ]
+
+**Important:** The `local_settings.py` file overrides `settings.py`, so make sure both files have the correct language configuration.
+
+**Step 6: Test the translation**
+Start the development server and test your translations:
+
+.. code-block:: shell
+
+    python manage.py runserver
+
+**Translation Script Commands**
+
+The translation script provides these commands:
+
+.. code-block:: shell
+
+    # List all available languages with .po files
+    python scripts/translation.py list
+
+    # Translate existing .po file for specified language
+    python scripts/translation.py translate fr
+
+**Supported Language Codes**
+
+The translation script supports any language code supported by Google Translate,
+including: fr (French), es (Spanish), de (German), it (Italian), pt (Portuguese),
+zh (Chinese), ja (Japanese), ko (Korean), ru (Russian), and many more.
+
+**Manual Translation Review**
+
+After running the automated translation, it's recommended to manually review
+and refine the translations, especially for:
+
+- Technical terms and medical terminology
+- User interface text that needs to be contextually appropriate
+- Cultural adaptations for your target audience
+
+The translation script saves any failed translations to ``scripts/failed_translations.txt``
+for manual review.
 
 
 Tool Tips And User Hints

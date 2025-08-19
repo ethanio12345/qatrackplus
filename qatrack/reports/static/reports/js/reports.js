@@ -802,6 +802,7 @@ require(['jquery', 'lodash', 'moment', 'datatables.net-bs'], function ($, _, mom
                 "<'row'<'col-sm-12'tr>>" +
                 "<'row'<'col-sm-12 text-center'i>>" +
                 "<'row'<'col-sm-12'p>>",
+            language: window.datatablesLanguage,
             columnDefs: [
                 {
                     targets: [0],

@@ -22,16 +22,42 @@ class SavedReport(models.Model):
     FORMATS = [('pdf', _l('PDF')), ('xlsx', 'Excel'), ("csv", _l("CSV"))]
     PAPER_SIZES = [('letter', _l('Letter (8.5" × 11")')), ('a4', _l('A4 (210mm × 297mm)'))]
 
-    title = models.CharField(max_length=255, help_text=_l("Give your report a descriptive title"))
-    report_type = models.CharField(max_length=255)
-    report_format = models.CharField(max_length=4, choices=FORMATS, default=FORMATS[0][0])
-    filters = models.JSONField(default=dict)
-    include_signature = models.BooleanField(default=False)
-    include_logo = models.BooleanField(default=True)
-    paper_size = models.CharField(
-        max_length=10, choices=PAPER_SIZES, default='letter', help_text=_l("Select paper size for PDF reports")
+    title = models.CharField(
+        max_length=255, 
+        verbose_name=_l("Title"),
+        help_text=_l("Give your report a descriptive title")
     )
-    visible_to = models.ManyToManyField(Group, blank=True)
+    report_type = models.CharField(
+        max_length=255,
+        verbose_name=_l("Report type")
+    )
+    report_format = models.CharField(
+        max_length=4, 
+        choices=FORMATS, 
+        default=FORMATS[0][0],
+        verbose_name=_l("Report format")
+    )
+    filters = models.JSONField(default=dict)
+    include_signature = models.BooleanField(
+        default=False,
+        verbose_name=_l("Include signature")
+    )
+    include_logo = models.BooleanField(
+        default=True,
+        verbose_name=_l("Include logo")
+    )
+    paper_size = models.CharField(
+        max_length=10, 
+        choices=PAPER_SIZES, 
+        default='letter', 
+        verbose_name=_l("Paper size"),
+        help_text=_l("Select paper size for PDF reports")
+    )
+    visible_to = models.ManyToManyField(
+        Group, 
+        blank=True,
+        verbose_name=_l("Visible to")
+    )
 
     created = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -55,6 +81,8 @@ class SavedReport(models.Model):
             "title",
             "created",
         )
+        verbose_name = _l("Saved Report")
+        verbose_name_plural = _l("Saved Reports")
 
     def get_filter_class(self):
         return report_class(self.report_type).filter_class
@@ -102,6 +130,18 @@ class ReportNote(models.Model):
         help_text=_l("Add the content of this note"),
         blank=True,
     )
+
+    class Meta:
+        verbose_name = _l("Report Note")
+        verbose_name_plural = _l("Report Notes")
+
+    def __str__(self):
+        return "#%d. %s - %s - %s" % (
+            self.pk,
+            self.report.title,
+            self.schedule.rrule.to_text(),
+            self.time,
+        )
 
 
 class ReportSchedule(RecurrenceFieldMixin, models.Model):
@@ -183,3 +223,15 @@ class ReportSchedule(RecurrenceFieldMixin, models.Model):
                 recipients.append(e)
 
         return recipients
+
+    class Meta:
+        verbose_name = _l("Report Schedule")
+        verbose_name_plural = _l("Report Schedules")
+
+    def __str__(self):
+        return "#%d. %s - %s - %s" % (
+            self.pk,
+            self.report.title,
+            self.schedule.rrule.to_text(),
+            self.time,
+        )

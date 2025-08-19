@@ -236,6 +236,7 @@ class UTCList(BaseListableView):
         "last_instance__work_completed": _l("Completed"),
         "last_instance_pass_fail": _l("Pass/Fail Status"),
         "last_instance_review_status": _l("Review Status"),
+        "due_date": _l("Due Date"),
     }
 
     prefetch_related = (
@@ -384,7 +385,11 @@ class TestListInstances(BaseListableView):
         "unit_test_collection__unit__site__name": _("Site"),
         "unit_test_collection__unit__name": _("Unit"),
         "unit_test_collection__frequency__name": _("Frequency"),
+        "test_list__name": _("Test List Name"),
+        "work_completed": _("Work Completed"),
         "created_by__username": _("Created By"),
+        "review_status": _("Review Status"),
+        "pass_fail": _("Pass Fail"),
         "attachments": mark_safe('<i class="fa fa-paperclip fa-fw" aria-hidden="true"></i>'),
     }
 

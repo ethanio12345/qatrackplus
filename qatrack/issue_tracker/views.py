@@ -5,6 +5,7 @@ from django.forms.utils import timezone
 from django.http import HttpResponseRedirect
 from django.template.loader import get_template
 from django.views.generic import DetailView, CreateView
+from django.utils.translation import gettext as _
 
 from listable.views import (
     BaseListableView,
@@ -90,15 +91,15 @@ class IssueList(BaseListableView):
     )
 
     headers = {
-        'actions': 'Actions',
-        'pk': 'ID',
-        'issue_type__name': 'Type',
-        'issue_priority__name': 'Priority',
-        'user_submitted_by__username': 'Submitted By',
-        'description': 'Description',
-        'datetime_submitted': 'Submitted',
-        'issue_tags__name': 'Tags',
-        'issue_status__name': 'Status'
+        'actions': _('Actions'),
+        'pk': _('ID'),
+        'issue_type__name': _('Type'),
+        'issue_priority__name': _('Priority'),
+        'user_submitted_by__username': _('Submitted By'),
+        'description': _('Description'),
+        'datetime_submitted': _('Submitted'),
+        'issue_tags__name': _('Tags'),
+        'issue_status__name': _('Status')
     }
 
     widgets = {

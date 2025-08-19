@@ -417,7 +417,8 @@ class Frequency(RecurrenceFieldMixin, models.Model):
     objects = FrequencyManager()
 
     class Meta:
-        verbose_name_plural = "frequencies"
+        verbose_name = _l("Frequency")
+        verbose_name_plural = _l("Frequencies")
         ordering = ("nominal_interval",)
         permissions = (("can_choose_frequency", _l("Choose QC by Frequency")),)
 
@@ -546,7 +547,8 @@ class TestInstanceStatus(models.Model):
     objects = StatusManager()
 
     class Meta:
-        verbose_name_plural = "statuses"
+        verbose_name = _l("Test Instance Status")
+        verbose_name_plural = _l("Statuses")
 
     def save(self, *args, **kwargs):
         """set status to unreviewed if not previously set"""
@@ -584,6 +586,10 @@ class AutoReviewRule(models.Model):
     def __str__(self):
         return "%s => %s" % (PASS_FAIL_CHOICES_DISPLAY[self.pass_fail], self.status)
 
+    class Meta:
+        verbose_name = _l("Auto Review Rule")
+        verbose_name_plural = _l("Auto Review Rules")
+
 
 class AutoReviewRuleSet(models.Model):
     id = models.AutoField(primary_key=True, verbose_name=("ID"))
@@ -608,6 +614,10 @@ class AutoReviewRuleSet(models.Model):
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        verbose_name = _l("Auto Review Rule Set")
+        verbose_name_plural = _l("Auto Review Rule Sets")
 
 
 class Reference(models.Model):
@@ -642,6 +652,14 @@ class Reference(models.Model):
     def __str__(self):
         """more helpful display name"""
         return self.value_display()
+
+    class Meta:
+        ordering = ["type", "name"]
+        verbose_name = _l("Reference")
+        verbose_name_plural = _l("References")
+
+    def pass_choices(self):
+        return self.mc_pass_choices.split(",") if self.mc_pass_choices else []
 
 
 class ToleranceManager(models.Manager):
@@ -722,8 +740,9 @@ class Tolerance(models.Model):
     objects = ToleranceManager()
 
     class Meta:
-
         ordering = ["type", "act_low", "tol_low", "tol_high", "act_high"]
+        verbose_name = _l("Tolerance")
+        verbose_name_plural = _l("Tolerances")
 
     def pass_choices(self):
         return self.mc_pass_choices.split(",") if self.mc_pass_choices else []
@@ -867,7 +886,8 @@ class Category(MPTTModel):
 
     class Meta:
         ordering = ("name",)
-        verbose_name_plural = "categories"
+        verbose_name = _l("Category")
+        verbose_name_plural = _l("Categories")
 
     @classmethod
     def get_testpack_fields(cls):
@@ -916,7 +936,7 @@ class Test(models.Model, TestPackMixin):
         blank=True,
     )
     slug = models.SlugField(
-        verbose_name="Macro name",
+        verbose_name=_l("Macro name"),
         max_length=128,
         help_text=_l(
             "A short variable name consisting of alphanumeric characters and "
@@ -1247,6 +1267,11 @@ class Test(models.Model, TestPackMixin):
         """return display representation of object"""
         return self.name
 
+    class Meta:
+        ordering = ("name",)
+        verbose_name = _l("Test")
+        verbose_name_plural = _l("Tests")
+
 
 def get_utc_tlc_ids(active=None, units=None, frequencies=None):
 
@@ -1368,6 +1393,7 @@ class UnitTestInfo(models.Model):
     objects = UnitTestInfoManager()
 
     class Meta:
+        verbose_name = _l("Set References & Tolerances")
         verbose_name_plural = _l("Set References & Tolerances")
         unique_together = ["test", "unit"]
 
@@ -1425,6 +1451,13 @@ class UnitTestInfoChange(models.Model):
     changed = models.DateTimeField(auto_now_add=True)
     changed_by = models.ForeignKey(User, on_delete=models.PROTECT, editable=False)
 
+    class Meta:
+        verbose_name = _l("Unit Test Info Change")
+        verbose_name_plural = _l("Unit Test Info Changes")
+
+    def __str__(self):
+        return "UnitTestInfoChange(%s)" % self.pk
+
 
 class TestListMembershipManager(models.Manager):
 
@@ -1450,6 +1483,8 @@ class TestListMembership(models.Model):
             "test_list",
             "test",
         )
+        verbose_name = _l("Test List Membership")
+        verbose_name_plural = _l("Test List Memberships")
 
     @classmethod
     def get_testpack_fields(cls):
@@ -1510,6 +1545,8 @@ class TestCollectionInterface(models.Model):
 
     class Meta:
         abstract = True
+        verbose_name = _l("Test Collection Interface")
+        verbose_name_plural = _l("Test Collection Interfaces")
 
     def get_list(self, day=0):
         return 0, self
@@ -1676,6 +1713,10 @@ class TestList(TestCollectionInterface, TestPackMixin):
             "admin:qa_testlist_change", args=(self.pk,)
         )
 
+    class Meta:
+        ordering = ("name",)
+        verbose_name_plural = _l("Test Lists")
+
 
 class Sublist(models.Model):
     id = models.AutoField(primary_key=True, verbose_name=("ID"))
@@ -1697,6 +1738,8 @@ class Sublist(models.Model):
             "parent",
             "child",
         )
+        verbose_name = _l("Sublist")
+        verbose_name_plural = _l("Sublists")
 
     @classmethod
     def get_testpack_fields(cls):
@@ -2003,6 +2046,8 @@ class TestInstance(models.Model):
     class Meta:
         # ordering = ("work_completed",)
         get_latest_by = "work_completed"
+        verbose_name = _l("Test Instance")
+        verbose_name_plural = _l("Test Instances")
         permissions = (
             ("can_view_history", _l("Can see test history when performing QC")),
             ("can_view_charts", _l("Can view charts of test history")),
@@ -2372,6 +2417,7 @@ class TestListInstance(models.Model):
     class Meta:
         # ordering = ("work_completed",)
         get_latest_by = "work_completed"
+        verbose_name_plural = _l("Test List Instances")
         permissions = (
             ("can_override_date", _l("Can override date")),
             ("can_perform_subset", _l("Can perform subset of tests")),
@@ -2590,6 +2636,13 @@ class AutoSave(models.Model):
         help_text=_l("Autosaved data"),
     )
 
+    class Meta:
+        verbose_name = _l("Auto Save")
+        verbose_name_plural = _l("Auto Saves")
+
+    def __str__(self):
+        return "AutoSave(%s)" % self.pk
+
 
 class TestListCycleManager(models.Manager):
 
@@ -2627,6 +2680,10 @@ class TestListCycle(TestCollectionInterface, TestPackMixin):
     utcs = GenericRelation(UnitTestCollection, related_query_name='test_list_cycle')
 
     objects = TestListCycleManager()
+
+    class Meta:
+        ordering = ("name",)
+        verbose_name_plural = _l("Test List Cycles")
 
     def __len__(self):
         """return the number of test_lists"""
@@ -2753,6 +2810,8 @@ class TestListCycleMembership(models.Model):
 
     class Meta:
         ordering = ("order",)
+        verbose_name = _l("Test List Cycle Membership")
+        verbose_name_plural = _l("Test List Cycle Memberships")
 
         # note the following won't actually work because when saving multiple
         # memberships they can have the same order temporarily when orders are changed

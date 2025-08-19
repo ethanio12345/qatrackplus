@@ -50,17 +50,6 @@
 {% endblock %}
 {% block extrahead %}
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <script>
-        // Wait for the page to load
-        window.addEventListener('load', function() {
-            // Replace 'Sites' with 'Websites' everywhere in the admin
-            document.querySelectorAll('#nav-sidebar a, .breadcrumbs a, .app-sites .section').forEach(function(element) {
-                if (element.textContent.trim() === 'Sites') {
-                    element.textContent = 'Websites';
-                }
-            });
-        });
-    </script>
 {% endblock %}
 {% block title %}{{ title }} | {% trans 'QATrack+ Admin Site' %}{% endblock %}
 
@@ -192,6 +181,5 @@ Override userlinks to remove logout but keep Django 4.2's theme toggle
     {% if user.has_usable_password %}
         <a href="{% url 'admin:password_change' %}">{% translate 'Change password' %}</a> /
     {% endif %}
-    {# Include Django 4.2's built-in theme toggle #}
     {% include "admin/color_theme_toggle.html" %}
 {% endblock %}

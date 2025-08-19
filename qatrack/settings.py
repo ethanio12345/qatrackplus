@@ -205,6 +205,7 @@ TEMPLATES = [
                 'django.template.context_processors.tz',
                 'django.contrib.messages.context_processors.messages',
                 'qatrack.context_processors.site',
+                'qatrack.context_processors.available_languages',
             ],
         },
     },
@@ -739,16 +740,16 @@ if EMAIL_NOTIFICATION_PWD and not EMAIL_HOST_PASSWORD:
 # Selenium Browser Configuration
 # Options: 'firefox', 'chromium'
 # Set to 'firefox' to use Firefox, 'chromium' to use Chromium
-SELENIUM_BROWSER = ''
+SELENIUM_BROWSER = 'firefox'
 
 # Browser Driver Paths (leave empty to use system default)
-SELENIUM_FIREFOX_DRIVER_PATH = ''  # Path to geckodriver
+SELENIUM_FIREFOX_DRIVER_PATH = '/snap/bin/geckodriver'  # Path to geckodriver
 SELENIUM_CHROMIUM_DRIVER_PATH = ''   # Path to chromedriver
 
 # Headless Mode
 # Set to True to run browsers in headless mode (no visible browser window)
 # Set to False to see the browser during test execution
-SELENIUM_VIRTUAL_DISPLAY = True  # Set to True to use headless browser for testing (requires xvfb)
+SELENIUM_VIRTUAL_DISPLAY = False  # Set to True to use headless browser for testing (requires xvfb)
 
 if any([('py.test' in v or 'pytest' in v) for v in sys.argv]):
     DATABASES.pop('readonly', None)
