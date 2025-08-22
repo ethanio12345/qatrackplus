@@ -31,7 +31,7 @@ class ReportForm(forms.ModelForm):
         choices = [('', '------------')] + reports.report_type_choices()
         f.widget = ToolTipSelect(titles=reports.report_descriptions(), choices=choices)
         self.fields['include_logo'].label = _("Include Logo")
-        self.fields['include_logo'].help_text = _("Include the Saskatchewan Cancer Agency logo in reports?")
+        self.fields['include_logo'].help_text = _("Include the organization logo in reports?")
         self.fields['paper_size'].label = _("Paper Size")
         self.fields['paper_size'].required = False  # Make not required since model has default
 
