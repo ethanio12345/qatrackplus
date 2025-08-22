@@ -96,6 +96,7 @@ class TestLogoInReports(TestCase):
         self.assertIn('class="logo logo-hidden"', html_content, "Logo should be hidden when include_logo=False")
         self.assertIn('file://', html_content, "Logo should use file:// path even when hidden")
 
+    @override_settings(STATIC_ROOT='/test/static/root')
     def test_logo_present_in_pdf(self):
         """Test that logo is present in PDF reports."""
         rep = qc.TestListInstanceDetailsReport(
