@@ -1,6 +1,12 @@
 Developers Guide
 ================
 
+.. note::
+
+    **Disclaimer**: This guide was developed and tested on Ubuntu Linux. 
+    While the instructions should work on other operating systems, some commands, package names, 
+    or installation steps may differ. If you encounter issues on a different OS, please refer 
+    to the specific documentation for your platform or reach out to the community for assistance.
 
 .. toctree::
    :maxdepth: 3
@@ -26,9 +32,6 @@ Prerequisites
 
 QATrack+ is developed using Python 3.12. We recommend using the latest stable
 version of Python 3.12 for the best development experience and compatibility.
-
-The easiest way to manage virtual environments and ensure a consistent Python version is by using uv,
-which installs the specified Python version within the virtual environment and handles package management automatically.
 
 Git
 ~~~
@@ -61,7 +64,7 @@ uv Package Manager
 ~~~~~~~~~~~~~~~~~~~
 
 The QATrack+ project uses `uv <https://docs.astral.sh/uv/>`__, a fast Python
-package and project manager. uv handles Python version management, virtual environments,
+package manager. uv handles Python version management, virtual environments,
 and dependency management.
 
 Install uv using the official installer (recommended):
@@ -130,18 +133,40 @@ Creating your development database
 Rather than using a full blown database server for development work, You can
 use Sqlite3 which is included with Python.
 
-Once you have the requirements installed, copy the debug `local_settings.py`
-file from the deploy subdirectory and then create your database:
+Once you have the requirements installed, copy the debug `local_settings.py` and `local_test_settings.py`
+files from the deploy subdirectory and then create your database:
 
 .. code-block:: shell
 
     cp deploy/dev/local_settings.dev.py qatrack/local_settings.py
+    cp deploy/dev/local_test_settings.dev.py qatrack/local_test_settings.py
     mkdir db
     python manage.py migrate
     python manage.py createcachetable
 
 
 this will put a database called `default.db` in the `db` subdirectory.
+
+
+Understanding the Settings Files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+QATrack+ uses a layered approach to Django settings, with each file serving a specific purpose. Understanding this hierarchy will help you configure your development and testing environment.
+
+**Settings File Hierarchy (Highest to Lowest Precedence):**
+
+1. **`local_test_settings.py`** - Your custom test environment overrides
+   - Contains all essential development and test settings in one place
+   - This is the main file you'll customize for your testing needs
+
+2. **`local_settings.py`** - Your custom development environment overrides
+   - Contains development-specific settings like database configuration
+
+3. **`test_settings.py`** - Default test environment settings
+   - Contains test-specific defaults like password hashers and notification settings
+
+4. **`settings.py`** - Base Django application settings
+   - Contains core Django configuration, installed apps, middleware, etc.
 
 Collect Static Files
 ~~~~~~~~~~~~~~~~~~~
@@ -151,6 +176,33 @@ Before running the development server, you need to collect all static files to t
 .. code-block:: shell
 
     python manage.py collectstatic --noinput
+
+
+Loading Default Data (Fixtures)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+QATrack+ comes with pre-configured default data that provides a foundation for development and testing. This includes common QA categories, test frequencies, modalities, vendors, and other essential data structures.
+
+To load the default data into your development database:
+
+.. code-block:: shell
+
+    python manage.py loaddata fixtures/defaults/*/*
+
+This command will populate your database all default data.
+
+You can also load specific fixture categories individually if you only need certain data:
+
+.. code-block:: shell
+
+    # Load only QA-related fixtures
+    python manage.py loaddata fixtures/defaults/qa/*
+    
+    # Load only unit-related fixtures
+    python manage.py loaddata fixtures/defaults/units/*
+    
+    # Load only service log fixtures
+    python manage.py loaddata fixtures/defaults/service_log/*
 
 Running the development server
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -202,120 +254,9 @@ docs on translation
 
 **Adding a New Language to QATrack+**
 
-QATrack+ includes a translation script that automates the translation
-process using the Google Translate library. Here's the complete workflow for adding a
-new language:
-
-**Step 1: Generate .po files**
-Generate the translation files for your target language:
-
-.. code-block:: shell
-
-    python manage.py makemessages -l fr  # Replace 'fr' with your language code
-
-
-    #Maybe a better command for getting messages:
-
-    python manage.py makemessages -l fr --no-default-ignore --extension=py,html,txt,js --ignore=".venv/*"
-
-**Step 2: Install Google Translate library**
-Install the required library for automated translation:
-
-.. code-block:: shell
-
-    uv pip install googletrans==4.0.0rc1
-
-**Step 3: Translate the .po file**
-Use the translation script to automatically translate the strings:
-
-.. code-block:: shell
-
-    python scripts/translation.py translate fr
-
-**Step 4: Compile the translations**
-Compile the .po files to .mo format for Django to use:
-
-.. code-block:: shell
-
-    python manage.py compilemessages
-
-    python manage.py compilemessages -l fr # for a specific language
-
-**Step 5: Configure the language in settings**
-Add your new language to both settings files:
-
-**In qatrack/settings.py:**
-.. code-block:: python
-
-    LANGUAGES = [
-        ('en', 'English'),
-        ('fr', 'French'),
-        ('es', 'Spanish'),
-        # Add your new language here
-    ]
-
-    # Set the default language
-    LANGUAGE_CODE = 'en-us'
-
-**In qatrack/local_settings.py:**
-.. code-block:: python
-
-    # Language Configuration
-    USE_I18N = True
-    USE_L10N = True
-    LANGUAGE_CODE = 'fr'  # Change to your language code
-
-    # Available languages for translation
-    LANGUAGES = [
-        ('en', 'English'),
-        ('fr', 'French'),
-        ('es', 'Spanish'),
-        # Add your new language here
-    ]
-
-    # Add locale paths to tell Django where to find translation files
-    LOCALE_PATHS = [
-        os.path.join(os.path.dirname(__file__), 'locale'),
-    ]
-
-**Important:** The `local_settings.py` file overrides `settings.py`, so make sure both files have the correct language configuration.
-
-**Step 6: Test the translation**
-Start the development server and test your translations:
-
-.. code-block:: shell
-
-    python manage.py runserver
-
-**Translation Script Commands**
-
-The translation script provides these commands:
-
-.. code-block:: shell
-
-    # List all available languages with .po files
-    python scripts/translation.py list
-
-    # Translate existing .po file for specified language
-    python scripts/translation.py translate fr
-
-**Supported Language Codes**
-
-The translation script supports any language code supported by Google Translate,
-including: fr (French), es (Spanish), de (German), it (Italian), pt (Portuguese),
-zh (Chinese), ja (Japanese), ko (Korean), ru (Russian), and many more.
-
-**Manual Translation Review**
-
-After running the automated translation, it's recommended to manually review
-and refine the translations, especially for:
-
-- Technical terms and medical terminology
-- User interface text that needs to be contextually appropriate
-- Cultural adaptations for your target audience
-
-The translation script saves any failed translations to ``scripts/failed_translations.txt``
-for manual review.
+For detailed instructions on adding a new language to QATrack+, including step-by-step
+workflows and translation automation, please refer to the :ref:`Add Language Tutorial <add_language>` 
+in the tutorials section.
 
 
 Tool Tips And User Hints
@@ -373,6 +314,16 @@ configuration sections is included in the setup.cfg file. To run yapf:
 
     make yapf
 
+Using Make Commands
+~~~~~~~~~~~~~~~~~~
+
+QATrack+ includes a Makefile with convenient shortcuts for common development tasks like running tests, formatting code, and building documentation. You can see all available commands by running:
+
+.. code-block:: shell
+
+    make help
+
+For detailed information about using make and understanding Makefiles, refer to the `GNU Make Manual <https://www.gnu.org/software/make/manual/>`_.
 
 Import Order
 ~~~~~~~~~~~~
@@ -473,6 +424,15 @@ you can install either pair using the following commands:
     # Option 2: Install Chromium and chromedriver
     sudo apt install chromium-browser chromium-chromedriver
 
+**Manual Downloads (Alternative Installation)**
+
+If the package manager installation doesn't work or you need a specific version, you can download the drivers manually:
+
+* **geckodriver**: Download from the `official Mozilla website <https://firefox-source-docs.mozilla.org/testing/geckodriver/>`_
+* **chromedriver**: Download from the `official Chrome releases <https://chromedriver.chromium.org/downloads>`_
+
+After downloading, make the driver executable and verify the path.
+
 
 **Configuring Selenium Tests**
 
@@ -484,7 +444,7 @@ You'll need to configure your browser settings in two files. First, update the S
     # Options: 'firefox', 'chromium'
     SELENIUM_BROWSER = ''
     
-    # Browser Driver Paths (leave empty to use system default)
+    # Browser Driver Paths
     SELENIUM_FIREFOX_DRIVER_PATH = ''  # Path to geckodriver as shown above
     SELENIUM_CHROMIUM_DRIVER_PATH = ''   # Path to chromedriver as shown above
     
@@ -498,7 +458,7 @@ Then also update `SELENIUM_VIRTUAL_DISPLAY` in `qatrack/test_settings.py`:
 .. code-block::
     
     # In qatrack/test_settings.py:
-    SELENIUM_VIRTUAL_DISPLAY = True  # Set to False to enable visible browser
+    SELENIUM_VIRTUAL_DISPLAY = False  # Set to True to use headless browser for testing (requires xvfb)
 
 **Configuration Examples**
 

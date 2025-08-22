@@ -740,10 +740,10 @@ if EMAIL_NOTIFICATION_PWD and not EMAIL_HOST_PASSWORD:
 # Selenium Browser Configuration
 # Options: 'firefox', 'chromium'
 # Set to 'firefox' to use Firefox, 'chromium' to use Chromium
-SELENIUM_BROWSER = 'firefox'
+SELENIUM_BROWSER = ''
 
 # Browser Driver Paths (leave empty to use system default)
-SELENIUM_FIREFOX_DRIVER_PATH = '/snap/bin/geckodriver'  # Path to geckodriver
+SELENIUM_FIREFOX_DRIVER_PATH = ''  # Path to geckodriver
 SELENIUM_CHROMIUM_DRIVER_PATH = ''   # Path to chromedriver
 
 # Headless Mode

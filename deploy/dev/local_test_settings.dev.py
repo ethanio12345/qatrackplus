@@ -1,24 +1,37 @@
-from django.contrib.auth.hashers import BasePasswordHasher
+# Test-specific settings for QATrack+
+# Copy this file to qatrack/local_test_settings.py and customize as needed
 
-try:
-    from .settings import *  # noqa: F403,F401
-except ImportError:
-    pass
+# Development settings
+DEBUG = True
+TEMPLATE_DBG = True
 
-try:
-    from .local_settings import *  # noqa: F403,F401
-except ImportError:
-    pass
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': 'db/default.db',
+        'USER': '',
+        'PASSWORD': '',
+        'HOST': '',
+        'PORT': '',
+    }
+}
+DATABASES['readonly'] = DATABASES['default']
 
+# Test-specific settings
 NOTIFICATIONS_ON = False
 DEFAULT_NUMBER_FORMAT = None
-DEBUG = False
-SELENIUM_VIRTUAL_DISPLAY = False # Set to True to use headless browser for testing (requires xvfb)
 AD_CLEAN_USERNAME = None
 HTTP_OR_HTTPS = "http"
 REVIEW_BULK = True
 TIME_ZONE = 'America/Toronto'
 
+# Selenium browser configuration for testing
+# Set to True to use headless browser for testing (requires xvfb)
+# Set to False to see the browser during test execution
+SELENIUM_VIRTUAL_DISPLAY = False
+
+# Test-specific password hasher for faster testing
+from django.contrib.auth.hashers import BasePasswordHasher
 
 class SimplePasswordHasher(BasePasswordHasher):
     """A simple hasher inspired by django-plainpasswordhasher"""
@@ -43,12 +56,8 @@ class SimplePasswordHasher(BasePasswordHasher):
         """
         return {"algorithm": "dumb", "hash": encoded.split("$", 2)[2]}
 
-
 PASSWORD_HASHERS = ("qatrack.test_settings.SimplePasswordHasher",)
 
 AUTHENTICATION_BACKENDS = ['qatrack.accounts.backends.QATrackAccountBackend']
 
-try:
-    from .local_test_settings import *  # noqa: F403,F401
-except ImportError:
-    pass
+# Customize any of the above settings as needed for your test environment

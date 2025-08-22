@@ -177,3 +177,29 @@ If you notice specific strings that aren't being translated, please:
 2. If not, the string may need to be marked for translation in the source code
 3. Consider reporting the issue on our GitHub repository so we can improve coverage
 
+**Contributing Your Translations**
+
+Once you have translated a new language, we encourage you to contribute your work
+back to the QATrack+ community. This helps us make the platform more accessible to
+users around the world.
+
+You can contribute in several ways:
+
+1.  **GitHub Pull Request**
+    If you are comfortable with Git and GitHub, the best way to contribute is by
+    creating a pull request. This allows us to review and merge your changes
+    efficiently.
+
+2.  **GitHub Discussions**
+    If you are not familiar with pull requests, you can share your translated
+    `.po` file in our GitHub Discussions forum. We can then integrate it
+    into the project.
+
+    `QATrack+ GitHub Discussions <https://github.com/qatrackplus/qatrackplus/discussions>`__
+
+3.  **Google Group**
+    You can also share your translations or ask for help on our Google Group.
+
+    `QATrack+ Google Group <https://groups.google.com/g/qatrack>`__
+
+We appreciate your contributions to QATrack+!
