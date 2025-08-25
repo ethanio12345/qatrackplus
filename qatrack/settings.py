@@ -27,7 +27,9 @@ SEND_BROKEN_LINK_EMAILS = False
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 
 LOG_ROOT = os.path.join(PROJECT_ROOT, "..", "logs")
-
+LOCALE_PATHS = [
+    os.path.join(PROJECT_ROOT, 'locale'),
+]
 VERSION = "4.0.0"
 BUG_REPORT_URL = "https://github.com/qatrackplus/qatrackplus/issues/new"
 FEATURE_REQUEST_URL = BUG_REPORT_URL
@@ -103,7 +105,8 @@ LANGUAGE_CODE = 'en-us'
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.
 USE_I18N = True
-
+USE_L10N = True
+LANGUAGES = [('en', 'English'), ('fr', 'Français')]
 CONSTANT_PRECISION = 8
 DEFAULT_NUMBER_FORMAT = None
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
