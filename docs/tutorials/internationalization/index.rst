@@ -1,10 +1,11 @@
-.. _internationalization_tutorials:
+.. _internationalization:
 
-Internationalization Tutorials
-==============================
+Internationalization
+====================
 
 .. toctree::
    :maxdepth: 1
    :caption: Contents:
 
    add_language 
+   configure_language

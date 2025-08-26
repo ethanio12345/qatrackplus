@@ -39,6 +39,7 @@ idea to begin by doing some initial configuration.
 #. `Configure the Units app <units/guide.html>`__
 #. `Define some Groups and Users <qa/auth.html>`__
 #. :ref:`Configure the QC app <initial_qa_config>`
+#. `Configure language settings <../tutorials/internationalization/configure_language.html>`__ (optional)
 
 
 Admin Guide Contents

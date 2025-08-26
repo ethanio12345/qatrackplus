@@ -105,6 +105,11 @@ docker = [
     "gunicorn==19.9.0",
 ]
 
+translations = [
+    "polib>=1.2.0",
+    "googletrans==4.0.0rc1",
+]
+
 [project.urls]
 Homepage = "https://qatrackplus.com"
 Documentation = "https://docs.qatrackplus.com"

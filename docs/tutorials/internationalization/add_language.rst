@@ -4,7 +4,7 @@ How to Add a New Language to QATrack+
 =====================================
 
 This tutorial will guide you through the process of adding a new language to QATrack+. 
-The process involves extracting translatable strings, translating them, and configuring 
+This process involves extracting translatable strings, translating them, compiling them, then configuring 
 the system to use the new language.
 
 Prerequisites
@@ -12,8 +12,7 @@ Prerequisites
 
 - QATrack+ development environment set up
 - Python 3.12+ and uv package manager installed
-- polib library for PO file handling
-- Google Translate library (optional, for automated translation)
+- Translation tools installed (see below)
 
 Supported Languages
 ------------------
@@ -44,17 +43,19 @@ First, you need to extract all translatable strings from your codebase using Dja
 Replace ``es`` with your desired language code (e.g., ``fr`` for French, ``de`` for German).
 
 This command will:
-- Create a new directory structure: ``qatrack/locale/es/LC_MESSAGES/``
-- Generate a ``django.po`` file
-- Extract all strings marked for translation in your code
 
-Step 2: Translate the Strings (Optional)
-----------------------------------------
+* Create a new directory structure: ``qatrack/locale/es/LC_MESSAGES/``
+* Generate a ``django.po`` file
+* Extract all strings marked for translation in your code
 
-You have two options for translating the strings:
+Step 2: Translate the Strings
+-----------------------------
+
+You now have two options for translating the strings:
 
 **Option A: Manual Translation**
-Edit the generated ``.po`` files manually using any text editor. Each entry looks like:
+Use `Poedit <https://poedit.net/>`_ to easily edit the .po files.
+Alternatively, you can edit the generated ``.po`` file manually using any text editor. Each entry looks like:
 
 .. code-block:: po
 
@@ -68,25 +69,29 @@ Change the ``msgstr ""`` to your translation:
     msgid "Welcome to QATrack+"
     msgstr "Bienvenido a QATrack+"
 
-**Option B: Automated Translation (Recommended for initial setup)**
+**Option B: Automated Translation**
 Use the included translation script with Google Translate:
 
 .. code-block:: bash
 
-    # Install required libraries
-    uv pip install polib
-    uv pip install googletrans==4.0.0rc1
+    # Install translation dependencies (if not already installed)
+    uv pip install -e ".[translations]"
 
     # Translate using the script
     python scripts/translation.py translate es
 
 The script will:
-- Automatically translate all strings to your target language
-- Preserve format variables like ``%(name)s`` and ``{variable}``
-- Skip non-translatable content (numbers, punctuation, etc.)
 
-**Important**: After automated translation, always review the results for accuracy, 
-especially technical terms and medical terminology.
+* Automatically translate all strings to your target language
+* Preserve format variables like ``%(name)s`` and ``{variable}``
+* Skip non-translatable content (numbers, punctuation, etc.)
+
+**Important**: Even with automated translation, manual review and editing will likely still be necessary. 
+Always review the results for accuracy, especially:
+
+* Technical terms and medical terminology
+* Context-specific language that may not translate well
+* Formatting and special characters that may not transfer correctly
 
 Step 3: Compile the Translations
 --------------------------------
@@ -106,11 +111,10 @@ This creates ``.mo`` files that Django uses at runtime.
 Step 4: Configure Language Settings
 -----------------------------------
 
-QATrack+ automatically detects available languages from your locale folders, so you 
-typically only need to configure the language settings in your local configuration.
+QATrack+ requires explicit configuration of available languages in your local settings. 
+The system will only display languages that are explicitly configured in the `LANGUAGES` setting.
 
-**In ``qatrack/local_settings.py``:**
-Configure the language settings for your environment:
+In ``qatrack/local_settings.py`` configure the language settings for your environment:
 
 .. code-block:: python
 
@@ -124,12 +128,12 @@ Configure the language settings for your environment:
         os.path.join(os.path.dirname(__file__), 'locale'),
     ]
 
-**Override available languages**
-If you want to control which languages appear in the language selector, you can add:
+**Configure Available Languages (Required)**
+You must explicitly define which languages appear in the language selector:
 
 .. code-block:: python
 
-    # Available languages for translation (optional)
+    # Available languages for translation (required)
     LANGUAGES = [
         ('en', 'English'),
         ('es', 'Spanish'),  # Add your new language here
@@ -138,9 +142,10 @@ If you want to control which languages appear in the language selector, you can 
     ]
 
 **How it works:**
-QATrack+ automatically scans your ``locale`` directory and detects all available 
-languages. The ``available_languages`` context processor will automatically find 
-any language folders you create and make them available in the interface.
+QATrack+ uses a context processor that scans your locale directory to detect available 
+translation files, but only displays languages that are explicitly configured in the 
+`LANGUAGES` setting. This gives you full control over which languages are presented 
+to users while still maintaining the ability to detect available translations.
 
 Known Issues
 -----------
@@ -177,7 +182,8 @@ If you notice specific strings that aren't being translated, please:
 2. If not, the string may need to be marked for translation in the source code
 3. Consider reporting the issue on our GitHub repository so we can improve coverage
 
-**Contributing Your Translations**
+Contributing Your Translations
+------------------------------
 
 Once you have translated a new language, we encourage you to contribute your work
 back to the QATrack+ community. This helps us make the platform more accessible to
@@ -189,6 +195,12 @@ You can contribute in several ways:
     If you are comfortable with Git and GitHub, the best way to contribute is by
     creating a pull request. This allows us to review and merge your changes
     efficiently.
+    
+    **If You Are Not Familiar with Pull Requests, Here's an Overview:**
+    
+    - **GitHub Pull Request Guide**: `Creating a pull request <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request>`_
+    - **Fork and Clone**: `Forking a repository <https://docs.github.com/en/get-started/quickstart/fork-a-repo>`_
+    - **Git Basics**: `Git Handbook <https://guides.github.com/introduction/git-handbook/>`_
 
 2.  **GitHub Discussions**
     If you are not familiar with pull requests, you can share your translated

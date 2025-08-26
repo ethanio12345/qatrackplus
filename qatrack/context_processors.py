@@ -246,12 +246,15 @@ def get_sl_notification_total(request, se_unreviewed, rts_incomplete, rts_unrevi
 def available_languages(request):
     """
     Context processor to provide available languages for the language switcher dropdown.
-    Automatically detects languages from locale folders and Django settings.
+    LANGUAGES setting takes precedence over auto-detection when explicitly set.
     """
     languages = []
     
+    # Check if LANGUAGES is explicitly set in settings
+    languages_explicitly_set = hasattr(settings, 'LANGUAGES') and settings.LANGUAGES
+    
     # Get languages from Django settings
-    if hasattr(settings, 'LANGUAGES'):
+    if languages_explicitly_set:
         for lang_code, lang_name in settings.LANGUAGES:
             try:
                 # Get detailed language info
@@ -271,8 +274,9 @@ def available_languages(request):
                     'bidi': False,
                 })
     
-    # Also scan locale directory for additional languages not in settings
-    if hasattr(settings, 'LOCALE_PATHS'):
+    # Only scan locale directory if LANGUAGES is NOT explicitly set
+    # This allows auto-detection when no LANGUAGES is specified
+    if not languages_explicitly_set and hasattr(settings, 'LOCALE_PATHS'):
         for locale_path in settings.LOCALE_PATHS:
             if os.path.exists(locale_path):
                 try:
