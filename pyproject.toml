@@ -88,17 +88,20 @@ mysql = [
     "mysqlclient==2.0.3",
 ]
 
+mssql = [
+    "mssql-django>=1.5",
+    "python-ldap",
+    "django-auth-ldap<4.9",
+]
+
 postgres = [
-    "psycopg2-binary==2.8.6",
+    "psycopg[binary]",
 ]
 
 win = [
     "CherryPy==18.0.1",
     "pyreadline",
     "pywin32>=300",
-    "mssql-django>=1.5",
-    "python-ldap",
-    "django-auth-ldap<4.9",
 ]
 
 docker = [

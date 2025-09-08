@@ -5,16 +5,49 @@
 DEBUG = True
 TEMPLATE_DBG = True
 
+# SQLite example
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': 'db/default.db',
-        'USER': '',
-        'PASSWORD': '',
-        'HOST': '',
-        'PORT': '',
     }
 }
+
+# SQL Server example
+"""
+DATABASES = {
+    'default': {
+        'ENGINE': 'mssql',
+        'USER': 'testuser',
+        'PASSWORD': '123456abc*$',
+        'HOST': 'hostname',
+        'PORT': '1433', # SQL Server default
+        'OPTIONS': {
+            'driver': 'ODBC Driver 17 for SQL Server',
+        },
+        'Trusted_Connection': 'yes',
+        # Database Name not needed for test environments
+        # User must be created on host server with admin and dbcreator rights
+    }
+}
+"""
+
+# PostgreSQL example
+"""
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'devdb',
+        'USER': 'postgres admin',
+        'PASSWORD': 'postgres admin password',
+        'HOST': 'hostname',
+        'PORT': '5432', # PostgreSQL default
+    }
+}
+"""
+
+
+
 DATABASES['readonly'] = DATABASES['default']
 
 # Test-specific settings
