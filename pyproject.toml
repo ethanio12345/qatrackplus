@@ -148,7 +148,7 @@ django_find_project = true
 DJANGO_SETTINGS_MODULE = "qatrack.settings"
 
 [tool.uv.sources]
-python-ldap = { url = "https://github.com/cgohlke/python-ldap-build/releases/download/v3.4.4-1/python_ldap-3.4.4-cp312-cp312-win_amd64.whl" }
+python-ldap = { url = "https://github.com/cgohlke/python-ldap-build/releases/download/v3.4.4-1/python_ldap-3.4.4-cp312-cp312-win_amd64.whl", marker = "sys_platform == 'windows'" }
 
 [dependency-groups]
 dev = [

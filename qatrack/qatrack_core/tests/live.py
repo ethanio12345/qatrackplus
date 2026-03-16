@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 from functools import wraps
 import time
+import shutil
 
 from django.conf import settings
 from django.contrib.staticfiles.handlers import StaticFilesHandler
@@ -131,12 +132,11 @@ class SeleniumTests(StaticLiveServerSingleThreadedTestCase):
                 ff_options.add_argument('--disable-headless')
 
             firefox_driver_path = getattr(settings, 'SELENIUM_FIREFOX_DRIVER_PATH', '')
-            
             if firefox_driver_path:
                 service = FirefoxService(executable_path=firefox_driver_path)
             else:
                 # Try to use system geckodriver
-                service = FirefoxService(executable_path='/snap/bin/geckodriver')
+                service = FirefoxService(executable_path=shutil.which('geckodriver'))
                 
             cls.driver = webdriver.Firefox(service=service, options=ff_options)
 

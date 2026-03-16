@@ -253,7 +253,7 @@ class LiveQATests(BaseQATests):
                     constant_value=the_test['constant_value'],
                 )
 
-        self.click_by_link_text("Test lists")
+        self.click_by_link_text("Test Lists")
         self.click_by_link_text("ADD TEST LIST")
         self.wait.until(e_c.presence_of_element_located((By.ID, 'id_name')))
         self.driver.find_element(By.ID, 'id_name').send_keys(objects['TestList']['name'])
@@ -268,7 +268,7 @@ class LiveQATests(BaseQATests):
     def test_admin_modality(self):
 
         self.load_admin()
-        self.click_by_link_text("Treatment and imaging modalities")
+        self.click_by_link_text("Treatment and Imaging Modalities")
         self.click_by_link_text("ADD TREATMENT AND IMAGING MODALITY")
         self.wait.until(e_c.presence_of_element_located((By.ID, 'id_name')))
         self.driver.find_element(By.ID, 'id_name').send_keys(objects['Modality']['name'])
@@ -278,7 +278,7 @@ class LiveQATests(BaseQATests):
     def test_admin_unittype(self):
 
         self.load_admin()
-        self.click_by_link_text("Unit types")
+        self.click_by_link_text("Unit Types")
         self.click_by_link_text("ADD UNIT TYPE")
         self.wait.until(e_c.presence_of_element_located((By.ID, 'id_name')))
         self.driver.find_element(By.ID, 'id_name').send_keys(objects['UnitType']['name'])
@@ -797,7 +797,7 @@ class TestPerformQC(BaseQATests):
         assert models.AutoSave.objects.count() == 0
         time.sleep(1)
         inputs[0].send_keys(Keys.ENTER)
-        time.sleep(2.1)  # auto save is debounced with a 2s interval
+        time.sleep(4.2)  # auto save is debounced with a 4s interval
         assert models.AutoSave.objects.count() == 1
 
     def test_load_autosave(self):
