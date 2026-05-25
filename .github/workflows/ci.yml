@@ -158,6 +158,7 @@ jobs:
         uses: Particular/install-sql-server-action@v1.4.0
         with:
           catalog: qatrackplus31
+          connection-string-env-var: SQL_CONNECTION_STRING
 
       - name: Configure MSSQL local_settings.py
         if: matrix.db == 'mssql'
