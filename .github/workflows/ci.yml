@@ -163,7 +163,7 @@ jobs:
       - name: Configure MSSQL local_settings.py
         if: matrix.db == 'mssql'
         run: |
-          python -c "
+          $code = @"
           import os
           conn_str = os.environ.get('SQL_CONNECTION_STRING', '')
           print(f'Connection string: {conn_str}')
@@ -187,9 +187,11 @@ jobs:
               db_settings['OPTIONS']['extra_params'] = 'Trusted_Connection=yes'
           with open('qatrack/local_settings.py', 'w', encoding='utf8') as f:
               f.write('DEBUG = False\n')
-              f.write('DATABASES = { \"default\": ' + repr(db_settings) + ' }\n')
-              f.write('DATABASES[\"readonly\"] = DATABASES[\"default\"]\n')
-          "
+              f.write('DATABASES = { "default": ' + repr(db_settings) + ' }\n')
+              f.write('DATABASES["readonly"] = DATABASES["default"]\n')
+          "@
+          $code | Out-File -FilePath generate_settings.py -Encoding utf8
+          python generate_settings.py
 
       - name: Run Tests
         run: uv run pytest -x -m "not selenium"
