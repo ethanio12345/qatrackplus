@@ -163,6 +163,7 @@ jobs:
       - name: Configure MSSQL local_settings.py
         if: matrix.db == 'mssql'
         run: |
+          Write-Host "Connection string: $env:SQL_CONNECTION_STRING"
           @"
           DEBUG = False
           DATABASES = {
@@ -171,7 +172,7 @@ jobs:
                   'NAME': 'qatrackplus31',
                   'USER': 'sa',
                   'PASSWORD': 'Password12!',
-                  'HOST': 'localhost',
+                  'HOST': 'localhost\SQLEXPRESS',
                   'PORT': '',
                   'OPTIONS': {
                       'driver': 'ODBC Driver 17 for SQL Server',
