@@ -117,7 +117,7 @@ jobs:
           cp deploy/mysql/local_settings.py qatrack/local_settings.py
           sed -i "s/'HOST': ''/'HOST': '127.0.0.1'/g" qatrack/local_settings.py
           # Setup mysql users and privileges for MySQL 8 compat
-          docker exec -i ${{ job.services.mysql.id }} mysql -u root -proot -e "CREATE USER 'qatrack'@'%' IDENTIFIED WITH mysql_native_password BY 'qatrackpass'; CREATE USER 'qatrack_reports'@'%' IDENTIFIED WITH mysql_native_password BY 'qatrackpass'; CREATE DATABASE qatrackplus31 CHARACTER SET utf8; GRANT ALL ON qatrackplus31.* TO 'qatrack'@'%'; GRANT ALL ON qatrackplus31.* TO 'qatrack_reports'@'%'; FLUSH PRIVILEGES;"
+          docker exec -i ${{ job.services.mysql.id }} mysql -u root -proot -e "CREATE USER 'qatrack'@'%' IDENTIFIED BY 'qatrackpass'; CREATE USER 'qatrack_reports'@'%' IDENTIFIED BY 'qatrackpass'; CREATE DATABASE qatrackplus31 CHARACTER SET utf8; GRANT ALL ON qatrackplus31.* TO 'qatrack'@'%'; GRANT ALL ON qatrackplus31.* TO 'qatrack_reports'@'%'; FLUSH PRIVILEGES;"
           docker exec -i ${{ job.services.mysql.id }} sh -c "mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql -u root -proot mysql"
 
       - name: Run Tests
