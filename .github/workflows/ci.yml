@@ -163,24 +163,33 @@ jobs:
       - name: Configure MSSQL local_settings.py
         if: matrix.db == 'mssql'
         run: |
-          Write-Host "Connection string: $env:SQL_CONNECTION_STRING"
-          @"
-          DEBUG = False
-          DATABASES = {
-              'default': {
-                  'ENGINE': 'mssql',
-                  'NAME': 'qatrackplus31',
-                  'USER': 'sa',
-                  'PASSWORD': 'Password12!',
-                  'HOST': 'localhost\SQLEXPRESS',
-                  'PORT': '',
-                  'OPTIONS': {
-                      'driver': 'ODBC Driver 17 for SQL Server',
-                  },
-              }
+          python -c "
+          import os
+          conn_str = os.environ.get('SQL_CONNECTION_STRING', '')
+          print(f'Connection string: {conn_str}')
+          parts = dict(part.split('=', 1) for part in conn_str.split(';') if '=' in part)
+          db_settings = {
+              'ENGINE': 'mssql',
+              'NAME': parts.get('Database', parts.get('Initial Catalog', 'qatrackplus31')),
+              'HOST': parts.get('Server', parts.get('Data Source', r'localhost\SQLEXPRESS')),
+              'PORT': '',
+              'OPTIONS': {
+                  'driver': 'ODBC Driver 17 for SQL Server',
+              },
           }
-          DATABASES['readonly'] = DATABASES['default']
-          "@ | Out-File -FilePath qatrack\local_settings.py -Encoding utf8
+          if 'User Id' in parts and 'Password' in parts:
+              db_settings['USER'] = parts['User Id']
+              db_settings['PASSWORD'] = parts['Password']
+          elif 'Uid' in parts and 'Pwd' in parts:
+              db_settings['USER'] = parts['Uid']
+              db_settings['PASSWORD'] = parts['Pwd']
+          else:
+              db_settings['OPTIONS']['extra_params'] = 'Trusted_Connection=yes'
+          with open('qatrack/local_settings.py', 'w', encoding='utf8') as f:
+              f.write('DEBUG = False\n')
+              f.write('DATABASES = { \"default\": ' + repr(db_settings) + ' }\n')
+              f.write('DATABASES[\"readonly\"] = DATABASES[\"default\"]\n')
+          "
 
       - name: Run Tests
         run: uv run pytest -x -m "not selenium"
