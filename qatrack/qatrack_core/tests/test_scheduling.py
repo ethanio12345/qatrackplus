@@ -16,7 +16,7 @@ from qatrack.qatrack_core import dates, scheduling
 class TestDateFunctions:
 
     def test_last_month_dates_jan(self):
-        dt = timezone.datetime(2019, 1, 15, tzinfo=timezone.utc)
+        dt = timezone.datetime(2019, 1, 15, tzinfo=datetime.timezone.utc)
         start, end = dates.last_month_dates(dt)
         tz = ZoneInfo(settings.TIME_ZONE)
         expected_start = timezone.datetime(2018, 12, 1).replace(tzinfo=tz)
@@ -25,7 +25,7 @@ class TestDateFunctions:
         assert end == expected_end
 
     def test_last_month_dates_dec(self):
-        dt = timezone.datetime(2019, 12, 15, tzinfo=timezone.utc)
+        dt = timezone.datetime(2019, 12, 15, tzinfo=datetime.timezone.utc)
         start, end = dates.last_month_dates(dt)
         tz = ZoneInfo(settings.TIME_ZONE)
         expected_start = timezone.datetime(2019, 11, 1).replace(tzinfo=tz)
@@ -56,7 +56,7 @@ class TestCalcDueDate(TestCase):
             slug="mwf",
             recurrences=recurrence.Recurrence(
                 rrules=[rule],
-                dtstart=timezone.datetime(2012, 1, 1, tzinfo=timezone.utc),
+                dtstart=timezone.datetime(2012, 1, 1, tzinfo=datetime.timezone.utc),
             ),
             window_start=0,
             window_end=1,
@@ -76,7 +76,7 @@ class TestCalcDueDate(TestCase):
             slug="wed",
             recurrences=recurrence.Recurrence(
                 rrules=[rule],
-                dtstart=timezone.datetime(2012, 1, 1, tzinfo=timezone.utc),
+                dtstart=timezone.datetime(2012, 1, 1, tzinfo=datetime.timezone.utc),
             ),
             window_end=1,
             window_start=1,
@@ -92,7 +92,7 @@ class TestCalcDueDate(TestCase):
             slug="day-of-month",
             recurrences=recurrence.Recurrence(
                 rrules=[rule],
-                dtstart=timezone.datetime(2012, 1, 1, tzinfo=timezone.utc),
+                dtstart=timezone.datetime(2012, 1, 1, tzinfo=datetime.timezone.utc),
             ),
             window_end=7,
             window_start=7,
@@ -108,7 +108,7 @@ class TestCalcDueDate(TestCase):
             slug="%s-weekly" % weeks,
             recurrences=recurrence.Recurrence(
                 rrules=[rule],
-                dtstart=timezone.datetime(2012, 1, 1, tzinfo=timezone.utc),
+                dtstart=timezone.datetime(2012, 1, 1, tzinfo=datetime.timezone.utc),
             ),
             window_end=7,
             window_start=7,
@@ -391,8 +391,8 @@ class TestCalcDueDate(TestCase):
     def test_first_of_month_us_classical_offset(self):
         """Ensure due date is calculated correctly when the UTC date is ahead
         of the local date.  See RAM-2297."""
-        work_completed = timezone.datetime(2023, 1, 11, 0, 5, 0, tzinfo=timezone.utc)
-        previous_due_date = timezone.datetime(2023, 1, 1, 22, 15, 30, tzinfo=timezone.utc)
+        work_completed = timezone.datetime(2023, 1, 11, 0, 5, 0, tzinfo=datetime.timezone.utc)
+        previous_due_date = timezone.datetime(2023, 1, 1, 22, 15, 30, tzinfo=datetime.timezone.utc)
         first_of_month = self.day_of_month(day=1)
         first_of_month.window_start = None
         first_of_month.save()
@@ -405,8 +405,8 @@ class TestCalcDueDate(TestCase):
         to the local date.  See RAM-2297."""
         with override_settings(TIME_ZONE="Australia/Melbourne"):
             tz = ZoneInfo("Australia/Melbourne")
-            work_completed = timezone.datetime(2023, 1, 11, 14, 5, 0, tzinfo=timezone.utc)
-            previous_due_date = timezone.datetime(2023, 1, 1, 22, 15, 30, tzinfo=timezone.utc)
+            work_completed = timezone.datetime(2023, 1, 11, 14, 5, 0, tzinfo=datetime.timezone.utc)
+            previous_due_date = timezone.datetime(2023, 1, 1, 22, 15, 30, tzinfo=datetime.timezone.utc)
             first_of_month = self.day_of_month(day=1)
             first_of_month.window_start = None
             first_of_month.save()
@@ -417,8 +417,8 @@ class TestCalcDueDate(TestCase):
     def test_first_of_month_us(self):
         """Ensure due date is calculated correctly when the UTC date is ahead
         of the local date.  See RAM-2297."""
-        work_completed = timezone.datetime(2023, 1, 11, 0, 5, 0, tzinfo=timezone.utc)
-        previous_due_date = timezone.datetime(2023, 1, 1, 2, 15, 30, tzinfo=timezone.utc)
+        work_completed = timezone.datetime(2023, 1, 11, 0, 5, 0, tzinfo=datetime.timezone.utc)
+        previous_due_date = timezone.datetime(2023, 1, 1, 2, 15, 30, tzinfo=datetime.timezone.utc)
         first_of_month = self.day_of_month(day=1)
         due_date = scheduling.calc_due_date(work_completed, previous_due_date, first_of_month)
         expected_due_date = timezone.datetime(2023, 2, 1).date()
@@ -429,8 +429,8 @@ class TestCalcDueDate(TestCase):
         to the local date.  See RAM-2297."""
         with override_settings(TIME_ZONE="Australia/Melbourne"):
             tz = ZoneInfo("Australia/Melbourne")
-            work_completed = timezone.datetime(2023, 1, 11, 14, 5, 0, tzinfo=timezone.utc)
-            previous_due_date = timezone.datetime(2023, 1, 1, 22, 15, 30, tzinfo=timezone.utc)
+            work_completed = timezone.datetime(2023, 1, 11, 14, 5, 0, tzinfo=datetime.timezone.utc)
+            previous_due_date = timezone.datetime(2023, 1, 1, 22, 15, 30, tzinfo=datetime.timezone.utc)
             first_of_month = self.day_of_month(day=1)
             due_date = scheduling.calc_due_date(work_completed, previous_due_date, first_of_month)
             expected_due_date = timezone.datetime(2023, 2, 1).date()

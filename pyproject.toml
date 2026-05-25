@@ -191,3 +191,38 @@ dev = [
     "sphinxcontrib-serializinghtml==2.0.0",
     "sphinxcontrib-websupport==1.2.4",
 ]
+
+[tool.ruff]
+line-length = 120
+exclude = [
+    ".git",
+    "fixtures",
+    "migration_data",
+    "migrations",
+    "south_migrations",
+    "node_modules",
+    "media",
+    "static",
+    "deploy",
+    "local_settings.py",
+    "*tmp*"
+]
+
+[tool.ruff.lint]
+ignore = [
+    "E501",  # line-too-long
+    "E402",  # module-import-not-at-top-of-file
+    "E721",  # type-comparison
+    "E722",  # bare-except
+    "F401",  # unused-import
+    "F403",  # undefined-local-with-import-star
+    "F541",  # f-string-missing-placeholders
+    "F811",  # redefined-while-unused
+    "F821",  # undefined-name
+    "F841",  # unused-variable
+    "W605",  # invalid-escape-sequence
+    "E741",  # ambiguous-variable-name
+    "E703",  # useless-semicolon
+    "E713",  # not-in-test
+    "F601",  # multi-value-repeated-key-literal
+]
