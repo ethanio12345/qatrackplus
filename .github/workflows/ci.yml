@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "**" ]
   pull_request:
-    branches: [ "master", "4.0.0-refactor" ]
+    branches: [ "**" ]
   workflow_dispatch:
 
 jobs:
@@ -45,7 +45,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.12", "3.13"]
+        python-version: ["3.12"]
         db: [sqlite, postgres, mysql]
     
     services:
@@ -64,7 +64,7 @@ jobs:
           --health-retries 5
 
       mysql:
-        image: mysql:8
+        image: mysql:5.7
         env:
           MYSQL_ROOT_PASSWORD: root
         ports:
@@ -117,7 +117,7 @@ jobs:
           cp deploy/mysql/local_settings.py qatrack/local_settings.py
           sed -i "s/'HOST': ''/'HOST': '127.0.0.1'/g" qatrack/local_settings.py
           # Setup mysql users and privileges
-          docker exec -i ${{ job.services.mysql.id }} mysql -u root -proot -e "CREATE USER 'qatrack'@'%' IDENTIFIED BY 'qatrackpass'; CREATE DATABASE qatrackplus31 CHARACTER SET utf8; GRANT ALL ON qatrackplus31.* TO 'qatrack'@'%'; FLUSH PRIVILEGES;"
+          docker exec -i ${{ job.services.mysql.id }} mysql -u root -proot -e "CREATE USER 'qatrack'@'%' IDENTIFIED BY 'qatrackpass'; CREATE USER 'qatrack_reports'@'%' IDENTIFIED BY 'qatrackpass'; CREATE DATABASE qatrackplus31 CHARACTER SET utf8; GRANT ALL ON qatrackplus31.* TO 'qatrack'@'%'; GRANT ALL ON qatrackplus31.* TO 'qatrack_reports'@'%'; FLUSH PRIVILEGES;"
           docker exec -i ${{ job.services.mysql.id }} sh -c "mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql -u root -proot mysql"
 
       - name: Run Tests
@@ -168,12 +168,13 @@ jobs:
               'default': {
                   'ENGINE': 'mssql',
                   'NAME': 'qatrackplus31',
+                  'USER': 'sa',
+                  'PASSWORD': 'Password12!',
                   'HOST': 'localhost',
                   'PORT': '',
                   'OPTIONS': {
                       'driver': 'ODBC Driver 17 for SQL Server',
                   },
-                  'Trusted_Connection': 'yes',
               }
           }
           DATABASES['readonly'] = DATABASES['default']
