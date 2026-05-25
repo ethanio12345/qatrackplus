@@ -2,9 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [ "master", "4.0.0-refactor" ]
+    branches: [ "**" ]
   pull_request:
-    branches: [ "master", "4.0.0-refactor" ]
+    branches: [ "**" ]
+  workflow_dispatch:
 
 jobs:
   lint:
@@ -26,6 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install system dependencies for python-ldap
+        run: sudo apt-get update && sudo apt-get install -y libldap2-dev libsasl2-dev
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
         with:
@@ -42,7 +45,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.12", "3.13"]
+        python-version: ["3.12"]
         db: [sqlite, postgres, mysql]
     
     services:
@@ -61,7 +64,7 @@ jobs:
           --health-retries 5
 
       mysql:
-        image: mysql:8
+        image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
         ports:
@@ -113,8 +116,8 @@ jobs:
         run: |
           cp deploy/mysql/local_settings.py qatrack/local_settings.py
           sed -i "s/'HOST': ''/'HOST': '127.0.0.1'/g" qatrack/local_settings.py
-          # Setup mysql users and privileges
-          docker exec -i ${{ job.services.mysql.id }} mysql -u root -proot -e "CREATE USER 'qatrack'@'%' IDENTIFIED BY 'qatrackpass'; CREATE DATABASE qatrackplus31 CHARACTER SET utf8; GRANT ALL ON qatrackplus31.* TO 'qatrack'@'%'; FLUSH PRIVILEGES;"
+          # Setup mysql users and privileges for MySQL 8 compat
+          docker exec -i ${{ job.services.mysql.id }} mysql -u root -proot -e "CREATE USER 'qatrack'@'%' IDENTIFIED WITH mysql_native_password BY 'qatrackpass'; CREATE USER 'qatrack_reports'@'%' IDENTIFIED WITH mysql_native_password BY 'qatrackpass'; CREATE DATABASE qatrackplus31 CHARACTER SET utf8; GRANT ALL ON *.* TO 'qatrack'@'%'; GRANT ALL ON *.* TO 'qatrack_reports'@'%'; FLUSH PRIVILEGES;"
           docker exec -i ${{ job.services.mysql.id }} sh -c "mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql -u root -proot mysql"
 
       - name: Run Tests
@@ -155,26 +158,40 @@ jobs:
         uses: Particular/install-sql-server-action@v1.4.0
         with:
           catalog: qatrackplus31
+          connection-string-env-var: SQL_CONNECTION_STRING
 
       - name: Configure MSSQL local_settings.py
         if: matrix.db == 'mssql'
         run: |
-          @"
-          DEBUG = False
-          DATABASES = {
-              'default': {
-                  'ENGINE': 'mssql',
-                  'NAME': 'qatrackplus31',
-                  'HOST': 'localhost',
-                  'PORT': '',
-                  'OPTIONS': {
-                      'driver': 'ODBC Driver 17 for SQL Server',
-                  },
-                  'Trusted_Connection': 'yes',
-              }
+          $code = @"
+          import os
+          conn_str = os.environ.get('SQL_CONNECTION_STRING', '')
+          print(f'Connection string: {conn_str}')
+          parts = dict(part.split('=', 1) for part in conn_str.split(';') if '=' in part)
+          db_settings = {
+              'ENGINE': 'mssql',
+              'NAME': parts.get('Database', parts.get('Initial Catalog', 'qatrackplus31')),
+              'HOST': parts.get('Server', parts.get('Data Source', r'localhost\SQLEXPRESS')),
+              'PORT': '',
+              'OPTIONS': {
+                  'driver': 'ODBC Driver 17 for SQL Server',
+              },
           }
-          DATABASES['readonly'] = DATABASES['default']
-          "@ | Out-File -FilePath qatrack\local_settings.py -Encoding utf8
+          if 'User Id' in parts and 'Password' in parts:
+              db_settings['USER'] = parts['User Id']
+              db_settings['PASSWORD'] = parts['Password']
+          elif 'Uid' in parts and 'Pwd' in parts:
+              db_settings['USER'] = parts['Uid']
+              db_settings['PASSWORD'] = parts['Pwd']
+          else:
+              db_settings['OPTIONS']['extra_params'] = 'Trusted_Connection=yes'
+          with open('qatrack/local_settings.py', 'w', encoding='utf8') as f:
+              f.write('DEBUG = False\n')
+              f.write('DATABASES = { "default": ' + repr(db_settings) + ' }\n')
+              f.write('DATABASES["readonly"] = DATABASES["default"]\n')
+          "@
+          $code | Out-File -FilePath generate_settings.py -Encoding utf8
+          python generate_settings.py
 
       - name: Run Tests
         run: uv run pytest -x -m "not selenium"

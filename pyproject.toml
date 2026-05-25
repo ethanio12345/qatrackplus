@@ -99,9 +99,9 @@ postgres = [
 ]
 
 win = [
-    "CherryPy==18.0.1",
-    "pyreadline",
-    "pywin32>=300",
+    "CherryPy==18.0.1; sys_platform == 'win32'",
+    "pyreadline; sys_platform == 'win32'",
+    "pywin32>=300; sys_platform == 'win32'",
 ]
 
 docker = [
