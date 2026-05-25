@@ -169,7 +169,7 @@ def serialize_form_data(form_data):
 
         data[k] = v
 
-    return data
+    return json.dumps(data, cls=DjangoJSONEncoder)
 
 
 class ReportScheduleForm(forms.ModelForm):
