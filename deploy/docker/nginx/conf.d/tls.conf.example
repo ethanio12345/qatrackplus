@@ -1,0 +1,24 @@
+# Copy this to tls.conf and update the paths to enable HTTPS
+# server {
+#     listen 443 ssl;
+#     server_name example.com;
+# 
+#     ssl_certificate /etc/nginx/ssl/cert.pem;
+#     ssl_certificate_key /etc/nginx/ssl/key.pem;
+# 
+#     location /static/ {
+#         alias /usr/src/qatrackplus/qatrack/static/;
+#     }
+# 
+#     location /media/ {
+#         alias /usr/src/qatrackplus/qatrack/media/;
+#     }
+# 
+#     location / {
+#         proxy_pass http://django:8000;
+#         proxy_set_header Host $host;
+#         proxy_set_header X-Real-IP $remote_addr;
+#         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#         proxy_set_header X-Forwarded-Proto https;
+#     }
+# }
