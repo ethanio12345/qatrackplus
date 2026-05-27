@@ -432,7 +432,7 @@ class Command(BaseCommand):
             service_area_name = str(row.headings)
 
             if sl_models.ServiceArea.objects.filter(name=service_area_name).exists():
-                print('\n---\tFound service area from QaTrack database: {}. Skipping'.format(service_area_name))
+                print(f'\n---\tFound service area from QaTrack database: {service_area_name}. Skipping')
                 break
             else:
                 sa = sl_models.ServiceArea.objects.create(name=service_area_name)

@@ -153,7 +153,7 @@ def service_event_searcher(request):
     return JsonResponse({
         'items': [{
             'id': se.id,
-            'display': '{} - Created on {}'.format(se.service_status.name, format_datetime(se.datetime_service))
+            'display': f'{se.service_status.name} - Created on {format_datetime(se.datetime_service)}'
         } for se in serviceevent],
         'name': 'display'
     })

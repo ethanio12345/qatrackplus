@@ -229,7 +229,7 @@ def hour_min(duration):
     total_seconds = int(duration.total_seconds())
     hours = total_seconds // 3600
     minutes = (total_seconds % 3600) // 60
-    return '{:0>2}:{:0>2}'.format(hours, minutes)
+    return f'{hours:0>2}:{minutes:0>2}'
 
 
 @register.simple_tag

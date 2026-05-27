@@ -50,7 +50,7 @@ class QATrackAccountBackend(ModelBackend):
         default_groups = [dg.group for dg in DefaultGroup.objects.select_related("group")]
         for qat_group in default_groups:
             if qat_group not in existing_user_groups:
-                self.logger.debug("User added to group '{}'".format(qat_group.name))
+                self.logger.debug(f"User added to group '{qat_group.name}'")
                 user.groups.add(qat_group)
 
 
@@ -188,7 +188,7 @@ class ActiveDirectoryGroupMembershipSSLBackend:
         default_groups = [dg.group for dg in DefaultGroup.objects.select_related("group")]
         for qat_group in default_groups:
             if qat_group not in existing_user_groups:
-                self.logger.debug("User added to group '{}'".format(qat_group.name))
+                self.logger.debug(f"User added to group '{qat_group.name}'")
                 user.groups.add(qat_group)
 
         ad_group_map = ActiveDirectoryGroupMap.group_map()
@@ -199,7 +199,7 @@ class ActiveDirectoryGroupMembershipSSLBackend:
             try:
                 if settings.AD_MIRROR_GROUPS and ad_group_name:
                     group, _ = Group.objects.get_or_create(name=ad_group_name)
-                    self.logger.debug("Created group '{}'".format(ad_group_name))
+                    self.logger.debug(f"Created group '{ad_group_name}'")
                 else:
                     group = Group.objects.get(name=ad_group_name)
 
@@ -209,7 +209,7 @@ class ActiveDirectoryGroupMembershipSSLBackend:
 
             for qat_group in qatrack_groups:
                 if qat_group not in existing_user_groups:
-                    self.logger.debug("User added to group '{}'".format(qat_group.name))
+                    self.logger.debug(f"User added to group '{qat_group.name}'")
                     user.groups.add(qat_group)
 
         user.save()
@@ -386,9 +386,7 @@ class QATrackAdfsAuthCodeBackend(AdfsAuthCodeBackend):
                     ]
             else:
                 logger.debug(
-                    "The configured groups claim '{}' was not found in the access token".format(
-                        adfs_settings.GROUPS_CLAIM
-                    ),
+                    f"The configured groups claim '{adfs_settings.GROUPS_CLAIM}' was not found in the access token",
                 )
                 claim_groups = []
 
@@ -399,7 +397,7 @@ class QATrackAdfsAuthCodeBackend(AdfsAuthCodeBackend):
             default_groups = [dg.group for dg in DefaultGroup.objects.select_related("group")]
             for qat_group in default_groups:
                 if qat_group not in existing_user_groups:
-                    logger.debug("User added to group '{}'".format(qat_group.name))
+                    logger.debug(f"User added to group '{qat_group.name}'")
                     user.groups.add(qat_group)
 
             ad_group_map = ActiveDirectoryGroupMap.group_map()
@@ -410,7 +408,7 @@ class QATrackAdfsAuthCodeBackend(AdfsAuthCodeBackend):
                 try:
                     if adfs_settings.MIRROR_GROUPS and ad_group_name:
                         group, _ = Group.objects.get_or_create(name=ad_group_name)
-                        logger.debug("Created group '{}'".format(ad_group_name))
+                        logger.debug(f"Created group '{ad_group_name}'")
                     else:
                         group = Group.objects.get(name=ad_group_name)
 
@@ -420,5 +418,5 @@ class QATrackAdfsAuthCodeBackend(AdfsAuthCodeBackend):
 
                 for qat_group in qatrack_groups:
                     if qat_group not in existing_user_groups:
-                        logger.debug("User added to group '{}'".format(qat_group.name))
+                        logger.debug(f"User added to group '{qat_group.name}'")
                         user.groups.add(qat_group)

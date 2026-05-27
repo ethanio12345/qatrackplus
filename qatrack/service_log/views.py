@@ -846,13 +846,13 @@ class DeleteServiceEvent(DeleteView, FormView, PermissionRequiredMixin):
         success_url = self.get_success_url()
         self.object.set_inactive()
 
-        messages.add_message(self.request, messages.INFO, 'Service event {} deleted'.format(self.object.id))
+        messages.add_message(self.request, messages.INFO, f'Service event {self.object.id} deleted')
 
         return HttpResponseRedirect(success_url)
 
     def form_invalid(self, form):
         messages.add_message(
-            self.request, messages.WARNING, 'Could not delete service event {}'.format(form.instance.id)
+            self.request, messages.WARNING, f'Could not delete service event {form.instance.id}'
         )
         return reverse('sl_dash')
 
@@ -1414,7 +1414,7 @@ class ServiceEventDownTimesList(ServiceEventsBaseList):
             hours = total_seconds // 3600
             minutes = (total_seconds % 3600) // 60
 
-            return '{}:{:02}'.format(hours, minutes)
+            return f'{hours}:{minutes:02}'
 
     def duration_service_time(self, se):
         duration = se.duration_service_time
@@ -1423,7 +1423,7 @@ class ServiceEventDownTimesList(ServiceEventsBaseList):
             hours = total_seconds // 3600
             minutes = (total_seconds % 3600) // 60
 
-            return '{}:{:02}'.format(hours, minutes)
+            return f'{hours}:{minutes:02}'
 
 
 @login_required
@@ -1539,7 +1539,7 @@ def handle_unit_down_time(request):
 
         service_events_unit_qs = se_qs.filter(unit_service_area__unit=u)
         potential_time = u.get_potential_time(date_from, date_to)
-        unit_vals = [u.name, u.type.name, '{:.2f}'.format(potential_time) if potential_time > 0 else '0']
+        unit_vals = [u.name, u.type.name, f'{potential_time:.2f}' if potential_time > 0 else '0']
         totals['potential'] += potential_time
 
         for t in all_service_types:
@@ -1552,8 +1552,8 @@ def handle_unit_down_time(request):
             lost = lost.total_seconds() / 3600 if lost else 0
 
             unit_vals.append(repairs)
-            unit_vals.append('{:.2f}'.format(service))
-            unit_vals.append('{:.2f}'.format(lost))
+            unit_vals.append(f'{service:.2f}')
+            unit_vals.append(f'{lost:.2f}')
 
             totals[t.name + '-repairs'] += repairs
             totals[t.name + '-service'] += service
@@ -1568,12 +1568,12 @@ def handle_unit_down_time(request):
 
         total_num = len(service_events_unit_qs)
 
-        unit_vals += ['{:.2f}'.format(total_service_time), '{:.2f}'.format(total_lost_time), total_num]
+        unit_vals += [f'{total_service_time:.2f}', f'{total_lost_time:.2f}', total_num]
 
         if not service_areas:
             available = ((potential_time - total_lost_time) / potential_time) * 100 if potential_time > 0 else 0
             totals['available'] += available
-            unit_vals.append('{:.2f}'.format(available))
+            unit_vals.append(f'{available:.2f}')
 
         totals['total_service'] += total_service_time
         totals['total_lost'] += total_lost_time

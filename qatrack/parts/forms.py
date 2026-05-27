@@ -119,7 +119,7 @@ class PartUsedForm(forms.ModelForm):
             if from_storage and quantity_changed > quantity_storage:
                 self.add_error(
                     'quantity', 'Quantity used greater than quantity in storage. {}'.
-                    format('' if initial_quantity == 0 else '(Originally used {})'.format(initial_quantity))
+                    format('' if initial_quantity == 0 else f'(Originally used {initial_quantity})')
                 )
                 self.add_error('from_storage', '')
 

@@ -984,4 +984,4 @@ class ServiceEventSchedule(SchedulingMixin, models.Model):
         return "%s?se_schedule=%s" % (reverse("sl_new"), self.pk)
 
     def __str__(self):
-        return 'Service Schedule for {}'.format(self.service_event_template)
+        return f'Service Schedule for {self.service_event_template}'

@@ -35,7 +35,7 @@ def item_val_to_string(item):
         total_seconds = int(item.total_seconds())
         hours = total_seconds // 3600
         minutes = (total_seconds % 3600) // 60
-        return '{}:{:02}'.format(hours, minutes)
+        return f'{hours}:{minutes:02}'
     elif isinstance(item, QuerySet | list | tuple):
         return ', '.join([str(i) for i in item])
     else:
@@ -51,7 +51,7 @@ def duration_string_hours_mins(duration):
     if seconds > 0 and minutes < 1 and hours == 0:
         return '00:01'
 
-    return '{:02d}:{:02d}'.format(hours, minutes)
+    return f'{hours:02d}:{minutes:02d}'
 
 
 class HoursMinDurationField(forms.DurationField):
@@ -74,7 +74,7 @@ class HoursMinDurationField(forms.DurationField):
             return None
         if isinstance(value, timezone.timedelta):
             return value
-        value = '{:04d}'.format(int(value))
+        value = f'{int(value):04d}'
         value = parse_duration(force_str(':'.join([value[:2], value[2:], '00'])))
         if value is None:
             raise ValidationError(self.error_messages['invalid'], code='invalid')
@@ -937,14 +937,14 @@ class ServiceEventTemplateForm(forms.ModelForm):
             elif field not in ['is_review_required', 'copy_to_units_of_same_type']:
                 self.fields[field].widget.attrs.update({'class': 'form-control'})
 
-            self.fields[field].widget.attrs.update({'id': 'template_{}'.format(field)})
+            self.fields[field].widget.attrs.update({'id': f'template_{field}'})
 
     def clean_name(self):
         name = self.cleaned_data.get('name')
         if models.ServiceEventTemplate.objects.filter(name=name).exists():
             self.add_error(
                 'name',
-                'Service event template with name {} already exists'.format(name),
+                f'Service event template with name {name} already exists',
             )
 
         return name

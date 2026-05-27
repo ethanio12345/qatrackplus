@@ -65,7 +65,7 @@ def run_backup():
 
     timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d%H%M%S')
 
-    backup_filepath = os.path.join(BACKUP_DIRECTORY, 'UTC_{}.zip'.format(timestamp))
+    backup_filepath = os.path.join(BACKUP_DIRECTORY, f'UTC_{timestamp}.zip')
 
     wait_for_postrgres()
 
@@ -98,7 +98,7 @@ def run_restore():
 
     if len(restore_filelist) == 1:
         restore_filepath = restore_filelist[0]
-        print('Restoring QATrack+ from {}'.format(os.path.basename(restore_filepath)))
+        print(f'Restoring QATrack+ from {os.path.basename(restore_filepath)}')
 
         # Don't remove previous uploads, they will get overwritten if they
         # have the same name
@@ -135,8 +135,8 @@ def run_restore():
                         WHERE datname = %s;""",
                         (DB_NAME,),
                     )
-                    cur.execute('DROP DATABASE {};'.format(DB_NAME))
-                    cur.execute('CREATE DATABASE {};'.format(DB_NAME))
+                    cur.execute(f'DROP DATABASE {DB_NAME};')
+                    cur.execute(f'CREATE DATABASE {DB_NAME};')
                     cur.execute(
                         """
                         UPDATE pg_database
