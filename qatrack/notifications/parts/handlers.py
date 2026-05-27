@@ -56,7 +56,7 @@ def get_notification_recipients(part):
     from qatrack.notifications.parts import models
 
     subs = models.PartNotice.objects.filter(
-        (Q(part_categories=None) | Q(part_categories__part_categories=part.part_category))
+        Q(part_categories=None) | Q(part_categories__part_categories=part.part_category)
     ).select_related("recipients")  # yapf: disable
 
     recipients = set()

@@ -238,5 +238,4 @@ ignore = [
     "UP025", # Remove unicode literals from strings
     "UP031", # Use format specifiers instead of percent format
     "UP032", # Use f-string instead of `format` call
-    "UP034", # Avoid extraneous parentheses in `x == (a, b, c)` -> `x in (a, b, c)`
 ]

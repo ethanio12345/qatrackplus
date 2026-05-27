@@ -648,7 +648,7 @@ class ServiceEventForm(BetterModelForm):
                 unit=unit, active=True
             ).order_by('name')
             self.fields['initiated_utc_field'].choices = (('', '---------'),) + tuple(
-                ((utc.id, '(%s) %s' % (utc.frequency if utc.frequency else 'Ad Hoc', utc.name)) for utc in i_utc_f_qs)
+                (utc.id, '(%s) %s' % (utc.frequency if utc.frequency else 'Ad Hoc', utc.name)) for utc in i_utc_f_qs
             )
             if not self.instance.service_type.is_active:
                 st_qs = models.ServiceType.objects.filter(id=self.instance.service_type.id)
@@ -712,7 +712,7 @@ class ServiceEventForm(BetterModelForm):
                 unit=initial_ib_utc_u, active=True
             ).order_by('name')
             choices = (('', '---------'),) + tuple(
-                ((utc.id, '(%s) %s' % (utc.frequency if utc.frequency else 'Ad Hoc', utc.name)) for utc in i_utc_f_qs)
+                (utc.id, '(%s) %s' % (utc.frequency if utc.frequency else 'Ad Hoc', utc.name)) for utc in i_utc_f_qs
                 # noqa: E501
             )
             self.fields['initiated_utc_field'].choices = choices
@@ -748,8 +748,8 @@ class ServiceEventForm(BetterModelForm):
                     'frequency',
                 ).order_by('name')
                 self.fields['initiated_utc_field'].choices = (('', '---------'),) + tuple(
-                    ((utc.id, '(%s) %s' % (utc.frequency if utc.frequency else 'Ad Hoc', utc.name))
-                     for utc in i_utc_f_qs)  # noqa: E501
+                    (utc.id, '(%s) %s' % (utc.frequency if utc.frequency else 'Ad Hoc', utc.name))
+                     for utc in i_utc_f_qs  # noqa: E501
                 )
             except ObjectDoesNotExist:
                 pass

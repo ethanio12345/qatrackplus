@@ -79,38 +79,38 @@ class AttachmentAdminForm(forms.ModelForm):
         if self.instance.id:
             if self.instance.test:
                 self.fields['test'].choices = (('', '--------'),) + tuple(
-                    ((t.id, '(' + str(t.id) + ') ' + t.name)
-                     for t in qa_models.Test.objects.filter(pk=self.instance.test_id))
+                    (t.id, '(' + str(t.id) + ') ' + t.name)
+                     for t in qa_models.Test.objects.filter(pk=self.instance.test_id)
                 )
                 self.initial['test'] = self.instance.test_id
             if self.instance.testlist:
                 self.fields['testlist'].choices = (('', '--------'),) + tuple(
-                    ((tl.id, '(' + str(tl.id) + ') ' + tl.name)
-                     for tl in qa_models.TestList.objects.filter(pk=self.instance.testlist_id))
+                    (tl.id, '(' + str(tl.id) + ') ' + tl.name)
+                     for tl in qa_models.TestList.objects.filter(pk=self.instance.testlist_id)
                 )
                 self.initial['testlist'] = self.instance.testlist_id
             if self.instance.testlistcycle:
                 self.fields['testlistcycle'].choices = (('', '--------'),) + tuple(
-                    ((tlc.id, '(' + str(tlc.id) + ') ' + tlc.name)
-                     for tlc in qa_models.TestListCycle.objects.filter(pk=self.instance.testlistcycle_id))
+                    (tlc.id, '(' + str(tlc.id) + ') ' + tlc.name)
+                     for tlc in qa_models.TestListCycle.objects.filter(pk=self.instance.testlistcycle_id)
                 )
                 self.initial['testlistcycle'] = self.instance.testlistcycle_id
             if self.instance.testinstance:
                 self.fields['testinstance'].choices = (('', '--------'),) + tuple(
-                    ((ti.id, '(' + str(ti.id) + ') ' + ti.unit_test_info.test.name)
-                     for ti in qa_models.TestInstance.objects.filter(pk=self.instance.testinstance_id))
+                    (ti.id, '(' + str(ti.id) + ') ' + ti.unit_test_info.test.name)
+                     for ti in qa_models.TestInstance.objects.filter(pk=self.instance.testinstance_id)
                 )
                 self.initial['testinstance'] = self.instance.testinstance_id
             if self.instance.testlistinstance:
                 self.fields['testlistinstance'].choices = (('', '--------'),) + tuple(
-                    ((tli.id, '(' + str(tli.id) + ') ' + tli.test_list.name)
-                     for tli in qa_models.TestListInstance.objects.filter(pk=self.instance.testlistinstance_id))
+                    (tli.id, '(' + str(tli.id) + ') ' + tli.test_list.name)
+                     for tli in qa_models.TestListInstance.objects.filter(pk=self.instance.testlistinstance_id)
                 )
                 self.initial['testlistinstance'] = self.instance.testlistinstance_id
             if self.instance.serviceevent:
                 self.fields['serviceevent'].choices = (('', '--------'),) + tuple(
-                    ((se.id, '(' + str(se.id) + ') ' + se.service_status.name)
-                     for se in sl_models.ServiceEvent.objects.filter(pk=self.instance.serviceevent_id))
+                    (se.id, '(' + str(se.id) + ') ' + se.service_status.name)
+                     for se in sl_models.ServiceEvent.objects.filter(pk=self.instance.serviceevent_id)
                 )
                 self.initial['serviceevent'] = self.instance.serviceevent_id
 

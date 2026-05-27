@@ -13,7 +13,7 @@ def do_scheduling(sender, **kwargs):
         "qatrack.qa.tasks.clean_autosaves",
         "QATrack+ Autosave Cleaner",
         schedule_type=Schedule.DAILY,
-        next_run=timezone.localtime((timezone.now() + timezone.timedelta(hours=24))).replace(hour=4),
+        next_run=timezone.localtime(timezone.now() + timezone.timedelta(hours=24)).replace(hour=4),
     )
 
 

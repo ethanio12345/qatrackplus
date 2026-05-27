@@ -57,7 +57,7 @@ def get_notification_recipients(fault):
     unit = fault.unit
 
     subs = models.FaultNotice.objects.filter(
-        (Q(units=None) | Q(units__units=unit))
+        Q(units=None) | Q(units__units=unit)
     ).select_related("recipients")  # yapf: disable
 
     recipients = set()

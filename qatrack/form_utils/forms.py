@@ -42,8 +42,8 @@ class Fieldset(object):
         self.name = name
 
     def _errors(self):
-        return ErrorDict(((k, v) for (k, v) in six.iteritems(self.form.errors)
-                          if k in [f.name for f in self.boundfields]))
+        return ErrorDict((k, v) for (k, v) in six.iteritems(self.form.errors)
+                          if k in [f.name for f in self.boundfields])
 
     errors = property(_errors)
 

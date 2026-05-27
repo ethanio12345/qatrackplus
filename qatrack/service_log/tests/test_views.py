@@ -850,7 +850,7 @@ class TestServiceLogViews(TestCase):
             'unit__type': [self.u3.type.name, self.u2.type.name],
             'daterange':
                 '%s - %s' %
-                (format_as_date((timezone.now() - timezone.timedelta(days=30))), format_as_date(timezone.now()))
+                (format_as_date(timezone.now() - timezone.timedelta(days=30)), format_as_date(timezone.now()))
         }
 
         response = self.client.get(reverse('handle_unit_down_time'), data=data)
