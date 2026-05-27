@@ -135,3 +135,76 @@ jobs:
 
       - name: Run Tests
         run: uv run pytest -x -m "not selenium"
+
+  windows-tests:
+    name: Windows Tests
+    runs-on: windows-latest
+    needs: [lint, requirements]
+    strategy:
+      fail-fast: false
+      matrix:
+        db: [sqlite]
+    
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      
+      - name: Set up uv
+        uses: astral-sh/setup-uv@e58605a9b6da7c637471fab8847a5e5a6b8df081
+        with:
+          enable-cache: true
+          python-version: "3.12"
+          
+      - name: Install dependencies (SQLite)
+        if: matrix.db == 'sqlite'
+        run: uv sync --extra win
+        
+      - name: Install dependencies (MSSQL)
+        if: matrix.db == 'mssql'
+        run: uv sync --extra win --extra mssql
+        
+      - name: Setup Database configuration (SQLite)
+        if: matrix.db == 'sqlite'
+        run: copy deploy\sqlite\local_settings.py qatrack\local_settings.py
+        
+      - name: Setup Database configuration (MSSQL)
+        if: matrix.db == 'mssql'
+        uses: Particular/install-sql-server-action@669fc7147c13cb314685bab823a55a5e22a0c95f
+        with:
+          catalog: qatrackplus31
+          connection-string-env-var: SQL_CONNECTION_STRING
+
+      - name: Configure MSSQL local_settings.py
+        if: matrix.db == 'mssql'
+        run: |
+          $code = @"
+          import os
+          conn_str = os.environ.get('SQL_CONNECTION_STRING', '')
+          parts = dict(part.split('=', 1) for part in conn_str.split(';') if '=' in part)
+          db_settings = {
+              'ENGINE': 'mssql',
+              'NAME': parts.get('Database', parts.get('Initial Catalog', 'qatrackplus31')),
+              'HOST': parts.get('Server', parts.get('Data Source', r'localhost\SQLEXPRESS')),
+              'PORT': '',
+              'OPTIONS': {
+                  'driver': 'ODBC Driver 17 for SQL Server',
+              },
+          }
+          if 'User Id' in parts and 'Password' in parts:
+              db_settings['USER'] = parts['User Id']
+              db_settings['PASSWORD'] = parts['Password']
+          elif 'Uid' in parts and 'Pwd' in parts:
+              db_settings['USER'] = parts['Uid']
+              db_settings['PASSWORD'] = parts['Pwd']
+          else:
+              db_settings['OPTIONS']['extra_params'] = 'Trusted_Connection=yes'
+          with open('qatrack/local_settings.py', 'w', encoding='utf8') as f:
+              f.write('DEBUG = False\n')
+              f.write('DATABASES = { "default": ' + repr(db_settings) + ' }\n')
+              f.write('DATABASES["readonly"] = DATABASES["default"]\n')
+          "@
+          $code | Out-File -FilePath generate_settings.py -Encoding utf8
+          python generate_settings.py
+      - name: Run Tests
+        run: uv run pytest -x -m "not selenium"
