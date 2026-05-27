@@ -69,7 +69,7 @@ class ReportMeta(type):
         return cls
 
 
-class BaseReport(object, metaclass=ReportMeta):
+class BaseReport(metaclass=ReportMeta):
 
     filter_class = None
     category = _l("General")

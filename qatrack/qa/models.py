@@ -425,12 +425,6 @@ class Frequency(RecurrenceFieldMixin, models.Model):
     def __str__(self):
         return self.name
 
-    def save(self, *args, **kwargs):
-        """Make sure all recurrences have a start date and calculate an
-        approximate time between recurrences."""
-        self.nominal_interval = scheduling.calc_nominal_interval(self.recurrences)
-        super().save(*args, **kwargs)
-
     def __setattr__(self, name, value):
         """Handle string assignments to recurrences field by converting them to proper recurrence objects"""
         if name == 'recurrences' and isinstance(value, str) and value.strip() and not hasattr(value, 'dtstart'):
@@ -479,6 +473,14 @@ class Frequency(RecurrenceFieldMixin, models.Model):
                 pass
 
         super().__setattr__(name, value)
+
+    def save(self, *args, **kwargs):  # noqa: DJ012
+        """Make sure all recurrences have a start date and calculate an
+        approximate time between recurrences."""
+        self.nominal_interval = scheduling.calc_nominal_interval(self.recurrences)
+        super().save(*args, **kwargs)
+
+
 
     def natural_key(self):
         return (self.slug,)
@@ -1624,7 +1626,10 @@ class TestList(TestCollectionInterface, TestPackMixin):
         """return display representation of object"""
         return "(%s) %s" % (self.pk, self.name)
 
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+    def __len__(self):
+        return 1
+
+    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):  # noqa: DJ012
         super().save(
             force_insert=force_insert,
             force_update=force_update,
@@ -1633,7 +1638,7 @@ class TestList(TestCollectionInterface, TestPackMixin):
         )
         self.utcs.update(name=self.name)
 
-    def get_absolute_url(self):
+    def get_absolute_url(self):  # noqa: DJ012
         return reverse(
             "admin:qa_testlist_change", args=(self.pk,)
         )
@@ -1710,8 +1715,7 @@ class TestList(TestCollectionInterface, TestPackMixin):
     def natural_key(self):
         return (self.slug,)
 
-    def __len__(self):
-        return 1
+
 
     def _full_delete(self):
         """Deletes test list, sublists, all tests etc. Use with caution!"""
@@ -2705,7 +2709,14 @@ class TestListCycle(TestCollectionInterface, TestPackMixin):
     def __str__(self):
         return _(self.name)
 
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+    def __len__(self):
+        """return the number of test_lists"""
+        if self.pk:
+            return self.test_lists.count()
+        else:
+            return 0
+
+    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):  # noqa: DJ012
         super().save(
             force_insert=force_insert,
             force_update=force_update,
@@ -2714,12 +2725,7 @@ class TestListCycle(TestCollectionInterface, TestPackMixin):
         )
         self.utcs.update(name=self.name)
 
-    def __len__(self):
-        """return the number of test_lists"""
-        if self.pk:
-            return self.test_lists.count()
-        else:
-            return 0
+
 
     def test_list_members(self):
         """return all days from this collection"""

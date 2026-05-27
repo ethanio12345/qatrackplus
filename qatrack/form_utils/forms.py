@@ -28,7 +28,7 @@ def with_metaclass(meta, *bases):
     return meta("NewBase", bases, {})
 
 
-class Fieldset(object):
+class Fieldset:
     """An iterable Fieldset with a legend and a set of BoundFields."""
 
     def __init__(self, form, name, boundfields, legend='', classes='', description=''):
@@ -58,7 +58,7 @@ class Fieldset(object):
         )
 
 
-class FieldsetCollection(object):
+class FieldsetCollection:
 
     def __init__(self, form, fieldsets):
         self.form = form
@@ -188,7 +188,7 @@ class BetterModelFormMetaclass(BetterFormBaseMetaclass, forms.models.ModelFormMe
     pass
 
 
-class BetterBaseForm(object):
+class BetterBaseForm:
     """
     ``BetterForm`` and ``BetterModelForm`` are subclasses of Form
     and ModelForm that allow for declarative definition of fieldsets
@@ -270,7 +270,7 @@ class BetterModelForm(with_metaclass(BetterModelFormMetaclass, BetterBaseForm), 
     __doc__ = BetterBaseForm.__doc__
 
 
-class BasePreviewFormMixin(object):
+class BasePreviewFormMixin:
     """
     Mixin to add preview functionality to a form.  If the form is submitted
     with the following k/v pair in its ``data`` dictionary:

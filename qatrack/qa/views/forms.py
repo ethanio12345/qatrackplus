@@ -22,7 +22,7 @@ from qatrack.service_log.forms import ServiceEventMultipleField
 BOOL_CHOICES = [(0, _l("No")), (1, _l("Yes"))]
 
 
-class UserFormsetMixin(object):
+class UserFormsetMixin:
     """A mixin to add a user object to every form in a formset (and the formset itself)"""
 
     def __init__(self, *args, **kwargs):
@@ -36,7 +36,7 @@ class UserFormsetMixin(object):
         return form
 
 
-class TestInstanceWidgetsMixin(object):
+class TestInstanceWidgetsMixin:
     """
     Mixin to override default TestInstance field widgets and validation
     based on the Test type.

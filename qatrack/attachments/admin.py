@@ -169,7 +169,7 @@ class AttachmentAdmin(BaseQATrackAdmin):
         return obj.label or _("Unlabeled")
 
 
-class SaveInlineAttachmentUserMixin(object):
+class SaveInlineAttachmentUserMixin:
     """A Mixin to save the user who added attachment in admin
 
     Set editable=False on the created_by and modified_by model you

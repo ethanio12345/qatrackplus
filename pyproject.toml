@@ -228,7 +228,6 @@ ignore = [
     "DJ001", # Avoid using `null=True` on string-based fields such as `CharField`
     "DJ006", # Use `queryset.filter(...)` instead of `queryset.exclude(...)`
     "DJ007", # Save method should come before custom method
-    "UP004", # Class `X` inherits from `object` is unnecessary
     "DJ008", # Model name should be singular
     "UP031", # Use format specifiers instead of percent format
 ]

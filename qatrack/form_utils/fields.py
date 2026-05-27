@@ -5,7 +5,7 @@ from django import forms
 from .widgets import ClearableFileInput
 
 
-class FakeEmptyFieldFile(object):
+class FakeEmptyFieldFile:
     """
     A fake FieldFile that will convice a FileField model field to
     actually replace an existing file name with an empty string.
