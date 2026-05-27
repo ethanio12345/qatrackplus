@@ -1,4 +1,5 @@
 import json
+import os
 from random import Random
 
 from django.conf import settings
@@ -11,8 +12,6 @@ from django.dispatch import receiver
 from django.utils.formats import get_format
 from django.utils.translation import get_language_info
 from django.utils.translation import gettext_lazy as _l
-
-import os
 
 from qatrack.faults.models import Fault
 from qatrack.parts.models import PartStorageCollection, PartUsed

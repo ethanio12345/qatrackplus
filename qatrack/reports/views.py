@@ -7,7 +7,11 @@ from django.views.decorators.http import require_POST
 
 from qatrack.qatrack_core.dates import format_as_date
 from qatrack.reports import (  # noqa: F401
-    faults, models, qc, reports, service_log,
+    faults,
+    models,
+    qc,
+    reports,
+    service_log,
 )
 from qatrack.reports.forms import (
     ReportForm,

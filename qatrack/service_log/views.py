@@ -2,6 +2,7 @@ import calendar
 import collections
 import csv
 from itertools import groupby
+from zoneinfo import ZoneInfo
 
 from braces.views import (
     JSONResponseMixin,
@@ -62,7 +63,6 @@ from listable.views import (
     YESTERDAY,
     BaseListableView,
 )
-from zoneinfo import ZoneInfo
 
 from qatrack.attachments.models import Attachment
 from qatrack.parts import forms as p_forms
@@ -80,9 +80,11 @@ from qatrack.qatrack_core.dates import (
 )
 from qatrack.qatrack_core.serializers import QATrackJSONEncoder
 from qatrack.reports.service_log import ServiceEventDetailsReport
-from qatrack.service_log import forms
+from qatrack.service_log import (
+    forms,
+    signals,  # NOQA: F401
+)
 from qatrack.service_log import models as sl_models
-from qatrack.service_log import signals  # NOQA: F401
 from qatrack.units import models as u_models
 
 

@@ -1,6 +1,7 @@
 import calendar
 import collections
 import json
+from zoneinfo import ZoneInfo
 
 from braces.views import JSONResponseMixin, PermissionRequiredMixin
 from django.conf import settings
@@ -27,7 +28,6 @@ from django.views.generic import (
     View,
 )
 from listable.views import BaseListableView
-from zoneinfo import ZoneInfo
 
 from qatrack.qatrack_core.dates import format_datetime
 from qatrack.reports.qc.testlistinstance import TestListInstanceDetailsReport
@@ -39,8 +39,8 @@ from qatrack.service_log.models import (
 )
 from qatrack.units.models import Unit
 
-from . import forms
 from .. import models
+from . import forms
 from .base import (
     BaseEditTestListInstance,
     TestListInstanceMixin,

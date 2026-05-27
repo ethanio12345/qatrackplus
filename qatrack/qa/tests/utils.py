@@ -1,8 +1,8 @@
+import recurrence
 from django.apps import apps
 from django.contrib.auth.models import Group
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
-import recurrence
 
 from qatrack.accounts.tests.utils import create_group, create_user
 from qatrack.qa import models

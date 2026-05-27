@@ -4,11 +4,11 @@ import json
 import os
 import random
 
+import django.forms
 from django.conf import settings
 from django.contrib.auth.models import Group, User
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.files.uploadedfile import SimpleUploadedFile
-import django.forms
 from django.test import TestCase
 from django.test.client import RequestFactory
 from django.test.utils import override_settings
@@ -17,15 +17,15 @@ from django.utils import timezone
 from django_comments.models import Comment
 from freezegun import freeze_time
 
-from qatrack.attachments.models import Attachment
-from qatrack.qa import models, trees, views
-from qatrack.qa.views import forms
 import qatrack.qa.views.base
 import qatrack.qa.views.charts
 import qatrack.qa.views.perform
 import qatrack.qa.views.review
-from qatrack.qatrack_core.dates import format_as_date
 import qatrack.units.models as umodels
+from qatrack.attachments.models import Attachment
+from qatrack.qa import models, trees, views
+from qatrack.qa.views import forms
+from qatrack.qatrack_core.dates import format_as_date
 
 from . import utils
 

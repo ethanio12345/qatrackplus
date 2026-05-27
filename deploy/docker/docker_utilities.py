@@ -14,19 +14,18 @@
 
 """A set of utilities to manage the docker instance of qatrack"""
 
-import sys
-import os
-import zipfile
-import time
 import datetime
+import os
 
 # import shutil
 import pathlib
 import subprocess
+import sys
+import time
+import zipfile
 from glob import glob
 
 import psycopg2
-
 
 DB_NAME = 'postgres'
 DB_USER = 'postgres'

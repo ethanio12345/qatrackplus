@@ -9,11 +9,11 @@ from django.utils.dateparse import parse_duration
 from django.utils.encoding import force_str
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
-from qatrack.qatrack_core.forms import BetterModelForm
 
 from qatrack.attachments.models import Attachment
 from qatrack.qa import models as qa_models
 from qatrack.qatrack_core.dates import format_datetime
+from qatrack.qatrack_core.forms import BetterModelForm
 from qatrack.service_log import models
 from qatrack.units import models as u_models
 

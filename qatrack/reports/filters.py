@@ -1,12 +1,12 @@
 from itertools import groupby
 
 import dateutil.parser
+import django_filters
 from django import forms
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
-import django_filters
 
 from qatrack.qa import models
 from qatrack.qatrack_core.utils import relative_dates

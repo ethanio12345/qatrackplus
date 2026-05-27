@@ -1,5 +1,5 @@
-from unittest import mock
 import json
+from unittest import mock
 
 from django.contrib.auth.models import Permission, User
 from django.core.serializers.json import DjangoJSONEncoder

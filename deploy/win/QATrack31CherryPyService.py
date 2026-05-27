@@ -9,16 +9,17 @@ Requires Mark Hammond's pywin32 package.
 
 """
 
-import distutils.sysconfig
 import glob
 import os
 import shutil
 import sys
 
 import cherrypy
-from qatrack import wsgi
+import distutils.sysconfig
 import win32service
 import win32serviceutil
+
+from qatrack import wsgi
 
 VENV_DIRECTORY = "C:/deploy/venvs/qatrack31/"
 DEPLOY_DIRECTORY = "C:/deploy/qatrackplus/"

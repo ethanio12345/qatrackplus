@@ -1,14 +1,12 @@
 from braces.views import LoginRequiredMixin
 from django.contrib.contenttypes.models import ContentType
-from django.urls import reverse, resolve
 from django.forms.utils import timezone
 from django.http import HttpResponseRedirect
 from django.template.loader import get_template
-from django.views.generic import DetailView, CreateView
+from django.urls import resolve, reverse
 from django.utils.translation import gettext as _
-
+from django.views.generic import CreateView, DetailView
 from listable.views import (
-    BaseListableView,
     DATE_RANGE,
     LAST_MONTH,
     LAST_WEEK,
@@ -17,10 +15,11 @@ from listable.views import (
     TEXT,
     TODAY,
     YESTERDAY,
+    BaseListableView,
 )
 
-from qatrack.issue_tracker import models as i_models
 from qatrack.issue_tracker import forms as i_forms
+from qatrack.issue_tracker import models as i_models
 
 
 class IssueCreate(LoginRequiredMixin, CreateView):

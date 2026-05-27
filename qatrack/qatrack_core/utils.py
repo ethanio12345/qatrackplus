@@ -17,7 +17,7 @@ def weasyprint_to_pdf(html, name="", paper_size="letter"):
         paper_size: Paper size for PDF ('letter' or 'a4')
     """
     try:
-        from weasyprint import HTML, CSS
+        from weasyprint import CSS, HTML
     except ImportError:
         raise ImportError("WeasyPrint not installed. Install with: uv pip install weasyprint")
     

@@ -1,6 +1,6 @@
 
-from django.contrib import admin
 import django.forms as forms
+from django.contrib import admin
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _l
 

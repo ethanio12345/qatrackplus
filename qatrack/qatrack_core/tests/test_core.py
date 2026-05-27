@@ -1,14 +1,14 @@
 import datetime
 import re
+from zoneinfo import ZoneInfo
 
+import numpy as np
+import pandas as pd
 from django.contrib.sites.models import Site
 from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
-import numpy as np
-import pandas as pd
-from zoneinfo import ZoneInfo
 
 from qatrack.qa.tests import utils
 from qatrack.qatrack_core.serializers import QATrackJSONEncoder

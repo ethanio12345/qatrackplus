@@ -1,9 +1,9 @@
 import base64
-from collections import defaultdict
 import copy
 import json
-from numbers import Number
 import re
+from collections import defaultdict
+from numbers import Number
 
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site

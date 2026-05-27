@@ -10,16 +10,16 @@
 # To use it, pass 'profile=1' as a GET or POST parameter to any HTTP
 # request.
 
-from base64 import b64decode, b64encode
 import functools
 import pickle
-from io import StringIO
-from decimal import Decimal
-import hotshot
-import hotshot.stats
 import sys
 import tempfile
+from base64 import b64decode, b64encode
+from decimal import Decimal
+from io import StringIO
 
+import hotshot
+import hotshot.stats
 from django.conf import settings
 from django.db import connection, reset_queries
 from django.http import HttpResponse

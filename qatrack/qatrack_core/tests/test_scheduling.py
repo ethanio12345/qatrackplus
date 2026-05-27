@@ -1,12 +1,12 @@
 import calendar
 import datetime
+from zoneinfo import ZoneInfo
 
+import recurrence
 from django.conf import settings
 from django.test import TestCase
 from django.test.utils import override_settings
 from django.utils import timezone
-from zoneinfo import ZoneInfo
-import recurrence
 
 from qatrack.qa import models
 from qatrack.qa.tests import utils as qautils

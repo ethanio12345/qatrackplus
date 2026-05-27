@@ -1,6 +1,6 @@
+import time
 from contextlib import contextmanager
 from functools import wraps
-import time
 
 from django.conf import settings
 from django.contrib.staticfiles.handlers import StaticFilesHandler

@@ -3,13 +3,13 @@ import datetime
 import json
 import os
 import time
+from zoneinfo import ZoneInfo
 
+import pytest
 from django.conf import settings
 from django.contrib.auth.models import Permission
 from django.urls import reverse
 from django.utils import timezone
-import pytest
-from zoneinfo import ZoneInfo
 from rest_framework import status
 from rest_framework.test import APITestCase
 

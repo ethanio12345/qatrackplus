@@ -1,5 +1,5 @@
-from django.db.models import FileField
 import rest_framework_filters as filters
+from django.db.models import FileField
 
 from qatrack.attachments import models
 

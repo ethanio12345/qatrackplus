@@ -1,6 +1,6 @@
 import re
-import black
 
+import black
 from django.apps import apps
 from django.conf import settings
 from django.contrib.auth.models import Group, User
@@ -432,11 +432,12 @@ class Frequency(RecurrenceFieldMixin, models.Model):
         """Handle string assignments to recurrences field by converting them to proper recurrence objects"""
         if name == 'recurrences' and isinstance(value, str) and value.strip() and not hasattr(value, 'dtstart'):
             # Convert simple string assignments to proper recurrence objects with dtstart
-            import recurrence
             from zoneinfo import ZoneInfo
+
+            import recurrence
+            from dateutil.rrule import rrulestr
             from django.conf import settings
             from django.utils import timezone
-            from dateutil.rrule import rrulestr
 
             try:
                 # Use the recurrence library's built-in parsing for complex rules

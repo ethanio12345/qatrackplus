@@ -4,21 +4,19 @@ from django import VERSION, forms
 from django.apps import apps
 from django.conf import settings
 from django.contrib import admin, messages
-from django.contrib.admin import options, widgets, helpers
+from django.contrib.admin import helpers, options, widgets
 from django.contrib.admin.helpers import flatten_fieldsets
 from django.db.models import Count, Q
-
 from django.template import loader
 from django.template.defaultfilters import date as date_formatter
 from django.template.response import TemplateResponse
-from django.urls import reverse, path
+from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.html import escape, format_html_join
 from django.utils.safestring import mark_safe
 from django.utils.text import Truncator
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
-
 from django_mptt_admin.admin import DjangoMpttAdmin
 from dynamic_raw_id.admin import DynamicRawIDMixin
 from dynamic_raw_id.widgets import DynamicRawIDWidget
@@ -30,12 +28,12 @@ from qatrack.attachments.admin import (
 from qatrack.qa import models
 from qatrack.qa.utils import format_qc_value
 from qatrack.qa.views import admin as admin_views
+from qatrack.qatrack_core import scheduling
 from qatrack.qatrack_core.admin import (
     BaseQATrackAdmin,
     BasicSaveUserAdmin,
     SaveUserMixin,
 )
-from qatrack.qatrack_core import scheduling
 from qatrack.units.forms import unit_site_unit_type_choices
 from qatrack.units.models import Site, Unit
 

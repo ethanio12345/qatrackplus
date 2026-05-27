@@ -1,5 +1,5 @@
-from django.contrib.auth.models import Group, User
 import rest_framework_filters as filters
+from django.contrib.auth.models import Group, User
 
 from qatrack.api.auth.filters import GroupFilter, UserFilter
 from qatrack.api.filters import MaxDateFilter, MinDateFilter

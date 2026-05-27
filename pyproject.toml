@@ -240,5 +240,4 @@ ignore = [
     "UP032", # Use f-string instead of `format` call
     "UP034", # Avoid extraneous parentheses in `x == (a, b, c)` -> `x in (a, b, c)`
     "UP038", # Use `X | Y` in `isinstance` call instead of `(X, Y)`
-    "I001", # Import block is un-sorted or un-formatted
 ]

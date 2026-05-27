@@ -1,6 +1,5 @@
-from qatrack.qatrack_core.forms import BetterModelForm
-
 from qatrack.issue_tracker import models
+from qatrack.qatrack_core.forms import BetterModelForm
 
 
 class IssueForm(BetterModelForm):

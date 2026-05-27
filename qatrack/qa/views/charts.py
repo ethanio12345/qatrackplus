@@ -4,6 +4,7 @@ import itertools
 import json
 import textwrap
 
+import numpy
 from braces.views import JSONResponseMixin, PermissionRequiredMixin
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Count
@@ -11,10 +12,10 @@ from django.db.utils import ProgrammingError
 from django.http import HttpResponse
 from django.template.loader import get_template
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _l
 from django.views.generic import TemplateView, View
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
-import numpy
 
 from qatrack.qa.control_chart import control_chart
 from qatrack.qa.utils import SetEncoder
@@ -25,7 +26,6 @@ from qatrack.qatrack_core.dates import (
 )
 from qatrack.service_log import models as sl_models
 from qatrack.units.models import Site, Unit
-from django.utils.translation import gettext_lazy as _l
 
 from .. import models
 

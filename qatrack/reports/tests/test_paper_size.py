@@ -1,14 +1,16 @@
+import os
+import tempfile
 import unittest
 import unittest.mock as mock
-import tempfile
-import os
+
 import pytest
+from django.contrib.auth.models import Group, User
 from django.test import TestCase
-from django.contrib.auth.models import User, Group
-from qatrack.reports.models import SavedReport
-from qatrack.reports.forms import ReportForm
-from qatrack.reports.reports import BaseReport
+
 from qatrack.qatrack_core.utils import chrometopdf
+from qatrack.reports.forms import ReportForm
+from qatrack.reports.models import SavedReport
+from qatrack.reports.reports import BaseReport
 
 
 def get_chrome_command(html, name, paper_size, chrome_path, tmp_root, log_root):

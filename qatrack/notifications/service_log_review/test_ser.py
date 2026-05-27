@@ -1,10 +1,12 @@
+import recurrence
 from django.contrib.admin.sites import AdminSite
 from django.core import mail
 from django.test import TestCase
 from django.utils import timezone
 from django_q.models import Schedule
-import recurrence
 
+import qatrack.qa.tests.utils as qa_utils
+import qatrack.service_log.tests.utils as utils
 from qatrack.notifications.models import (
     RecipientGroup,
     ServiceEventReviewNotice,
@@ -12,8 +14,6 @@ from qatrack.notifications.models import (
 )
 from qatrack.notifications.service_log_review import admin, tasks
 from qatrack.qa import models
-import qatrack.qa.tests.utils as qa_utils
-import qatrack.service_log.tests.utils as utils
 
 
 class TestServiceEventReviewAdmin(TestCase):

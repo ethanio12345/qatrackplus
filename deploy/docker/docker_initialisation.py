@@ -14,13 +14,12 @@
 
 """A set of utilities to manage the docker instance of qatrack"""
 
-from glob import glob
 import os
+from glob import glob
 
+import numpy as np
 from django.contrib.auth.models import User
 from django.core.management import call_command
-import numpy as np
-
 from docker_utilities import QATRACK_DIRECTORY, wait_for_postrgres
 
 FIXTURES_GLOB: str = os.path.join(QATRACK_DIRECTORY, 'fixtures/defaults/*/*')

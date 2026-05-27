@@ -10,9 +10,10 @@ from qatrack.qatrack_core.scheduling import RecurrenceFieldMixin
 
 # ensure Django-Q2 can pick up all report types on Windows
 from qatrack.reports import (  # noqa: F401
-    faults, qc, service_log,
+    faults,
+    qc,
+    service_log,
 )
-
 from qatrack.reports.reports import report_class
 
 

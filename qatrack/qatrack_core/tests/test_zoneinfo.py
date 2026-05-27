@@ -3,14 +3,14 @@ Test module specifically for zoneinfo migration functionality.
 Tests all the key areas that were changed from pytz to zoneinfo.
 """
 import calendar
-from datetime import datetime, date, timedelta
+from datetime import date, datetime, timedelta
 from unittest.mock import patch
+from zoneinfo import ZoneInfo
 
+import recurrence
 from django.conf import settings
 from django.test import TestCase, override_settings
 from django.utils import timezone
-from zoneinfo import ZoneInfo
-import recurrence
 
 from qatrack.qa import models
 from qatrack.qa.tests import utils as qautils

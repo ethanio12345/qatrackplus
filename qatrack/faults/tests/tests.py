@@ -1,7 +1,7 @@
 from unittest import mock
 
 from django.contrib.admin.sites import AdminSite
-from django.contrib.auth.models import User, Permission
+from django.contrib.auth.models import Permission, User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.test.utils import override_settings
@@ -10,7 +10,7 @@ from django_comments.models import Comment
 
 from qatrack.attachments.models import Attachment
 from qatrack.faults import admin, forms, views
-from qatrack.faults.models import Fault, FaultType, FaultReviewGroup, can_review_faults
+from qatrack.faults.models import Fault, FaultReviewGroup, FaultType, can_review_faults
 from qatrack.faults.tests import utils
 from qatrack.qa.tests import utils as qa_utils
 from qatrack.qatrack_core.dates import format_datetime

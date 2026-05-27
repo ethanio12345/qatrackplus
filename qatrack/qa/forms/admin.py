@@ -1,9 +1,10 @@
 from django import forms
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext as _
-from qatrack.units.models import Unit
-from qatrack.units.forms import unit_site_unit_type_choices
+
 from qatrack.qa import models
+from qatrack.units.forms import unit_site_unit_type_choices
+from qatrack.units.models import Unit
 
 
 class CopyReferencesAndTolerancesForm(forms.Form):

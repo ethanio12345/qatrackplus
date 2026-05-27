@@ -6,11 +6,12 @@ Translates .po files to a target language.
 
 import os
 import re
+import subprocess
 import sys
 import time
 from pathlib import Path
+
 import polib
-import subprocess
 
 # Google Translate setup
 try:

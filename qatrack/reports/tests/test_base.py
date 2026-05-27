@@ -16,7 +16,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as e_c
 
 # Create your tests here.
-from qatrack.qa.models import Group, TestInstance, User, UnitTestCollection
+from qatrack.qa.models import Group, TestInstance, UnitTestCollection, User
 from qatrack.qa.tests import utils
 from qatrack.qa.tests.test_selenium import BaseQATests
 from qatrack.reports import (
@@ -30,7 +30,6 @@ from qatrack.reports import (
     views,
 )
 from qatrack.service_log.models import ServiceEventSchedule
-
 from qatrack.service_log.tests import utils as sl_utils
 
 

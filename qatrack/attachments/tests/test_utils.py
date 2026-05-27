@@ -1,6 +1,6 @@
-from django.test import TestCase
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from django.test import TestCase
 
 from qatrack.attachments.utils import to_bytes
 

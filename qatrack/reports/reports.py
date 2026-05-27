@@ -1,9 +1,10 @@
 import csv
 import datetime
-from io import BytesIO, StringIO
 import json
+from io import BytesIO, StringIO
 from urllib.parse import quote_plus
 
+import xlsxwriter
 from django.conf import settings
 from django.contrib.sites.models import Site
 from django.http import Http404, HttpResponse
@@ -14,10 +15,9 @@ from django.utils.safestring import mark_safe
 from django.utils.text import slugify
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
-import xlsxwriter
 
 from qatrack.qatrack_core.dates import format_as_date, format_datetime
-from qatrack.qatrack_core.utils import chrometopdf, weasyprint_to_pdf, relative_dates
+from qatrack.qatrack_core.utils import chrometopdf, relative_dates, weasyprint_to_pdf
 
 CSV = "csv"
 XLS = "xlsx"

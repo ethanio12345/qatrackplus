@@ -1,14 +1,14 @@
-from collections import Counter, defaultdict
 import json
 import logging
 import time
 import uuid
+from collections import Counter, defaultdict
 
+import pytest
 from django.conf import settings
 from django.core.serializers import get_serializer
 from django.db.transaction import atomic
 from django.utils import timezone
-import pytest
 
 from qatrack.qa.utils import get_internal_user
 

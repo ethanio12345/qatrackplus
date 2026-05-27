@@ -328,8 +328,8 @@ class QATrackAdfsAuthCodeBackend(AdfsAuthCodeBackend):
 
     def create_user(self, claims):
 
-        from django_auth_adfs.config import settings as adfs_settings
         from django_auth_adfs.backend import logger
+        from django_auth_adfs.config import settings as adfs_settings
 
         username = claims[adfs_settings.USERNAME_CLAIM]
 

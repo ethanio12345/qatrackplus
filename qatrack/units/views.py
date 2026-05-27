@@ -1,3 +1,5 @@
+from zoneinfo import ZoneInfo
+
 from braces.views import PermissionRequiredMixin
 from django.conf import settings
 from django.contrib.auth.decorators import permission_required
@@ -6,7 +8,6 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect
 from django.views.generic import TemplateView
-from zoneinfo import ZoneInfo
 
 from qatrack.qatrack_core.dates import format_as_date as fmt_date
 from qatrack.qatrack_core.serializers import QATrackJSONEncoder

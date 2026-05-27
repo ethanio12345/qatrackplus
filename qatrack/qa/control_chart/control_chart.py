@@ -3,10 +3,10 @@
 import datetime
 
 import matplotlib.dates
-from matplotlib.font_manager import FontProperties
 import matplotlib.gridspec as gridspec
-from matplotlib.ticker import NullFormatter
 import numpy as np
+from matplotlib.font_manager import FontProperties
+from matplotlib.ticker import NullFormatter
 
 from . import histogram as htg
 from . import leastsquaresfit as lsqfit

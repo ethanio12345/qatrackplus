@@ -1,15 +1,15 @@
+import pytest
 from django.contrib.auth.models import Group, User
 from django.test import TestCase
 from django.test.utils import override_settings
-import pytest
+
 from qatrack.accounts import models
 from qatrack.accounts.admin import AdminFilter
+from qatrack.accounts.backends import ActiveDirectoryGroupMembershipSSLBackend as ADBack
 from qatrack.accounts.backends import (
     QATrackAccountBackend,
     QATrackAdfsAuthCodeBackend,
 )
-from qatrack.accounts.backends import \
-    ActiveDirectoryGroupMembershipSSLBackend as ADBack
 from qatrack.qa.tests import utils
 
 

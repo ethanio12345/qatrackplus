@@ -147,8 +147,9 @@ def check_query_count():  # pragma: nocover
     is making
     """
 
-    from django.db import connection
     import time
+
+    from django.db import connection
 
     def decorator(func):
         if settings.DEBUG:
@@ -186,8 +187,9 @@ def get_bool_tols(user_klass=None, tol_klass=None):
 
 def get_internal_user(user_klass=None):
 
-    from qatrack.qa import models
     from django.contrib.auth.hashers import make_password
+
+    from qatrack.qa import models
     user_klass = user_klass or models.User
 
     try:

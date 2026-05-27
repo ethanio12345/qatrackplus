@@ -3,6 +3,7 @@ import getpass
 import re
 import warnings
 
+import pyodbc
 from django.conf import settings as qat_settings
 from django.contrib.auth.models import Group, User
 from django.contrib.sites.models import Site
@@ -12,7 +13,6 @@ from django.db import IntegrityError
 from django.utils import timezone
 from django_comments.models import Comment
 
-import pyodbc
 from qatrack.parts import models as p_models
 from qatrack.qa import models as qa_models
 from qatrack.qa.utils import get_internal_user

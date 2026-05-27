@@ -1,9 +1,9 @@
 from unittest import mock
 
+import recurrence
 from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
-import recurrence
 
 from qatrack.qa import models
 from qatrack.qa.templatetags import qa_tags

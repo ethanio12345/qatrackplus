@@ -1,3 +1,4 @@
+import gc
 import imghdr
 import logging
 import os
@@ -72,7 +73,6 @@ def move_tmp_file(attach, save=True, force=False, new_name=None):
             # After much hair pulling, it was discovered
             # that running gc.collect() before os.remove allows Python to delete the file (grrr)
             if 'win' in sys.platform.lower():
-                import gc;
                 gc.collect()
 
             if count == 2:

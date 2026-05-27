@@ -1,10 +1,12 @@
 import time
 
+import pytest
 from django.contrib.auth.models import Permission
+from django.db import transaction
+from django.test import TransactionTestCase
 from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import timezone
-import pytest
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as e_c
@@ -15,8 +17,6 @@ from qatrack.qa.tests import utils
 from qatrack.qatrack_core.dates import format_as_date
 from qatrack.qatrack_core.tests.live import SeleniumTests
 from qatrack.service_log.tests import utils as sl_utils
-from django.db import transaction
-from django.test import TransactionTestCase
 
 objects = {
 

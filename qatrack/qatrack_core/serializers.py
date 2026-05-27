@@ -1,8 +1,8 @@
 import datetime
 
+import numpy as np
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
-import numpy as np
 
 NP_INT_TYPES = (
     np.int_,

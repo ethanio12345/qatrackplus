@@ -1,5 +1,5 @@
-from django.http import HttpResponse
 from django.contrib.contenttypes.models import ContentType
+from django.http import HttpResponse
 
 
 def updateCombo(request, id):

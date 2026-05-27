@@ -5,8 +5,9 @@ from django.utils.translation import gettext_lazy as _l
 
 
 def do_scheduling(sender, **kwargs):
-    from qatrack.qatrack_core.tasks import _schedule_periodic_task
     from django_q.models import Schedule
+
+    from qatrack.qatrack_core.tasks import _schedule_periodic_task
 
     _schedule_periodic_task(
         "qatrack.qa.tasks.clean_autosaves",

@@ -1,9 +1,9 @@
 from django.conf import settings
-from django.urls import include, re_path as url
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.templatetags.static import static as static_url
-from django.urls import path
+from django.urls import include, path
+from django.urls import re_path as url
 from django.views.generic.base import RedirectView
 from django.views.i18n import JavaScriptCatalog
 

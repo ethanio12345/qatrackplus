@@ -3,10 +3,9 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
-from qatrack.qatrack_core.forms import BetterModelForm
 
 from qatrack.faults import models
-from qatrack.qatrack_core.forms import MultipleCharField, UserChoiceField
+from qatrack.qatrack_core.forms import BetterModelForm, MultipleCharField, UserChoiceField
 from qatrack.service_log import models as sl_models
 from qatrack.service_log.forms import ServiceEventMultipleField
 from qatrack.units import models as u_models

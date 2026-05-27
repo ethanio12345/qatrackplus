@@ -1,10 +1,16 @@
 import collections
-from functools import reduce
 import json
 import math
 import os
 import traceback
+from functools import reduce
 
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy
+import pandas as pd
+import pydicom as dicom
+import scipy
 from braces.views import JSONResponseMixin, PermissionRequiredMixin
 from django.conf import settings
 from django.contrib import messages
@@ -23,14 +29,8 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
 from django.views.generic import CreateView, TemplateView, View
 from django_comments.models import Comment
-import matplotlib
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
-import numpy
-import pandas as pd
-import pydicom as dicom
-import scipy
 
 from qatrack.attachments.models import Attachment
 from qatrack.attachments.utils import imsave, to_bytes
@@ -49,8 +49,8 @@ from qatrack.qatrack_core.templatetags.qatrack_tags import filesizeformat
 from qatrack.service_log import models as sl_models
 from qatrack.units.models import Site, Unit
 
-from . import forms
 from .. import models, signals, utils
+from . import forms
 from .base import BaseEditTestListInstance, TestListInstances, UTCList, logger
 
 pd.plotting.register_matplotlib_converters()  # required so matplotlib can convert dates correctly

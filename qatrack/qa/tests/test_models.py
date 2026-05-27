@@ -1,5 +1,7 @@
+import inspect
 from unittest import mock
 
+import pytest
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
@@ -8,8 +10,6 @@ from django.db.utils import IntegrityError
 from django.test import TestCase
 from django.utils import timezone
 from django_comments.models import Comment
-import pytest
-import inspect
 
 from qatrack.qa import models
 from qatrack.qatrack_core import scheduling

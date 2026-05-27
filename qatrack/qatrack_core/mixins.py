@@ -1,6 +1,7 @@
 from django.utils import timezone
-from qatrack.qatrack_core import utils
+
 from qatrack.qa import models as q_models
+from qatrack.qatrack_core import utils
 
 
 class SchedulingMixin:
