@@ -211,9 +211,6 @@ exclude = [
 select = ["E", "F", "I", "UP", "DJ"]
 ignore = [
     "E501",  # line-too-long
-    "E402",  # module-import-not-at-top-of-file
-    "E721",  # type-comparison
-    "E722",  # bare-except
     "E741",  # ambiguous-variable-name
     "DJ001", # Avoid using `null=True` on string-based fields such as `CharField`
     "DJ006", # Use `queryset.filter(...)` instead of `queryset.exclude(...)`

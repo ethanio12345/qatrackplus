@@ -64,7 +64,7 @@ TIME_ZONE = 'America/Toronto'
 SELENIUM_VIRTUAL_DISPLAY = False
 
 # Test-specific password hasher for faster testing
-from django.contrib.auth.hashers import BasePasswordHasher
+from django.contrib.auth.hashers import BasePasswordHasher  # noqa: E402
 
 
 class SimplePasswordHasher(BasePasswordHasher):

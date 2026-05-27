@@ -263,7 +263,7 @@ def available_languages(request):
                     'name_translated': lang_name,     # Name in current language
                     'bidi': lang_info['bidi'],       # Right-to-left support
                 })
-            except:
+            except Exception:
                 # Fallback if language info not available
                 languages.append({
                     'code': lang_code,
@@ -291,7 +291,7 @@ def available_languages(request):
                                         'name_translated': lang_info['name'],
                                         'bidi': lang_info['bidi'],
                                     })
-                                except:
+                                except Exception:
                                     # Fallback for unknown languages
                                     languages.append({
                                         'code': item,
