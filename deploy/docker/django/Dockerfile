@@ -12,8 +12,8 @@ WORKDIR /usr/src/qatrackplus
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-COPY ../../pyproject.toml ../../README.md ./
-COPY ../../qatrack ./qatrack
+COPY pyproject.toml README.md ./
+COPY qatrack ./qatrack
 # Install dependencies
 RUN pip install ".[docker,postgres]" django-extensions
 
@@ -32,13 +32,16 @@ COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /usr/src/qatrackplus
-COPY ../../ .
+# Cache bust 2
+COPY . .
 
 # Ensure necessary directories exist
 RUN mkdir -p logs qatrack/media qatrack/static
 
+
 # Make entrypoint executable
-RUN chmod +x deploy/docker/django/entrypoint.sh
+RUN sed -i 's/\r$//' deploy/docker/django/entrypoint.sh && chmod +x deploy/docker/django/entrypoint.sh
 
 EXPOSE 8000
 CMD ["/usr/src/qatrackplus/deploy/docker/django/entrypoint.sh"]
+# Cache bust 1

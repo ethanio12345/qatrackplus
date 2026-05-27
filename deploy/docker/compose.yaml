@@ -1,3 +1,5 @@
+name: qatrackplus
+
 services:
   nginx:
     build:
@@ -27,7 +29,7 @@ services:
       - media-volume:/usr/src/qatrackplus/qatrack/media
       - static-volume:/usr/src/qatrackplus/qatrack/static
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -40,7 +42,7 @@ services:
     volumes:
       - postgres-volume:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d qatrackplus"]
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-qatrackplus}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -48,6 +50,7 @@ services:
   backup:
     build:
       context: ./backup
+    init: true
     restart: always
     env_file: .env
     depends_on:
