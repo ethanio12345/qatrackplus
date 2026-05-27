@@ -25,7 +25,7 @@ def with_metaclass(meta, *bases):
     and the new version doesn't work here.
 
     """
-    return meta(str("NewBase"), bases, {})
+    return meta("NewBase", bases, {})
 
 
 class Fieldset(object):
@@ -288,7 +288,7 @@ class BasePreviewFormMixin(object):
         self.preview = self.check_preview(kwargs.get('data', None))
 
     def check_preview(self, data):
-        if data and data.get('submit', '').lower() == u'preview':
+        if data and data.get('submit', '').lower() == 'preview':
             return True
         return False
 

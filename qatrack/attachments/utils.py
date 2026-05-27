@@ -118,4 +118,4 @@ def to_bytes(obj, fname=None):
     except TypeError:
         pass
 
-    return bytes()
+    return b''

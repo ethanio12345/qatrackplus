@@ -30,4 +30,4 @@ class TestToBytes(TestCase):
         assert to_bytes("1") == b'1'
 
     def test_unable_to_convert(self):
-        assert to_bytes(object()) == bytes()
+        assert to_bytes(object()) == b""

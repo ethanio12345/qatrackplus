@@ -234,7 +234,5 @@ ignore = [
     "UP008", # Use `super()` instead of `super(__class__, self)`
     "UP015", # Avoid unnecessary open mode parameters
     "UP017", # Use `datetime.UTC` alias instead of `datetime.timezone.utc`
-    "UP018", # Unnecessary `str` call (rewrite `str(x)` as `x`)
-    "UP025", # Remove unicode literals from strings
     "UP031", # Use format specifiers instead of percent format
 ]

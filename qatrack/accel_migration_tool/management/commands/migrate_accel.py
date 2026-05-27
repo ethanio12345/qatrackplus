@@ -103,7 +103,7 @@ class Command(BaseCommand):
                 ' INSERT INTO employees VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 str(id),
                 str(qa_user.first_name + ' ' + qa_user.last_name),
-                str('autopass'),
+                'autopass',
                 False,
                 False,
                 False,
