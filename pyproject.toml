@@ -206,7 +206,6 @@ exclude = [
     "static",
     "deploy",
     "local_settings.py",
-    "settings.py",
     "*tmp*"
 ]
 
