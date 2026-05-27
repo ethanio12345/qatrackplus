@@ -228,6 +228,17 @@ ignore = [
     "DJ001", # Avoid using `null=True` on string-based fields such as `CharField`
     "DJ006", # Use `queryset.filter(...)` instead of `queryset.exclude(...)`
     "DJ007", # Save method should come before custom method
+    "UP004", # Class `X` inherits from `object` is unnecessary
     "DJ008", # Model name should be singular
+    "DJ012", # Order of model's inner classes, methods, and fields does not follow the Django Style Guide
+    "UP008", # Use `super()` instead of `super(__class__, self)`
+    "UP015", # Avoid unnecessary open mode parameters
+    "UP017", # Use `datetime.UTC` alias instead of `datetime.timezone.utc`
+    "UP018", # Unnecessary `str` call (rewrite `str(x)` as `x`)
+    "UP025", # Remove unicode literals from strings
     "UP031", # Use format specifiers instead of percent format
+    "UP032", # Use f-string instead of `format` call
+    "UP034", # Avoid extraneous parentheses in `x == (a, b, c)` -> `x in (a, b, c)`
+    "UP038", # Use `X | Y` in `isinstance` call instead of `(X, Y)`
+    "I001", # Import block is un-sorted or un-formatted
 ]

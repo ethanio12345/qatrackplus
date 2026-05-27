@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
 """
 templatetags for django-form-utils
 
 """
-from __future__ import unicode_literals
 
 from django import forms
 from django import template

@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
 """
 forms for django-form-utils
 
 Time-stamp: <2010-04-28 02:57:16 carljm forms.py>
 
 """
-from __future__ import unicode_literals
 from copy import deepcopy
 
 from django import forms
@@ -72,8 +70,7 @@ class FieldsetCollection(object):
     def __iter__(self):
         if not self._cached_fieldsets:
             self._gather_fieldsets()
-        for field in self._cached_fieldsets:
-            yield field
+        yield from self._cached_fieldsets
 
     def __getitem__(self, key):
         if not self._cached_fieldsets:

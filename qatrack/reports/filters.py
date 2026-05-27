@@ -36,7 +36,7 @@ class RelativeDateRangeField(forms.fields.CharField):
                 start = '-'.join(explode[:3])
                 end = '-'.join(explode[3:])
             else:
-                start, end = [x.strip() for x in val.split("-")]
+                start, end = (x.strip() for x in val.split("-"))
             tz = timezone.get_current_timezone()
             start = dateutil.parser.parse(start).replace(tzinfo=tz)
             end = dateutil.parser.parse(end).replace(hour=23, minute=59, second=59, tzinfo=tz)
