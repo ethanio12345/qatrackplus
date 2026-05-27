@@ -747,7 +747,7 @@ class Tolerance(models.Model):
 
     def __str__(self):
         """more helpful display name"""
-        return self.value_display()
+        return self.name
 
     def save(self, *args, **kwargs):
         self.name = get_tolerance_name(self)
