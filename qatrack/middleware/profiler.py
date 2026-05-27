@@ -147,7 +147,7 @@ class RadioButtons(object):
         self.result = []
         for v in values:
             description = None
-            if isinstance(v, (list, tuple)):
+            if isinstance(v, list | tuple):
                 value = v[0]
                 description = v[1]
             else:
