@@ -2329,7 +2329,7 @@ class TestCopyReferencesTolerancesView(TestCase):
     def test_get_requires_permission(self):
         """Test that view requires proper permission"""
         self.client.logout()
-        user = utils.create_user(is_superuser=False, uname='regular', pwd='pwd')
+        utils.create_user(is_superuser=False, uname='regular', pwd='pwd')
         self.client.login(username='regular', password='pwd')
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 403)

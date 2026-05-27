@@ -301,9 +301,8 @@ class ProfileMiddleware:
             return stats, queries
 
         if request.method != 'GET' and \
-           not (request.headers.get('content-type',
-                                 request.headers.get('content-type', '')) in
-                ['multipart/form-data', 'application/x-www-form-urlencoded']):
+           request.headers.get('content-type',
+                                 request.headers.get('content-type', '')) not in ['multipart/form-data', 'application/x-www-form-urlencoded']:
             return
         if (request.REQUEST.get('profile', False) and (settings.DEBUG or request.user.is_staff)):
             request.statsfile = tempfile.NamedTemporaryFile()

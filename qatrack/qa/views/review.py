@@ -407,7 +407,6 @@ class Unreviewed(PermissionRequiredMixin, TestListInstances):
         "bulk_review_status": False,
         "selected": False,
         "attachments": "attachment_count",
-        "selected": False,
     }
 
     permission_required = "qa.can_review"

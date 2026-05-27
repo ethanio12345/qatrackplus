@@ -218,13 +218,7 @@ ignore = [
     "F403",  # undefined-local-with-import-star
     "F541",  # f-string-missing-placeholders
     "F811",  # redefined-while-unused
-    "F821",  # undefined-name
-    "F841",  # unused-variable
-    "W605",  # invalid-escape-sequence
     "E741",  # ambiguous-variable-name
-    "E703",  # useless-semicolon
-    "E713",  # not-in-test
-    "F601",  # multi-value-repeated-key-literal
     "DJ001", # Avoid using `null=True` on string-based fields such as `CharField`
     "DJ006", # Use `queryset.filter(...)` instead of `queryset.exclude(...)`
     "DJ007", # Save method should come before custom method
