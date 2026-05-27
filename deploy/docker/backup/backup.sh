@@ -1,7 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
+
+
 BACKUP_DIR="/backups"
+mkdir -p $BACKUP_DIR # If backup folder does not exist, create it. 
 DATE=$(date +%Y%m%d_%H%M%S)
 RETENTION_DAYS=7
 
