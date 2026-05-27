@@ -39,20 +39,17 @@ COPY . .
 # Ensure necessary directories exist
 RUN mkdir -p logs qatrack/media qatrack/static
 
-# Make entrypoint executable
-RUN ls -la deploy/docker/django/
-RUN cat -v deploy/docker/django/entrypoint.sh || true
-RUN dos2unix deploy/docker/django/entrypoint.sh && chmod +x deploy/docker/django/entrypoint.sh
-RUN ls -la deploy/docker/django/
-RUN cat -v deploy/docker/django/entrypoint.sh || true
+# Make entrypoint executable and move it out of the volume mount
+RUN cp deploy/docker/django/entrypoint.sh /entrypoint.sh && \
+    dos2unix /entrypoint.sh && \
+    chmod +x /entrypoint.sh
 
 # Add non-root user and change ownership
 RUN groupadd -r -g 1000 qatrack && useradd -r -g qatrack -u 1000 qatrack && \
-    chown -R qatrack:qatrack logs qatrack/media qatrack/static deploy/docker/django/entrypoint.sh
-
+    chown -R qatrack:qatrack logs qatrack/media qatrack/static /entrypoint.sh
 
 USER qatrack
 
 EXPOSE 8000
-CMD ["/usr/src/qatrackplus/deploy/docker/django/entrypoint.sh"]
+CMD ["/entrypoint.sh"]
 # Cache bust 1
