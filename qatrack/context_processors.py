@@ -11,7 +11,6 @@ from django.db.models.signals import post_delete, post_save, pre_delete
 from django.dispatch import receiver
 from django.utils.formats import get_format
 from django.utils.translation import get_language_info
-from django.utils.translation import gettext_lazy as _l
 
 from qatrack.faults.models import Fault
 from qatrack.parts.models import PartStorageCollection, PartUsed

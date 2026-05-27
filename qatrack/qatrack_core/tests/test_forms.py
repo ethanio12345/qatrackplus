@@ -1,7 +1,7 @@
 from django import forms
 from django.test import TestCase
 
-from qatrack.qatrack_core.forms import BetterFormMixin, BetterModelForm
+from qatrack.qatrack_core.forms import BetterFormMixin
 
 
 class TestForm(BetterFormMixin, forms.Form):

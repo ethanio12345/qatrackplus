@@ -1,19 +1,15 @@
 import calendar
 import collections
-import json
 from zoneinfo import ZoneInfo
 
 from braces.views import JSONResponseMixin, PermissionRequiredMixin
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.contenttypes.models import ContentType
-from django.core.cache import cache
-from django.core.exceptions import ValidationError
-from django.db import transaction
 from django.db.models import Count, Q
 from django.db.transaction import atomic
 from django.http import Http404, HttpResponseRedirect, JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404
 from django.template.loader import get_template
 from django.urls import reverse
 from django.utils import timezone
@@ -27,7 +23,6 @@ from django.views.generic import (
     TemplateView,
     View,
 )
-from listable.views import BaseListableView
 
 from qatrack.qatrack_core.dates import format_datetime
 from qatrack.reports.qc.testlistinstance import TestListInstanceDetailsReport

@@ -214,10 +214,6 @@ ignore = [
     "E402",  # module-import-not-at-top-of-file
     "E721",  # type-comparison
     "E722",  # bare-except
-    "F401",  # unused-import
-    "F403",  # undefined-local-with-import-star
-    "F541",  # f-string-missing-placeholders
-    "F811",  # redefined-while-unused
     "E741",  # ambiguous-variable-name
     "DJ001", # Avoid using `null=True` on string-based fields such as `CharField`
     "DJ006", # Use `queryset.filter(...)` instead of `queryset.exclude(...)`

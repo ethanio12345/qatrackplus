@@ -2,9 +2,7 @@
 Test module specifically for zoneinfo migration functionality.
 Tests all the key areas that were changed from pytz to zoneinfo.
 """
-import calendar
-from datetime import date, datetime, timedelta
-from unittest.mock import patch
+from datetime import date, timedelta
 from zoneinfo import ZoneInfo
 
 import recurrence

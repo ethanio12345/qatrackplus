@@ -1,3 +1,4 @@
+# ruff: noqa: F401
 import qatrack.notifications.common.admin
 import qatrack.notifications.faults.admin
 import qatrack.notifications.faults_review.admin

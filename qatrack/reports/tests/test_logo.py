@@ -1,9 +1,5 @@
-import os
-import tempfile
 from unittest import mock
 
-from django.conf import settings
-from django.contrib.sites.models import Site
 from django.template.loader import get_template
 from django.test import TestCase, override_settings
 

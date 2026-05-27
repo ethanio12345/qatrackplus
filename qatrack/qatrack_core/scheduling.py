@@ -1,5 +1,3 @@
-import calendar
-import warnings
 from zoneinfo import ZoneInfo
 
 import django.apps

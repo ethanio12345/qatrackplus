@@ -5,7 +5,6 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _l
 from recurrence.fields import RecurrenceField
 
-from qatrack.qatrack_core.fields import JSONField
 from qatrack.qatrack_core.scheduling import RecurrenceFieldMixin
 
 # ensure Django-Q2 can pick up all report types on Windows

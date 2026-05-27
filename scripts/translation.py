@@ -4,7 +4,6 @@ Translation Script for QATrack+
 Translates .po files to a target language.
 """
 
-import os
 import re
 import subprocess
 import sys
@@ -127,7 +126,7 @@ def translate_po_file(po_file_path, target_language='es', source_language='en'):
     # Save the translated file
     po.save(str(po_file_path))
     
-    print(f"✅ Translation completed:")
+    print("✅ Translation completed:")
     print(f"   Translated: {translated_entries}")
     print(f"   Skipped: {skipped_entries}")
     print(f"   Failed: {len(failed_translations)}")

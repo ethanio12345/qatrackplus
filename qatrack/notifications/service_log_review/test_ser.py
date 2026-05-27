@@ -1,4 +1,3 @@
-import recurrence
 from django.contrib.admin.sites import AdminSite
 from django.core import mail
 from django.test import TestCase
