@@ -5,6 +5,7 @@ repos:
     -   id: ruff
         name: Lint
         # Run the linter without auto-fixing.
+        # Devs are to fix themselves, prevents confusion with pre-commit 
         args: [ --no-fix ]
 
 -   repo: https://github.com/adamchainz/django-upgrade
