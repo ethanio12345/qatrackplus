@@ -44,11 +44,6 @@ RUN cp deploy/docker/django/entrypoint.sh /entrypoint.sh && \
     dos2unix /entrypoint.sh && \
     chmod +x /entrypoint.sh
 
-# Add non-root user and change ownership
-RUN groupadd -r -g 1000 qatrack && useradd -r -g qatrack -u 1000 qatrack && \
-    chown -R qatrack:qatrack logs qatrack/media qatrack/static /entrypoint.sh
-
-USER qatrack
 
 EXPOSE 8000
 CMD ["/entrypoint.sh"]
