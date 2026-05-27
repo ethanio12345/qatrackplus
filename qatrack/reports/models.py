@@ -85,6 +85,14 @@ class SavedReport(models.Model):
         verbose_name = _l("Saved Report")
         verbose_name_plural = _l("Saved Reports")
 
+    def __str__(self):
+        return "#%d. %s - %s - %s" % (
+            self.pk,
+            self.title,
+            self.get_report_type_display(),
+            self.get_report_format_display(),
+        )
+
     def get_filter_class(self):
         return report_class(self.report_type).filter_class
 
@@ -111,13 +119,6 @@ class SavedReport(models.Model):
         report = self.get_report(user)
         return report.render(self.report_format)
 
-    def __str__(self):
-        return "#%d. %s - %s - %s" % (
-            self.pk,
-            self.title,
-            self.get_report_type_display(),
-            self.get_report_format_display(),
-        )
 
 
 class ReportNote(models.Model):
@@ -206,6 +207,18 @@ class ReportSchedule(RecurrenceFieldMixin, models.Model):
         related_name="reportschedule_modifier",
     )
 
+    class Meta:
+        verbose_name = _l("Report Schedule")
+        verbose_name_plural = _l("Report Schedules")
+
+    def __str__(self):
+        return "#%d. %s - %s - %s" % (
+            self.pk,
+            self.report.title,
+            self.schedule.rrule.to_text(),
+            self.time,
+        )
+
     def recipients(self):
         """Gather recipients that are supposed to recieve this report"""
 
@@ -224,15 +237,3 @@ class ReportSchedule(RecurrenceFieldMixin, models.Model):
                 recipients.append(e)
 
         return recipients
-
-    class Meta:
-        verbose_name = _l("Report Schedule")
-        verbose_name_plural = _l("Report Schedules")
-
-    def __str__(self):
-        return "#%d. %s - %s - %s" % (
-            self.pk,
-            self.report.title,
-            self.schedule.rrule.to_text(),
-            self.time,
-        )

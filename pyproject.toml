@@ -230,6 +230,5 @@ ignore = [
     "DJ007", # Save method should come before custom method
     "UP004", # Class `X` inherits from `object` is unnecessary
     "DJ008", # Model name should be singular
-    "DJ012", # Order of model's inner classes, methods, and fields does not follow the Django Style Guide
     "UP031", # Use format specifiers instead of percent format
 ]

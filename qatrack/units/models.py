@@ -48,12 +48,12 @@ class Vendor(models.Model):
         verbose_name = _l("Vendor")
         verbose_name_plural = _l("Vendors")
 
-    def natural_key(self):
-        return (self.name,)
-
     def __str__(self):
         """Display more descriptive name"""
         return self.name
+
+    def natural_key(self):
+        return (self.name,)
 
 
 class UnitClass(models.Model):
@@ -77,12 +77,12 @@ class UnitClass(models.Model):
         verbose_name_plural = _l("Unit Classes")
         ordering = ("name",)
 
-    def natural_key(self):
-        return (self.name,)
-
     def __str__(self):
         """Display more descriptive name"""
         return self.name
+
+    def natural_key(self):
+        return (self.name,)
 
 
 class Site(models.Model):
@@ -181,16 +181,16 @@ class UnitType(models.Model):
         verbose_name = _l("Unit Type")
         verbose_name_plural = _l("Unit Types")
 
+    def __str__(self):
+        """Display more descriptive name"""
+        return '%s%s' % (self.name, ' - %s' % self.model if self.model else '')
+
     def natural_key(self):
         vendor = self.vendor.natural_key() if self.vendor else ()
         unit_class = self.unit_class.natural_key() if self.unit_class else ()
         return (self.name, self.model) + vendor + unit_class
 
     natural_key.dependencies = ["units.vendor", "units.unitclass"]
-
-    def __str__(self):
-        """Display more descriptive name"""
-        return '%s%s' % (self.name, ' - %s' % self.model if self.model else '')
 
 
 class Modality(models.Model):
@@ -214,11 +214,11 @@ class Modality(models.Model):
         verbose_name = _l("Treatment and Imaging Modality")
         verbose_name_plural = _l('Treatment and Imaging Modalities')
 
-    def natural_key(self):
-        return (self.name,)
-
     def __str__(self):
         return self.name
+
+    def natural_key(self):
+        return (self.name,)
 
 
 def weekday_count(start_date, end_date, uate_list):
@@ -269,6 +269,12 @@ class Unit(models.Model):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if self.number in ("", None):
+            next_available = Unit.objects.all().aggregate(max_num=Max("number") + 1)['max_num'] or 1
+            self.number = next_available
+        super().save(*args, **kwargs)
 
     def site_unit_name(self):
         return "%s :: %s" % (_("Other") if not self.site else self.site.name, self.name)
@@ -322,12 +328,6 @@ class Unit(models.Model):
             potential_time += uate_list[uate].total_seconds()
 
         return potential_time / 3600
-
-    def save(self, *args, **kwargs):
-        if self.number in ("", None):
-            next_available = Unit.objects.all().aggregate(max_num=Max("number") + 1)['max_num'] or 1
-            self.number = next_available
-        super().save(*args, **kwargs)
 
     def get_available_times_list(self):
         return [uat.to_dict() for uat in self.unitavailabletime_set.all()]

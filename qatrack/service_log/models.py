@@ -56,11 +56,11 @@ class ServiceArea(models.Model):
         verbose_name = _l('service area')
         verbose_name_plural = _l('service areas')
 
-    def natural_key(self):
-        return (self.name,)
-
     def __str__(self):
         return str(_l('service area'))
+
+    def natural_key(self):
+        return (self.name,)
 
 
 class UnitServiceArea(models.Model):
@@ -127,11 +127,11 @@ class ServiceType(models.Model):
         verbose_name = _l('Service Type')
         verbose_name_plural = _l('Service Types')
 
-    def natural_key(self):
-        return (self.name,)
-
     def __str__(self):
         return self.name
+
+    def natural_key(self):
+        return (self.name,)
 
 
 class ServiceEventStatus(models.Model):
@@ -191,6 +191,9 @@ class ServiceEventStatus(models.Model):
         verbose_name_plural = _l('Service Event Statuses')
         ordering = ("order", "pk")
 
+    def __str__(self):
+        return self.name
+
     def save(self, *args, **kwargs):
         if self.is_default:
             try:
@@ -204,9 +207,6 @@ class ServiceEventStatus(models.Model):
 
     def natural_key(self):
         return (self.name,)
-
-    def __str__(self):
-        return self.name
 
     @staticmethod
     def get_default():
@@ -378,7 +378,7 @@ class ServiceEvent(models.Model):
     )
 
     objects = ServiceEventManager()
-    all_objects = models.Manager()
+    all_objects = models.Manager()  # noqa: DJ012
 
     class Meta:
         verbose_name = _l('Service Event')
@@ -399,6 +399,9 @@ class ServiceEvent(models.Model):
 
     def __str__(self):
         return str(self.id)
+
+    def get_absolute_url(self):
+        return reverse("sl_details", kwargs={"pk": self.pk})
 
     @property
     def work_completed(self):
@@ -437,9 +440,6 @@ class ServiceEvent(models.Model):
         parts_used = self.partused_set.all()
         for pu in parts_used:
             pu.remove_from_storage()
-
-    def get_absolute_url(self):
-        return reverse("sl_details", kwargs={"pk": self.pk})
 
 
 class ThirdPartyManager(models.Manager):
@@ -960,6 +960,12 @@ class ServiceEventSchedule(SchedulingMixin, models.Model):
         verbose_name = _l("Service Event Schedule")
         verbose_name_plural = _l("Assign Service Event Templates to Units")
 
+    def __str__(self):
+        return f'Service Schedule for {self.service_event_template}'
+
+    def get_absolute_url(self):
+        return "%s?se_schedule=%s" % (reverse("sl_new"), self.pk)
+
     def get_last_instance(self):
         """ return last service_event """
 
@@ -979,9 +985,3 @@ class ServiceEventSchedule(SchedulingMixin, models.Model):
             ).exclude(is_active=False).latest("datetime_service")
         except ServiceEvent.DoesNotExist:
             pass
-
-    def get_absolute_url(self):
-        return "%s?se_schedule=%s" % (reverse("sl_new"), self.pk)
-
-    def __str__(self):
-        return f'Service Schedule for {self.service_event_template}'
