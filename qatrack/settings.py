@@ -691,7 +691,8 @@ for path in chrome_paths:
 # based on site specific requirements (e.g. deployment, development etc)
 
 import os
-if os.environ.get('USE_DOCKER') == 'true':
+use_docker = os.environ.get('USE_DOCKER', '').strip().lower() in {'1', 'true', 'yes', 'on'}
+if use_docker:
     ALLOWED_HOSTS = [h.strip() for h in os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if h.strip()]
 
     SECRET_FILEPATH = os.path.join(PROJECT_ROOT, '..', 'deploy', 'docker', 'user-data', 'secret_key.txt')

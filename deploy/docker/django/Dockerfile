@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y \
     chromium \
     libpq5 \
     curl \
+    dos2unix \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /opt/venv /opt/venv
@@ -38,9 +39,19 @@ COPY . .
 # Ensure necessary directories exist
 RUN mkdir -p logs qatrack/media qatrack/static
 
-
 # Make entrypoint executable
-RUN sed -i 's/\r$//' deploy/docker/django/entrypoint.sh && chmod +x deploy/docker/django/entrypoint.sh
+RUN ls -la deploy/docker/django/
+RUN cat -v deploy/docker/django/entrypoint.sh || true
+RUN dos2unix deploy/docker/django/entrypoint.sh && chmod +x deploy/docker/django/entrypoint.sh
+RUN ls -la deploy/docker/django/
+RUN cat -v deploy/docker/django/entrypoint.sh || true
+
+# Add non-root user and change ownership
+RUN groupadd -r -g 1000 qatrack && useradd -r -g qatrack -u 1000 qatrack && \
+    chown -R qatrack:qatrack logs qatrack/media qatrack/static deploy/docker/django/entrypoint.sh
+
+
+USER qatrack
 
 EXPOSE 8000
 CMD ["/usr/src/qatrackplus/deploy/docker/django/entrypoint.sh"]
