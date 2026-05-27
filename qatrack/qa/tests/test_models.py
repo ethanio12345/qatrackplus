@@ -717,7 +717,7 @@ class TestTestList(TestCase):
 class TestTestListCycle(TestCase):
 
     def setUp(self):
-        super(TestTestListCycle, self).setUp()
+        super().setUp()
 
         daily = utils.create_frequency(interval=1, window_end=0)
         utils.create_status()

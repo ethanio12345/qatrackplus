@@ -156,7 +156,7 @@ class SeleniumTests(StaticLiveServerSingleThreadedTestCase):
         cls.driver.set_window_size(1920, 1080)
         cls.wait = WebDriverWait(cls.driver, 2)
 
-        super(SeleniumTests, cls).setUpClass()
+        super().setUpClass()
 
     @classmethod
     def maximize(cls):
@@ -176,7 +176,7 @@ class SeleniumTests(StaticLiveServerSingleThreadedTestCase):
         cls.driver.quit()
         if cls.display:
             cls.display.stop()
-        super(SeleniumTests, cls).tearDownClass()
+        super().tearDownClass()
 
     @contextmanager
     def wait_for_page_load(self, timeout=2):

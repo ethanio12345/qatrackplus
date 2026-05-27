@@ -52,7 +52,7 @@ class QATrackUserAdmin(UserAdmin):
         if obj and obj.username == "QATrack+ Internal":
             return False
 
-        return super(QATrackUserAdmin, self).has_change_permission(request, obj=obj)
+        return super().has_change_permission(request, obj=obj)
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj=obj, **kwargs)

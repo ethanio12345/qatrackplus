@@ -297,6 +297,6 @@ def load_testpack(fp, user=None, test_keys=None, test_list_keys=None, cycle_keys
     """Takes a file like object or path and loads the test pack into the database."""
 
     if isinstance(fp, str):  # pragma: no cover
-        fp = open(fp, 'r', encoding="utf-8")
+        fp = open(fp, encoding="utf-8")
 
     add_testpack(fp.read(), user, test_keys, test_list_keys, cycle_keys)

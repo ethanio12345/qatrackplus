@@ -81,7 +81,7 @@ class UnitAvailableTimeForm(forms.ModelForm):
         fields = '__all__'
 
     def __init__(self, *args, **kwargs):
-        super(UnitAvailableTimeForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         for f in self.fields:
             if f == 'date_changed':
@@ -118,7 +118,7 @@ class UnitAvailableTimeEditForm(forms.ModelForm):
         fields = ('date', 'hours', 'name', 'units')
 
     def __init__(self, *args, **kwargs):
-        super(UnitAvailableTimeEditForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         for f in self.fields:
             if f == 'date':

@@ -62,7 +62,7 @@ class GroupViewSet(MultiSerializerMixin, viewsets.ModelViewSet):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         elif self.request.data.get('type') in ('users', None):
-            return super(GroupViewSet, self).update(request, *args, **kwargs)
+            return super().update(request, *args, **kwargs)
 
         obj = self.get_object()
 

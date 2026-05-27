@@ -27,11 +27,11 @@ class UserFormsetMixin(object):
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop("user")
-        super(UserFormsetMixin, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def _construct_form(self, *args, **kwargs):
         """add user to all children"""
-        form = super(UserFormsetMixin, self)._construct_form(*args, **kwargs)
+        form = super()._construct_form(*args, **kwargs)
         form.user = self.user
         return form
 
@@ -44,7 +44,7 @@ class TestInstanceWidgetsMixin(object):
 
     def clean(self):
         """do some custom form validation"""
-        cleaned_data = super(TestInstanceWidgetsMixin, self).clean()
+        cleaned_data = super().clean()
 
         if self.in_progress:
             return cleaned_data
@@ -181,7 +181,7 @@ class CreateTestInstanceForm(TestInstanceWidgetsMixin, forms.Form):
     user_attached = forms.CharField(widget=forms.HiddenInput, required=False)
 
     def __init__(self, *args, **kwargs):
-        super(CreateTestInstanceForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.in_progress = False
         self.fields["comment"].widget.attrs["rows"] = 2
 
@@ -236,7 +236,7 @@ class CreateTestInstanceFormSet(UserFormsetMixin, BaseTestInstanceFormSet):
 
         kwargs.update(initial=initial)
 
-        super(CreateTestInstanceFormSet, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         prev_cat = None
         for form, uti in zip(self.forms, unit_test_infos):
@@ -265,7 +265,7 @@ class UpdateTestInstanceForm(TestInstanceWidgetsMixin, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
 
-        super(UpdateTestInstanceForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.in_progress = self.instance.test_list_instance.in_progress
         self.fields["value"].required = False
         self.unit_test_info = self.instance.unit_test_info
@@ -296,7 +296,7 @@ class UpdateTestInstanceFormSet(UserFormsetMixin, BaseUpdateTestInstanceFormSet)
 
     def __init__(self, *args, **kwargs):
 
-        super(UpdateTestInstanceFormSet, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         prev_cat = None
         for form in self.forms:
@@ -360,7 +360,7 @@ class BaseTestListInstanceForm(forms.ModelForm):
         self.unit = kwargs.pop('unit', None)
         self.rtsqa_id = kwargs.pop('rtsqa', None)
 
-        super(BaseTestListInstanceForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         for field in ('work_completed', 'work_started'):
             self.fields[field].widget = forms.widgets.DateTimeInput()
@@ -395,7 +395,7 @@ class BaseTestListInstanceForm(forms.ModelForm):
     def clean(self):
         """validate the work_completed & work_started values"""
 
-        cleaned_data = super(BaseTestListInstanceForm, self).clean()
+        cleaned_data = super().clean()
 
         for field in (
             "work_completed",
@@ -440,7 +440,7 @@ class CreateTestListInstanceForm(BaseTestListInstanceForm):
     initiate_service = forms.BooleanField(help_text=_l('Initiate service event'), required=False)
 
     def __init__(self, *args, **kwargs):
-        super(CreateTestListInstanceForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         now = timezone.localtime(timezone.now())
         self.fields['work_started'].initial = format_datetime(now)
         self.fields['comment'].widget.attrs['rows'] = '3'
@@ -464,7 +464,7 @@ class UpdateTestListInstanceForm(BaseTestListInstanceForm):
         # as in_progress again.
         instance.in_progress = False
 
-        super(UpdateTestListInstanceForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class ReviewTestListInstanceForm(forms.ModelForm):
@@ -475,11 +475,11 @@ class ReviewTestListInstanceForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop("user")
-        super(ReviewTestListInstanceForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def clean(self):
 
-        cleaned_data = super(ReviewTestListInstanceForm, self).clean()
+        cleaned_data = super().clean()
 
         if self.instance.created_by == self.user and not self.user.has_perm('qa.can_review_own_tests'):
             raise ValidationError(_("You do not have the required permission to review your own tests."))

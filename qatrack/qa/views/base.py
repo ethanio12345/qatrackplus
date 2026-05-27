@@ -106,7 +106,7 @@ class BaseEditTestListInstance(TestListInstanceMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
 
-        context = super(BaseEditTestListInstance, self).get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
 
         # override the default queryset for the formset so that we can pull in all the
         # reference/tolerance data without the ORM generating lots of extra queries
@@ -251,7 +251,7 @@ class UTCList(BaseListableView):
     order_by = ["unit__name", "frequency__name", "name"]
 
     def __init__(self, *args, **kwargs):
-        super(UTCList, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         if self.active_only and self.inactive_only:
             raise ValueError(
@@ -293,7 +293,7 @@ class UTCList(BaseListableView):
         return 'fa-pencil-square-o'
 
     def get_context_data(self, *args, **kwargs):
-        context = super(UTCList, self).get_context_data(*args, **kwargs)
+        context = super().get_context_data(*args, **kwargs)
         current_url = resolve(self.request.path_info).url_name
         context['view_name'] = current_url
         context['action'] = self.action
@@ -308,7 +308,7 @@ class UTCList(BaseListableView):
     def get_queryset(self):
         """filter queryset for visibility and fetch relevent related objects"""
 
-        qs = super(UTCList, self).get_queryset().order_by("pk")
+        qs = super().get_queryset().order_by("pk")
 
         if self.visible_only:
             qs = qs.filter(
@@ -325,7 +325,7 @@ class UTCList(BaseListableView):
 
     def get_filters(self, field, queryset=None):
 
-        filters = super(UTCList, self).get_filters(field, queryset=queryset)
+        filters = super().get_filters(field, queryset=queryset)
 
         if field == 'frequency__name':
             filters = [(NONEORNULL, _('Ad Hoc')) if f == (NONEORNULL, 'None') else f for f in filters]
@@ -440,7 +440,7 @@ class TestListInstances(BaseListableView):
     )
 
     def __init__(self, *args, **kwargs):
-        super(TestListInstances, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.templates = {
             'actions': get_template("qa/testlistinstance_actions.html"),
@@ -477,7 +477,7 @@ class TestListInstances(BaseListableView):
         return fields
 
     def get_context_data(self, *args, **kwargs):
-        context = super(TestListInstances, self).get_context_data(*args, **kwargs)
+        context = super().get_context_data(*args, **kwargs)
         current_url = resolve(self.request.path_info).url_name
         context['view_name'] = current_url
         context['icon'] = self.get_icon()
@@ -486,7 +486,7 @@ class TestListInstances(BaseListableView):
 
     def get_filters(self, field, queryset=None):
 
-        filters = super(TestListInstances, self).get_filters(field, queryset=queryset)
+        filters = super().get_filters(field, queryset=queryset)
 
         if field == 'unit_test_collection__frequency__name':
             filters = [(NONEORNULL, _('Ad Hoc')) if f == (NONEORNULL, 'None') else f for f in filters]

@@ -113,7 +113,7 @@ class Contact(models.Model):
 class RoomManager(models.Manager):
 
     def get_queryset(self):
-        return super(RoomManager, self).get_queryset().select_related('site')
+        return super().get_queryset().select_related('site')
 
 
 class Room(models.Model):
@@ -155,7 +155,7 @@ class Room(models.Model):
 class StorageManager(models.Manager):
 
     def get_queryset(self):
-        return super(StorageManager, self).get_queryset().select_related('room', 'room__site').order_by('location')
+        return super().get_queryset().select_related('room', 'room__site').order_by('location')
 
     def get_queryset_for_room(self, room):
         return super().get_queryset().filter(room=room).order_by('location')
@@ -349,7 +349,7 @@ class Part(models.Model):
 class PartStorageCollectionManager(models.Manager):
 
     def get_queryset(self):
-        return super(PartStorageCollectionManager, self).get_queryset().select_related(
+        return super().get_queryset().select_related(
             'storage',
             'part',
             'storage__room',
@@ -388,7 +388,7 @@ class PartStorageCollection(models.Model):
 
     def save(self, *args, **kwargs):
         self.quantity = self.quantity if self.quantity >= 0 else 0
-        super(PartStorageCollection, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
         self.part.set_quantity_current()
 
     def __str__(self):

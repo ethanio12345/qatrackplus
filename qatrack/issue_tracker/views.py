@@ -43,7 +43,7 @@ class IssueCreate(LoginRequiredMixin, CreateView):
         return HttpResponseRedirect(reverse('issue_list'))
 
     def get_context_data(self, **kwargs):
-        context = super(IssueCreate, self).get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
         colours = {}
         for c in i_models.IssuePriority.objects.all():
             colours[c.id] = c.colour
@@ -62,7 +62,7 @@ class IssueDetails(LoginRequiredMixin, DetailView):
     template_name = 'issue_tracker/issue_details.html'
 
     def get_context_data(self, **kwargs):
-        context = super(IssueDetails, self).get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
         context['now'] = timezone.now()
         ct = ContentType.objects.get(app_label='issue_tracker', model='issue').id
         context['ct'] = ct
@@ -133,7 +133,7 @@ class IssueList(BaseListableView):
             return 'All Issues'
 
     def get_context_data(self, *args, **kwargs):
-        context = super(IssueList, self).get_context_data(*args, **kwargs)
+        context = super().get_context_data(*args, **kwargs)
         current_url = resolve(self.request.path_info).url_name
         context['view_name'] = current_url
         context['icon'] = self.get_icon()

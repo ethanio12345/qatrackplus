@@ -57,7 +57,7 @@ def duration_string_hours_mins(duration):
 class HoursMinDurationField(forms.DurationField):
 
     def __init__(self, *args, **kwargs):
-        super(HoursMinDurationField, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.widget.attrs.update({'class': 'inputmask'})
 
     def prepare_value(self, value):
@@ -100,7 +100,7 @@ class HoursForm(forms.ModelForm):
         fields = ('time', 'user_or_thirdparty')
 
     def __init__(self, *args, **kwargs):
-        super(HoursForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         choices = [('', '---------')]
         perm = Permission.objects.get(codename='can_have_hours')
@@ -495,7 +495,7 @@ class ServiceEventForm(BetterModelForm):
         self.group_linkers = kwargs.pop('group_linkers', [])
         self.user = kwargs.pop('user', None)
 
-        super(ServiceEventForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         is_new = self.instance.id is None
         is_bound = self.is_bound
@@ -811,12 +811,12 @@ class ServiceEventForm(BetterModelForm):
             self.instance.is_review_required = True
 
         self.instance.unit_service_area = usa
-        super(ServiceEventForm, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
         return self.instance
 
     def clean(self):
-        super(ServiceEventForm, self).clean()
+        super().clean()
 
         unit_field = self.cleaned_data.get("unit_field")
         if unit_field and "unit_field_fake" in self.errors:

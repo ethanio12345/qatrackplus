@@ -168,7 +168,7 @@ class SLDashboard(TemplateView):
 
     def get_context_data(self, **kwargs):
 
-        context = super(SLDashboard, self).get_context_data()
+        context = super().get_context_data()
         context['counts'] = self.get_counts()
         context['recent_logs'] = sl_models.ServiceLog.objects.select_related(
             'user', 'service_event', 'service_event__unit_service_area__unit'
@@ -178,7 +178,7 @@ class SLDashboard(TemplateView):
 
     def dispatch(self, request, *args, **kwargs):
         if sl_models.ServiceEventStatus.objects.filter(is_default=True).exists():
-            return super(SLDashboard, self).dispatch(request, *args, **kwargs)
+            return super().dispatch(request, *args, **kwargs)
         else:
             return redirect(reverse('err'))
 
@@ -202,7 +202,7 @@ class ServiceEventUpdateCreate(
 
     def dispatch(self, request, *args, **kwargs):
         self.user = request.user
-        return super(ServiceEventUpdateCreate, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def get_object(self, queryset=None):
         """
@@ -243,14 +243,14 @@ class ServiceEventUpdateCreate(
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
-        return super(ServiceEventUpdateCreate, self).get(request, *args, **kwargs)
+        return super().get(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
-        return super(ServiceEventUpdateCreate, self).post(request, *args, **kwargs)
+        return super().post(request, *args, **kwargs)
 
     def get_form_kwargs(self):
-        kwargs = super(ServiceEventUpdateCreate, self).get_form_kwargs()
+        kwargs = super().get_form_kwargs()
         # group_linkers = models.GroupLinker.objects.all()
         kwargs['group_linkers'] = sl_models.GroupLinker.objects.all()
         kwargs['user'] = self.user
@@ -282,7 +282,7 @@ class ServiceEventUpdateCreate(
             )
 
     def get_context_data(self, *args, **kwargs):
-        context_data = super(ServiceEventUpdateCreate, self).get_context_data(**kwargs)
+        context_data = super().get_context_data(**kwargs)
 
         self.request.session.set_expiry(settings.SESSION_COOKIE_AGE)
 
@@ -710,7 +710,7 @@ class ServiceEventUpdateCreate(
 class CreateServiceEvent(ServiceEventUpdateCreate):
 
     def get_form_kwargs(self):
-        kwargs = super(CreateServiceEvent, self).get_form_kwargs()
+        kwargs = super().get_form_kwargs()
         kwargs['initial_ib'] = self.request.GET.get('ib', None)
         kwargs['initial_u'] = self.request.GET.get('u', None)
         return kwargs
@@ -726,7 +726,7 @@ class CreateServiceEvent(ServiceEventUpdateCreate):
             form.instance.datetime_status_changed = timezone.now()
             form.instance.user_status_changed_by = self.request.user
 
-        form_valid = super(CreateServiceEvent, self).form_valid(form)
+        form_valid = super().form_valid(form)
 
         return form_valid
 
@@ -770,7 +770,7 @@ class UpdateServiceEvent(ServiceEventUpdateCreate):
             # Check if service status was not changed explicitly, but needs to be reset to default status due to other changes.
             self.reset_status(form)
 
-        return super(UpdateServiceEvent, self).form_valid(form)
+        return super().form_valid(form)
 
 
 class DetailsServiceEvent(DetailView):
@@ -779,7 +779,7 @@ class DetailsServiceEvent(DetailView):
     template_name = 'service_log/service_event_detail.html'
 
     def get_context_data(self, **kwargs):
-        context_data = super(DetailsServiceEvent, self).get_context_data(**kwargs)
+        context_data = super().get_context_data(**kwargs)
         # context_data['service_event_tag_colours'] = models.ServiceEvent.get_colour_dict()
         context_data['hours'] = sl_models.Hours.objects.filter(service_event=self.object)
         context_data['rtsqas'] = sl_models.ReturnToServiceQA.objects.filter(service_event=self.object).select_related(
@@ -915,7 +915,7 @@ class ServiceEventsBaseList(BaseListableView):
 
     def __init__(self, *args, **kwargs):
 
-        super(ServiceEventsBaseList, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.templates = {
             'actions': get_template('service_log/table_context/table_context_se_actions.html'),
             'datetime_service': get_template('service_log/table_context/table_context_datetime.html'),
@@ -965,7 +965,7 @@ class ServiceEventsBaseList(BaseListableView):
         return filters
 
     def get_context_data(self, *args, **kwargs):
-        context = super(ServiceEventsBaseList, self).get_context_data(*args, **kwargs)
+        context = super().get_context_data(*args, **kwargs)
         current_url = resolve(self.request.path_info).url_name
         context['view_name'] = current_url
         context['icon'] = self.get_icon()
@@ -1144,7 +1144,7 @@ class ReturnToServiceQABaseList(BaseListableView):
 
     def __init__(self, *args, **kwargs):
 
-        super(ReturnToServiceQABaseList, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.templates = {
             'actions':
                 get_template("service_log/table_context/table_context_rtsqa_actions.html"),
@@ -1167,7 +1167,7 @@ class ReturnToServiceQABaseList(BaseListableView):
         return 'All Return To Service QC'
 
     def get_context_data(self, *args, **kwargs):
-        context = super(ReturnToServiceQABaseList, self).get_context_data(*args, **kwargs)
+        context = super().get_context_data(*args, **kwargs)
         current_url = resolve(self.request.path_info).url_name
         context['view_name'] = current_url
         context['icon'] = self.get_icon()
@@ -1333,7 +1333,7 @@ class ChooseUnitForNewSE(ChooseUnit):
     unit_serviceable_only = True
 
     def get_context_data(self, *args, **kwargs):
-        context = super(ChooseUnitForNewSE, self).get_context_data(*args, **kwargs)
+        context = super().get_context_data(*args, **kwargs)
         context['new_se'] = True
         return context
 

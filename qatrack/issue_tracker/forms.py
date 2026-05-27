@@ -20,7 +20,7 @@ class IssueForm(BetterModelForm):
         ]
 
     def __init__(self, *args, **kwargs):
-        super(IssueForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.fields['issue_type'].label = 'Type'
         self.fields['issue_priority'].label = 'Priority'

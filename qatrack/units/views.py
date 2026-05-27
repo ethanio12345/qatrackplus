@@ -44,7 +44,7 @@ class UnitAvailableTimeChange(PermissionRequiredMixin, TemplateView):
     template_name = 'units/unit_available_time_change.html'
 
     def get_context_data(self, **kwargs):
-        context = super(UnitAvailableTimeChange, self).get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
         context['unit_available_time_form'] = forms.UnitAvailableTimeForm()
         context['unit_available_time_edit_form'] = forms.UnitAvailableTimeEditForm()
         context['units'] = u_models.Unit.objects.filter(is_serviceable=True)

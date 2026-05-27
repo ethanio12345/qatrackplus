@@ -163,7 +163,7 @@ class Attachment(models.Model):
     def save(self, *args, **kwargs):
         """Save model and move it to final location if possible"""
 
-        super(Attachment, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
         if self.can_finalize:
             self.move_tmp_file()

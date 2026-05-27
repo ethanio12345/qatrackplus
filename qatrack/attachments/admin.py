@@ -14,7 +14,7 @@ class AjaxModelChoiceField(forms.ModelChoiceField):
 
     def __init__(self, model_class, *args, **kwargs):
         queryset = model_class.objects.none()
-        super(AjaxModelChoiceField, self).__init__(queryset, *args, **kwargs)
+        super().__init__(queryset, *args, **kwargs)
         self.model_class = model_class
 
     def to_python(self, value):
@@ -157,10 +157,10 @@ class AttachmentAdmin(BaseQATrackAdmin):
         if not obj.pk:
             obj.created_by = request.user
 
-        super(AttachmentAdmin, self).save_model(request, obj, form, change)
+        super().save_model(request, obj, form, change)
 
     def get_queryset(self, request):
-        qs = super(AttachmentAdmin, self).get_queryset(request)
+        qs = super().get_queryset(request)
         qs = qs.select_related(*Attachment.OWNER_MODELS)
         return qs
 
@@ -178,7 +178,7 @@ class SaveInlineAttachmentUserMixin(object):
 
     def save_formset(self, request, form, formset, change):
         if formset.model._meta.model_name.lower() != "attachment":
-            return super(SaveInlineAttachmentUserMixin, self).save_formset(request, form, formset, change)
+            return super().save_formset(request, form, formset, change)
 
         instances = formset.save(commit=False)
         for instance in instances:

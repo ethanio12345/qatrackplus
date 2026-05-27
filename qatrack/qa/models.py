@@ -561,7 +561,7 @@ class TestInstanceStatus(models.Model):
             cur_default.is_default = False
             cur_default.save()
 
-        super(TestInstanceStatus, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def natural_key(self):
         return (self.slug,)
@@ -805,7 +805,7 @@ class Tolerance(models.Model):
 
     def clean_fields(self, exclude=None):
         """extra validation for Tests"""
-        super(Tolerance, self).clean_fields(exclude)
+        super().clean_fields(exclude)
         self.clean_choices()
         self.clean_tols()
 
@@ -829,7 +829,7 @@ class Tolerance(models.Model):
 
     def save(self, *args, **kwargs):
         self.name = get_tolerance_name(self)
-        super(Tolerance, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def natural_key(self):
         return (self.name,)
@@ -1234,7 +1234,7 @@ class Test(models.Model, TestPackMixin):
 
     def clean_fields(self, exclude=None):
         """extra validation for Tests"""
-        super(Test, self).clean_fields(exclude)
+        super().clean_fields(exclude)
         self.clean_calculation_procedure()
         self.clean_constant_value()
         self.clean_wrap()
@@ -1403,7 +1403,7 @@ class UnitTestInfo(models.Model):
     def clean(self):
         """extra validation for Tests"""
 
-        super(UnitTestInfo, self).clean()
+        super().clean()
         if None not in (self.reference, self.tolerance):
             if self.tolerance.type == PERCENT and self.reference.value == 0:
                 msg = _("Percentage based tolerances can not be used with reference value of zero (0)")
@@ -1689,7 +1689,7 @@ class TestList(TestCollectionInterface, TestPackMixin):
         return "(%s) %s" % (self.pk, self.name)
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        super(TestList, self).save(
+        super().save(
             force_insert=force_insert,
             force_update=force_update,
             using=using,
@@ -1955,7 +1955,7 @@ class UnitTestCollection(SchedulingMixin, models.Model):
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
         self.name = self.tests_object.name
-        super(UnitTestCollection, self).save(
+        super().save(
             force_insert=force_insert,
             force_update=force_update,
             using=using,
@@ -1966,7 +1966,7 @@ class UnitTestCollection(SchedulingMixin, models.Model):
 class TestInstanceManager(models.Manager):
 
     def in_progress(self):
-        return super(TestInstanceManager, self).filter(test_list_instance__in_progress=True)
+        return super().filter(test_list_instance__in_progress=True)
 
     def complete(self):
         return models.Manager.get_queryset(self).filter(test_list_instance__in_progress=False)
@@ -2063,7 +2063,7 @@ class TestInstance(models.Model):
         do_pass_fail = kwargs.pop('calculate_pass_fail', True)
         if do_pass_fail:
             self.calculate_pass_fail()
-        super(TestInstance, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def difference(self):
         """return difference between instance and reference"""
@@ -2783,7 +2783,7 @@ class TestListCycle(TestCollectionInterface, TestPackMixin):
         return _(self.name)
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        super(TestListCycle, self).save(
+        super().save(
             force_insert=force_insert,
             force_update=force_update,
             using=using,

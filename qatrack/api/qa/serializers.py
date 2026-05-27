@@ -308,7 +308,7 @@ class TestListInstanceCreator(serializers.HyperlinkedModelSerializer):
     def validate(self, data):
         post_data = copy.deepcopy(data)
 
-        validated_data = super(TestListInstanceCreator, self).validate(data)
+        validated_data = super().validate(data)
 
         if self.instance:
             self.add_data_from_instance(validated_data)
@@ -793,7 +793,7 @@ class TestListInstanceCreator(serializers.HyperlinkedModelSerializer):
                 "attachments": [a.attachment.url for a in ti.attachment_set.all()],
             }
 
-        rep = super(TestListInstanceCreator, self).to_representation(obj)
+        rep = super().to_representation(obj)
 
         if not hasattr(self, "comment"):
             self.comment = ''

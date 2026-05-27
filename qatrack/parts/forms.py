@@ -47,7 +47,7 @@ class PartUsedForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user')
-        super(PartUsedForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         is_new = self.instance.id is None
 
@@ -190,7 +190,7 @@ class PartForm(BetterModelForm):
         })]
 
     def __init__(self, *args, **kwargs):
-        super(PartForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.fields['quantity_min'].widget.attrs.update({'min': 0, 'step': 1})
         self.fields['quantity_min'].label = 'Low inventory count'
@@ -220,7 +220,7 @@ class PartSupplierCollectionForm(forms.ModelForm):
         model = p_models.PartSupplierCollection
 
     def __init__(self, *args, **kwargs):
-        super(PartSupplierCollectionForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields['part'].widget = forms.HiddenInput()
 
         self.fields['part_number'].widget.attrs['class'] = 'form-control part_number'
@@ -295,7 +295,7 @@ class PartStorageCollectionForm(forms.ModelForm):
         fields = ('storage_field', 'room', 'location', 'quantity')
 
     def __init__(self, *args, **kwargs):
-        super(PartStorageCollectionForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         is_new = self.instance.id is None
 
@@ -317,7 +317,7 @@ class PartStorageCollectionForm(forms.ModelForm):
             self.initial['location'] = location_data
 
     def clean(self):
-        cleaned_data = super(PartStorageCollectionForm, self).clean()
+        cleaned_data = super().clean()
         storage_field_value = cleaned_data.get('storage_field')
         room = cleaned_data.get('room')
 

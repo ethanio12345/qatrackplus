@@ -183,7 +183,7 @@ class UnitTypeAdmin(BaseQATrackAdmin):
     list_editable = ['unit_class', 'vendor', 'collapse']
 
     def get_queryset(self, request):
-        return super(UnitTypeAdmin, self).get_queryset(request).select_related(
+        return super().get_queryset(request).select_related(
             "vendor",
             "unit_class",
         )

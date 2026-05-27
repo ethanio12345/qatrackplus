@@ -44,7 +44,7 @@ class DeleteOnlyFromOwnFormAdmin(BaseQATrackAdmin):
     def has_delete_permission(self, request, obj=None):
         if obj is None:
             return False
-        return super(DeleteOnlyFromOwnFormAdmin, self).has_delete_permission(request, obj)
+        return super().has_delete_permission(request, obj)
 
 
 class UnitServiceAreaFilter(admin.SimpleListFilter):

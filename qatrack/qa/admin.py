@@ -75,7 +75,7 @@ class UnitTestInfoForm(forms.ModelForm):
         fields = '__all__'
 
     def __init__(self, *args, **kwargs):
-        super(UnitTestInfoForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         readonly = (
             "test_type",
             "reference_set_by",
@@ -122,7 +122,7 @@ class UnitTestInfoForm(forms.ModelForm):
             self.fields[field].widget.attrs['readonly'] = True
 
     def clean(self):
-        cleaned_data = super(UnitTestInfoForm, self).clean()
+        cleaned_data = super().clean()
 
         if not self.instance or not self.instance.test:
             return cleaned_data
@@ -165,7 +165,7 @@ class UnitTestInfoForm(forms.ModelForm):
         return cleaned_data
 
     def save(self, commit=True):
-        instance = super(UnitTestInfoForm, self).save(commit=False)
+        instance = super().save(commit=False)
 
         # Handle reference value conversion
         reference_value = self.cleaned_data.get('reference_value')
@@ -586,7 +586,7 @@ class TestListMembershipInlineFormSet(forms.models.BaseInlineFormSet):
         else:
             qs = kwargs["queryset"].filter(test_list=instance).select_related("test")
         kwargs["queryset"] = qs
-        super(TestListMembershipInlineFormSet, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class SublistInlineFormSet(forms.models.BaseInlineFormSet):
@@ -599,11 +599,11 @@ class SublistInlineFormSet(forms.models.BaseInlineFormSet):
         else:
             qs = kwargs["queryset"].filter(parent=instance)
         kwargs["queryset"] = qs
-        super(SublistInlineFormSet, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def clean(self):
         """Make sure there are no duplicated slugs in a TestList"""
-        super(SublistInlineFormSet, self).clean()
+        super().clean()
 
         if not hasattr(self, "cleaned_data"):
             # something else went wrong already
@@ -722,7 +722,7 @@ class TestListMembershipInline(DynamicRawIDMixin, admin.TabularInline):
             self.test_names = dict(obj.tests.values_list("pk", "name"))
         else:
             self.test_names = {}
-        return super(TestListMembershipInline, self).get_formset(request, obj, **kwargs)
+        return super().get_formset(request, obj, **kwargs)
 
 
 class SublistInline(DynamicRawIDMixin, admin.TabularInline):
@@ -778,7 +778,7 @@ class SublistInline(DynamicRawIDMixin, admin.TabularInline):
             self.test_list_names = dict(obj.sublist_set.values_list("pk", "child__name"))
         else:
             self.test_list_names = {}
-        return super(SublistInline, self).get_formset(request, obj, **kwargs)
+        return super().get_formset(request, obj, **kwargs)
 
 
 class ActiveTestListFilter(admin.SimpleListFilter):
@@ -1160,7 +1160,7 @@ class TestAdmin(SaveUserMixin, SaveInlineAttachmentUserMixin, BaseQATrackAdmin):
                 warning = _("Warning: test procedure links should usually begin with http:// or https://")
                 messages.add_message(request, messages.WARNING, warning)
 
-        super(TestAdmin, self).save_model(request, obj, form, change)
+        super().save_model(request, obj, form, change)
 
     @admin.display(
         description=_l("Created"),
@@ -1364,7 +1364,7 @@ class UnitTestCollectionAdmin(BaseQATrackAdmin):
         )
 
     def get_queryset(self, *args, **kwargs):
-        qs = super(UnitTestCollectionAdmin, self).get_queryset(*args, **kwargs)
+        qs = super().get_queryset(*args, **kwargs)
         return qs.select_related("unit", "unit__site", "frequency", "assigned_to", "content_type")
 
     @admin.display(
@@ -1411,7 +1411,7 @@ class TestListCycleAdmin(SaveUserMixin, SaveInlineAttachmentUserMixin, BaseQATra
         return ', '.join("%s: %s" % x for x in enumerate(obj.all_lists().values_list("name", flat=True)))
 
     def get_queryset(self, request):
-        qs = super(TestListCycleAdmin, self).get_queryset(request)
+        qs = super().get_queryset(request)
         return qs.prefetch_related("test_lists")
 
 
@@ -1579,7 +1579,7 @@ class TestInstanceAdmin(SaveInlineAttachmentUserMixin, BaseQATrackAdmin):
     inlines = [get_attachment_inline("testinstance")]
 
     def get_queryset(self, request):
-        qs = super(TestInstanceAdmin, self).get_queryset(request)
+        qs = super().get_queryset(request)
         return qs.select_related(
             "test_list_instance", "test_list_instance__test_list", "unit_test_info", "unit_test_info__test",
             "created_by"
@@ -1616,7 +1616,7 @@ class ToleranceForm(forms.ModelForm):
     model = models.Tolerance
 
     def validate_unique(self):
-        super(ToleranceForm, self).validate_unique()
+        super().validate_unique()
         if not self.instance.pk:
             params = forms.model_to_dict(self.instance)
             params.pop("id")
@@ -1637,14 +1637,14 @@ class ToleranceAdmin(BasicSaveUserAdmin):
         )
 
     def get_queryset(self, *args, **kwargs):
-        qs = super(ToleranceAdmin, self).get_queryset(*args, **kwargs)
+        qs = super().get_queryset(*args, **kwargs)
         return qs.exclude(type=models.BOOLEAN)
 
     def has_change_permission(self, request, obj=None):
 
         if obj and obj.type == models.BOOLEAN:
             return False
-        return super(ToleranceAdmin, self).has_change_permission(request, obj)
+        return super().has_change_permission(request, obj)
 
 
 class AutoReviewAdmin(BaseQATrackAdmin):

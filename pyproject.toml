@@ -231,8 +231,5 @@ ignore = [
     "UP004", # Class `X` inherits from `object` is unnecessary
     "DJ008", # Model name should be singular
     "DJ012", # Order of model's inner classes, methods, and fields does not follow the Django Style Guide
-    "UP008", # Use `super()` instead of `super(__class__, self)`
-    "UP015", # Avoid unnecessary open mode parameters
-    "UP017", # Use `datetime.UTC` alias instead of `datetime.timezone.utc`
     "UP031", # Use format specifiers instead of percent format
 ]

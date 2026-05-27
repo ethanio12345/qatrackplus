@@ -427,7 +427,7 @@ class UploadHandler:
         skips = self.data.get("skips", {})
         self.calculation_context.update({
             "FILE":
-                open(self.attachment.attachment.path, "r"),
+                open(self.attachment.attachment.path),
             "BIN_FILE":
                 self.attachment.attachment,
             "META":
@@ -572,7 +572,7 @@ class Upload(JSONResponseMixin, View):
         skips = self.get_json_data("skips")
 
         try:
-            f = open(self.attachment.attachment.path, "r")
+            f = open(self.attachment.attachment.path)
         except NotImplementedError:
             self.attachment.attachment.open("r")
             f = self.attachment.attachment
@@ -905,7 +905,7 @@ class ChooseUnit(TemplateView):
         visible to the user are included.
         """
 
-        context = super(ChooseUnit, self).get_context_data(*args, **kwargs)
+        context = super().get_context_data(*args, **kwargs)
 
         groups = self.request.user.groups.all()
         q = models.UnitTestCollection.objects.by_visibility(groups)
@@ -1025,7 +1025,7 @@ class PerformQA(PermissionRequiredMixin, CreateView):
     model = models.TestListInstance
 
     def get_form_kwargs(self):
-        k = super(PerformQA, self).get_form_kwargs()
+        k = super().get_form_kwargs()
         self.set_unit_test_collection()
         k['unit'] = self.unit_test_col.unit
         k['rtsqa'] = self.request.GET.get('rtsqa', False)
@@ -1301,7 +1301,7 @@ class PerformQA(PermissionRequiredMixin, CreateView):
             )
 
     def get_context_data(self, **kwargs):
-        context = super(PerformQA, self).get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
 
         # explicity refresh session expiry to prevent situation where a session
         # expires in between the time a user requests a page and then submits the page
@@ -1628,7 +1628,7 @@ class EditTestListInstance(PermissionRequiredMixin, BaseEditTestListInstance):
 
     def get_context_data(self, **kwargs):
 
-        context = super(EditTestListInstance, self).get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
         uti_pks = [f.instance.unit_test_info.pk for f in context["formset"]]
         self.prev_ref_tols = {
             f.instance.unit_test_info.pk: (f.instance.reference, f.instance.tolerance) for f in context["formset"]
@@ -1776,7 +1776,7 @@ class FrequencyList(UTCList):
     def get_queryset(self):
         """filter queryset by frequency"""
 
-        qs = super(FrequencyList, self).get_queryset()
+        qs = super().get_queryset()
 
         freqs = self.kwargs["frequency"].split("/")
         self.frequencies = models.Frequency.objects.filter(slug__in=freqs)
@@ -1835,7 +1835,7 @@ class UnitFrequencyList(FrequencyList):
     def get_queryset(self):
         """filter queryset by Unit"""
 
-        qs = super(UnitFrequencyList, self).get_queryset()
+        qs = super().get_queryset()
         self.units = Unit.objects.filter(number__in=self.kwargs["unit_number"].split("/"))
         return qs.filter(unit__in=self.units)
 
@@ -1876,7 +1876,7 @@ class CategoryList(UTCList):
     def get_queryset(self):
         """filter queryset by test category"""
 
-        qs = super(CategoryList, self).get_queryset()
+        qs = super().get_queryset()
 
         categories = self.kwargs["category"].split("/")
         self.categories = models.Category.objects.filter(slug__in=categories)
@@ -1926,7 +1926,7 @@ class UnitList(UTCList):
 
     def get_queryset(self):
         """filter queryset by frequency"""
-        qs = super(UnitList, self).get_queryset()
+        qs = super().get_queryset()
         self.units = Unit.objects.filter(number__in=self.kwargs["unit_number"].split("/"))
         return qs.filter(unit__in=self.units)
 

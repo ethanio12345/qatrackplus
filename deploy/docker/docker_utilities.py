@@ -117,7 +117,7 @@ def run_restore():
         sys.stdout.flush()
         wait_for_postrgres()
 
-        with open(DATABASE_DUMP_FILE, 'r') as database_dump:
+        with open(DATABASE_DUMP_FILE) as database_dump:
             with psycopg2.connect(database='template1', user=DB_USER, password=DB_PASSWORD, host=DB_HOST) as conn:
                 with conn.cursor() as cur:
                     conn.autocommit = True

@@ -200,7 +200,7 @@ class ServiceEventStatus(models.Model):
                     temp.save()
             except ServiceEventStatus.DoesNotExist:
                 pass
-        super(ServiceEventStatus, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def natural_key(self):
         return (self.name,)
@@ -445,7 +445,7 @@ class ServiceEvent(models.Model):
 class ThirdPartyManager(models.Manager):
 
     def get_queryset(self):
-        return super(ThirdPartyManager, self).get_queryset().select_related('vendor')
+        return super().get_queryset().select_related('vendor')
 
 
 class ThirdParty(models.Model):

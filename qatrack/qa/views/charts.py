@@ -95,7 +95,7 @@ class ChartView(PermissionRequiredMixin, TemplateView):
         object for use on client side.
         """
 
-        context = super(ChartView, self).get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
 
         self.set_test_lists()
         self.set_tests()
@@ -569,7 +569,7 @@ class ControlChartImage(PermissionRequiredMixin, BaseChartView):
         one of them.
         """
 
-        super(ControlChartImage, self).get_plot_data()
+        super().get_plot_data()
 
     def render_to_response(self, context):
         """Create a png image and write the control chart image to it"""
