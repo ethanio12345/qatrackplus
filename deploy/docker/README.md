@@ -23,3 +23,29 @@ By default, Docker Compose will read both `compose.yaml` and `compose.override.y
    ```bash
    docker compose -f compose.yaml up -d
    ```
+2. Set your PostgreSQL credentials in the `.env` file. 
+3. Set `ALLOWED_HOSTS` in your `.env` file to include the IP address or hostname you will use to access the server (e.g. `ALLOWED_HOSTS=localhost,127.0.0.1,ubuntu-test`). To allow all hosts temporarily, use `ALLOWED_HOSTS=*`.
+4. **CRITICAL:** Ensure `USE_DOCKER=true` is present in your `.env` file. This tells Django to use the built-in Docker configuration instead of falling back to your local SQLite configuration (`local_settings.py`).
+
+### 2. Development
+By default, Docker Compose will read both `compose.yaml` and `compose.override.yaml`. The override file maps your local source code into the container for live reloading.
+
+Run the development environment:
+```bash
+docker compose up --build
+```
+
+### 3. Production
+1. Review the NGINX TLS config in `nginx/conf.d/tls.conf.example`.
+2. Configure strong, secure passwords in your `.env` file.
+3. Start the containers using **only** the production file (ignoring the local code bind-mounts):
+   ```bash
+   docker compose -f compose.yaml up -d --build
+   ```
+
+### 4. First Run Setup
+When booting a fresh database for the first time, you must create a superuser (admin) account. With the containers running, open a new terminal window and execute:
+```bash
+docker compose exec django python manage.py createsuperuser
+```
+Follow the interactive prompts to set your username, email, and password.
