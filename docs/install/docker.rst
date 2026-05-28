@@ -106,8 +106,8 @@ files.
 
 Docker for Windows does not support network drives.
 
-Ubuntu Linux (recommended)
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Ubuntu Linux
+~~~~~~~~~~~~
 
 If your server is running Ubuntu, follow these steps to install prerequisites.
 
@@ -122,6 +122,10 @@ Install Docker, the Docker Compose plugin, and Git:
     sudo apt install -y docker.io docker-compose-plugin git
     sudo systemctl enable --now docker
 
+This installs Ubuntu-packaged Docker components. If you prefer Docker's latest
+upstream packages, use the official instructions at
+https://docs.docker.com/engine/install/ubuntu/.
+
 Optional: run Docker without sudo
 .................................
 
@@ -131,6 +135,9 @@ To run Docker commands as your own user account:
 
     sudo usermod -aG docker $USER
     newgrp docker
+
+If group membership updates do not apply immediately, log out and back in (or
+restart your system) before continuing.
 
 Before continuing, verify Docker is available:
 
@@ -183,7 +190,7 @@ To run Docker Compose commands you need to be within the
 
     cd deploy/docker
 
-Edit the environment configuration file first:
+Optional: if your deployment uses a `.env` file, edit it now:
 
 .. code-block:: console
 
@@ -196,15 +203,16 @@ Build and start the server:
     docker compose build
     docker compose up -d
 
-On initial run this will take quite some time to load.
+The `-d` flag starts the containers in detached mode (in the background). On
+initial run this will take quite some time to load.
 
 To view startup logs:
 
 .. code-block:: console
 
     docker compose logs -f django
-    # or
-    docker logs qatrackplus-django-1
+    # or, use docker ps to find the container name first
+    docker logs <django-container-name>
 
 Once the containers are ready, go to http://localhost in your browser to see
 the server.
