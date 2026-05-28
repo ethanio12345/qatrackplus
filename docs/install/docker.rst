@@ -6,15 +6,11 @@ Installing & Deploying QATrack+ with Docker
     This is a developmental install method. It is quite simple to get up and
     running but has not been battle tested in production yet!
 
-.. warning::
-
-    This install method has not yet been updated for version 3.1.X
-
 
 Prerequisites by OS
 -------------------
 
-This has been tested under two setups, Ubuntu 18.04, or Windows 10.  Depending
+This has been tested under two setups, Ubuntu Linux, or Windows 10.  Depending
 on which system you are using there are different ways to install the required
 dependencies. Follow the section that applies to your specific machine.
 
@@ -110,92 +106,59 @@ files.
 
 Docker for Windows does not support network drives.
 
-Ubuntu 18.04
-~~~~~~~~~~~~
+Ubuntu Linux (recommended)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If your PC is running Ubuntu 18.04 follow these steps to install the required
-prerequisites.
+If your server is running Ubuntu, follow these steps to install prerequisites.
 
-Docker and Docker-Compose
-.........................
+Docker, Compose Plugin, and Git
+...............................
 
-To run this installation method you will need both docker-ce and docker-compose
-on your system. When running Ubuntu 18.04 do this by running the following
-commands:
+Install Docker, the Docker Compose plugin, and Git:
 
 .. code-block:: console
 
     sudo apt update
-    sudo apt upgrade
-    sudo snap install docker
+    sudo apt install -y docker.io docker-compose-plugin git
+    sudo systemctl enable --now docker
 
-    sudo apt install python3-venv
-    python3 -m venv ~/.docker-compose
-    source ~/.docker-compose/bin/activate
-    pip install --upgrade pip
-    pip install docker-compose
+Optional: run Docker without sudo
+.................................
 
-
-Each time before using the `docker-compose` command you will need to repeat the
-above command of `source ~/.docker-compose/bin/activate`.
-
-On other systems you can follow the instructions found at the following
-locations:
-
-* `docker-ce <https://docs.docker.com/install/>`__
-* `docker-compose <https://docs.docker.com/compose/install/#install-compose>`__
-
-Make docker work without sudo on Linux
-......................................
-
-You will also need to implement the following to be able to run docker without
-sudo:
-
-* https://docs.docker.com/engine/installation/linux/linux-postinstall/
-
-After completing these post install tasks please reset your computer.
-
-Before continuing please verify that you can run `docker run hello-world` in a
-terminal.
-
-Git
-...
-
-To retrieve files from github you will need git installed by running the
-following:
+To run Docker commands as your own user account:
 
 .. code-block:: console
 
-    sudo apt install git
+    sudo usermod -aG docker $USER
+    newgrp docker
 
-On other systems follow the instructions at
-https://www.atlassian.com/git/tutorials/install-git.
+Before continuing, verify Docker is available:
+
+.. code-block:: console
+
+    docker run hello-world
 
 
 Installing QATrack+
 -------------------
 
-This part is OS independent. The language used will be tuned for a Windows 10
-user, but equivalent steps can be followed on Ubuntu.
+This part is OS independent.
 
 Changing to the directory where all server files will be stored
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Open a command prompt with just user priveledges and change your directory to
-the directory where all of the QATrack+ server files will be stored.
-
-Lets say, for example, all our files are going to be located within the
-`D:` drive at `D:\QATrack+` then we would want to do the following:
+Open a terminal and change your directory to where all QATrack+ files will be
+stored. For example:
 
 .. code-block:: console
 
-    D:
-    cd QATrack+
+    mkdir -p ~/qatrack
+    cd ~/qatrack
 
 Downloading
 ~~~~~~~~~~~
 
-At this point QATrack plus files need to be pulled from the git repository.  Do
+At this point QATrack+ files need to be pulled from the git repository.  Do
 the following:
 
 .. code-block:: console
@@ -203,38 +166,48 @@ the following:
     git clone https://github.com/qatrackplus/qatrackplus.git
     cd qatrackplus
 
+If needed, check out the branch/tag you want to deploy:
+
+.. code-block:: console
+
+    git checkout <branch-or-tag>
+
 
 Installation
 ~~~~~~~~~~~~
 
-To run any `docker-compose` commands you need to be within the
-`qatrackplus\\deploy\\docker` directory. So lets change to there now:
+To run Docker Compose commands you need to be within the
+`qatrackplus/deploy/docker` directory. So lets change to there now:
 
 .. code-block:: console
 
-    cd deploy\docker
+    cd deploy/docker
 
-To build and start the server run the following:
+Edit the environment configuration file first:
 
 .. code-block:: console
 
-    docker-compose build
-    docker-compose up
+    nano .env
+
+Build and start the server:
+
+.. code-block:: console
+
+    docker compose build
+    docker compose up -d
 
 On initial run this will take quite some time to load.
 
-Wait until you see something like the following within your terminal:
+To view startup logs:
 
 .. code-block:: console
 
-    qatrack-django_1    | [2018-07-07 15:31:44 +0000] [509] [INFO] Starting gunicorn 19.3.0
-    qatrack-django_1    | [2018-07-07 15:31:44 +0000] [509] [INFO] Listening at: http://0.0.0.0:8000 (509)
-    qatrack-django_1    | [2018-07-07 15:31:44 +0000] [509] [INFO] Using worker: sync
-    qatrack-django_1    | [2018-07-07 15:31:44 +0000] [512] [INFO] Booting worker with pid: 512
-    qatrack-django_1    | [2018-07-07 15:31:44 +0000] [514] [INFO] Booting worker with pid: 514
+    docker compose logs -f django
+    # or
+    docker logs qatrackplus-django-1
 
-Once the `Listening at: http://0.0.0.0:8000` line is visible go to
-http://localhost in your computer's browser to see the server.
+Once the containers are ready, go to http://localhost in your browser to see
+the server.
 
 If you go to the website too early you will see the following error. This
 is not an issue, it just means that the QATrack+ server has not yet finished
