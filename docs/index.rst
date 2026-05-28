@@ -115,17 +115,17 @@ Bugs or Feature Requests
 If you have a bug to report or a feature to request please use the
 :issues:`GitHub Issues <>` page.
 
-Mailing List, General Questions, Discussions or Support?
---------------------------------------------------------
+General Questions, Discussions or Support?
+------------------------------------------
 
 If you have general questions, want to have an initial discussion about
 features or the way things work (basically anything that isn't a specific bug
-report or feature request) please use the :mailinglist:`Google QATrack+ Group
-Forum <>`.
+report or feature request), please use `GitHub Discussions
+<https://github.com/qatrackplus/qatrackplus/discussions>`__.
 
-This forum is also a mailing list and it is highly recommended that you
-subscribe to email updates from the forum to get all the announcements about
-QATrack+ releases and discussions.
+If needed, you can also use the :mailinglist:`Google QATrack+ Group Forum <>`
+as a fallback support channel. It is highly recommended that you subscribe to
+email updates from the forum to get announcements and discussions.
 
 Commercial Support and Hosting Services
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
