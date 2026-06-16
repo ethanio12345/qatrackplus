@@ -14,6 +14,13 @@ def do_scheduling(sender, **kwargs):
         next_run=timezone.localtime((timezone.now() + timezone.timedelta(hours=24))).replace(hour=4),
     )
 
+    _schedule_periodic_task(
+        "qatrack.qa.tasks.import_matrix_monthly",
+        "Matrix Monthly Import",
+        schedule_type=Schedule.DAILY,
+        next_run=timezone.localtime((timezone.now() + timezone.timedelta(hours=24))).replace(hour=18),
+    )
+
 
 def rebuild_trees(sender, **kwargs):
     from qatrack.qa.models import Category
