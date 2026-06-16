@@ -1,0 +1,23 @@
+schema: spec-driven
+
+context: |
+  Tech stack: Python 3.10, Django 3.2, QATrack+ v3.1.1.2, Apache mod_wsgi, PostgreSQL, pymssql 2.3.13
+  Server: QATrack+ at localhost:80, myQA SQL Server at 10.59.35.17:1433 (myQA-MainDB-Server)
+  Structure: QATrack+ has Test, TestList, UnitTestCollection, TestListInstance, TestInstance models
+  myQA data: MQA_TestExecutions (base), with detail tables for Numeric, PassFail, Profile, Energy, Wedge, MLC, CBCT, Planar, VMAT, WinstonLutz
+  Join pattern: MQA_TestExecutions.Id = MQA_TestImplementationExecutions.Id = {Type}Executions.Id
+  Units: 1=CST15, 2=OBK15, 3=LA317, 4=LA414, 5=LA512, 7=LA524, 8=LA224, 50=DXR
+  Frequencies: Daily, Weekly, Monthly, Quarterly, 6Monthly/6 Monthly, Annual
+  myQA device names have serial suffixes: 'LA317 - H192972' (use LIKE 'LA317%')
+  Tolerance columns: WarnOn, FailOn, BoundingType, IsRelative, LimitTendency
+  Always use slugs with 'myqa_' prefix to avoid collisions
+  Keep myQA read-only (SELECT only), all writes to QATrack+ PostgreSQL
+  De-duplication via string_value test storing MQA_TestExecutions.Id (UUID)
+
+rules:
+  proposal:
+    - Keep proposals concise with clear scope, non-goals, and risks
+    - Include test strategy
+  tasks:
+    - Each task should be scoped to a single file or concept
+    - Include verification step in each task
