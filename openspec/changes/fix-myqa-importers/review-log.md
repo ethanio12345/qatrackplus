@@ -222,3 +222,106 @@ pre-freeze).
 - Next action: Round 2, batch 2 — revise `design.md` (per-`execution_id` query
   shape, per-type `METRICS` dicts including VMAT child-table fan-out, per-type
   setup rewrite strategy, `--force` safety note), then `@openspec-reviewer`.
+
+---
+
+## design Round 1 — 2026-06-17 (Batch 2 of 4, Round 1)
+
+**Reviewer:** `@openspec-reviewer`
+**Newly created:** `design.md` (revised per explore-brief + frozen proposal).
+**Already frozen:** `proposal.md`.
+**Verdict:** **NEEDS REVISION** — three 🔴 blockers (the silent-failure mode
+this change exists to prevent).
+
+### 🔴 Outstanding (Round 1)
+- **S1 — `execution_id` UUID mismatch.** Engine's `query_new_sessions` selects
+  `te.TaskExecutionId` (`myqa_import.py:127`) and `import_session` passes it as
+  `execution_id` (`myqa_import.py:163`). Every design query filtered on
+  type-table `Id` directly via the `tie.Id = te.Id` chain, NOT on
+  `te.TaskExecutionId`. Would return zero rows — exact failure mode of
+  `full-myqa-sync`.
+- **S2 — D4 verdict storage unimplementable.** Engine iterates `results.items()`
+  as `{slug: val}` (`myqa_import.py:206`) and hardcodes `pass_fail='no_tol'`
+  (`myqa_import.py:226`). Design claimed `extract_results` returns tuples and
+  that D4 stores verdicts — both wrong.
+- **S3 — Tolerance creation in Numeric import path.** Per-row processing listed
+  `get_or_create_tolerance(...)` as an import-time output. Tolerances are
+  setup-only; `import_session` doesn't process them.
+
+### 🟡 Outstanding (Round 1)
+- M1 `--force` safety argument wrong for D1 lists (main-spec lists at risk).
+- M2 task_name_patterns not specified for 6 of 9 importers.
+- M3 WL verdict claim contradicts engine `no_tol` hardcode.
+- M4 `import_myqa_results` default + django-q schedule migration not addressed.
+- M5 Numeric `Expected` selected but fate unspecified.
+- M6 VMAT ROI slug example inaccurate (`slugify_name` preserves periods).
+- M7 MLC METRICS dict schema doesn't fit edge-case columns.
+- M8 Setup creates UTCs for all units regardless of D1 unit scoping.
+
+### Bonus findings from source read
+- Existing MLC/CBCT/Planar/VMAT importers JOIN through `*_QueueItemExecutions`
+  tables NOT in the verified schema — confirms why they're broken (wrong JOIN
+  path, separate from the wrong-column issue).
+- Existing WL importer reads `DisplayName`/`Actual` — non-existent on
+  `MQA_IsoCheck_WinstonLutz_TestExecutions` per verified schema.
+- Existing PassFail reads `pfte.PassStatus` + `tc.Name` via `MQA_TestConditions`
+  — both non-existent.
+
+---
+
+## design Round 2 — 2026-06-17 (Batch 2 of 4, Round 2)
+
+**Reviewer:** `@openspec-reviewer`
+**Newly revised:** `design.md` (comprehensive rewrite addressing S1/S2/S3 +
+M1–M8). Also D4 soft-freeze amendments to `proposal.md` and `explore-brief.md`.
+**Verdict:** **PASS — frozen.** No 🔴, no new issues, schema accuracy preserved.
+
+### 🔴 Round 1 blockers — all RESOLVED
+- **S1 RESOLVED.** Every `extract_results` query now JOINs through `te` and
+  filters `WHERE te.TaskExecutionId = %s` (Numeric, WL, MLC, CBCT, Planar, VMAT
+  parent, VMAT child, PassFail — all 8 verified at cited line numbers).
+- **S2 RESOLVED.** `Dict[str, Any]` contract documented; D4 softened to
+  "verdict read for logging, storage deferred" (proposal soft-freeze amendment).
+- **S3 RESOLVED.** Numeric import query SELECTs only `Name, Actual`; no
+  tolerance in import path. Tolerance columns read during setup only.
+
+### 🟡 Round 1 should-fix — all RESOLVED (M1–M8)
+- M1 `--force` per-list risk table calling out main-spec daily lists.
+- M2 task_name_patterns populated for all 9 importers (PassFail marked
+  "confirm from source" — acceptable).
+- M3 WL verdict claim acknowledges `no_tol`.
+- M4 `import_myqa_results` default + django-q schedule migration noted.
+- M5 Numeric `Expected` removed from import SELECT.
+- M6 VMAT ROI slug rule notes `slugify_name` preserves periods.
+- M7 MLC METRICS has `STRING_COLS` mechanism for non-conforming entries.
+- M8 Setup UTC applies per-list unit scoping (`UNITS_PER_LIST`).
+
+### 🟡 Pre-freeze soft-freeze amendments (this round)
+- VMAT parent extract query trimmed to value-only; tolerance columns annotated
+  as setup-only.
+- `import_myqa_results` default committed to `numeric_constancy` (no aggregate
+  key — would require engine fan-out outside Non-goal).
+- `proposal.md:83` "2 existing lists" → "3 existing lists (constancy/physics/
+  dxr)" (declarative fix to match D1).
+- `std dev` prose made consistent across `design.md`.
+
+### 🟢 Reviewer-noted strengths
+- Engine contract section ties query shape, return type, verdict handling to
+  specific engine code locations — exemplary "why" documentation.
+- Existing-importer breakage diagnosis gives implementer a clear "what to
+  delete" list.
+- METRICS dict schema is regular and transcribable; per-type counts match brief.
+- All 6 open questions (O1–O6) closed with concrete dispositions.
+- Backfill plan establishes setup-before-import per type (pre-empts the
+  Round 1 tasks.md dependency-order critique).
+
+### Deferred to specs batch (natural home)
+- NULL handling for `Actual` / `AcceptanceCriteria` (edge-case scenarios).
+- Per-type pass/fail behavior given D4 verdict storage is deferred.
+
+### Status (end of design Round 2)
+- **`design.md`: FROZEN.**
+- Frozen artifacts: `proposal.md`, `design.md`.
+- Next action: Round 2, batch 3 — write the 4 missing per-type specs
+  (passfail, vmat, cbct, planar) + add edge-case scenarios to all 7; then
+  `@openspec-reviewer`.

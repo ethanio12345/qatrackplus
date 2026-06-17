@@ -58,9 +58,14 @@ command query non-existent tables and columns:
   rewritten per type, not extended.
 - **D3 — PassFail.** Only `AcceptanceCriteria` text is available; stored as
   `string_value`. There is no boolean pass/fail to import.
-- **D4 — Verdict.** Importers read the source `*_Verdict` columns directly
-  (encoding 0/10/30/40/50/60) rather than recomputing pass/fail from tolerance
-  comparison.
+- **D4 — Verdict.** Importers read the source `*_Verdict` columns
+  (encoding 0/10/30/40/50/60) for diagnostic logging during import. The current
+  engine hardcodes `pass_fail='no_tol'` (`myqa_import.py:226`) and has no field
+  to store source verdicts; verdict **storage** is deferred to a future engine
+  enhancement and is out of scope for this change. *(Soft-freeze amendment: D4
+  originally said "read verdict directly"; clarified after source review showed
+  the engine cannot store verdicts without a write-path modification that is
+  not part of this change.)*
 
 ## Scope
 
@@ -75,7 +80,7 @@ command query non-existent tables and columns:
 
 | Importer | Pattern (per `explore-brief.md`) |
 |---|---|
-| Numeric | A — dynamic row-per-condition, split into 2 existing lists |
+| Numeric | A — dynamic row-per-condition, split into 3 existing lists (constancy/physics/dxr) |
 | WinstonLutz | D — direct columns, 2 fixed metrics |
 | MLC | B — denormalized wide-row, 5 metric prefixes |
 | CBCT | B — denormalized wide-row, 9 metric prefixes |

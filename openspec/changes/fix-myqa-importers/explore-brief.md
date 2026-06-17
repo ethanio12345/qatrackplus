@@ -27,10 +27,11 @@
   exists (Key Finding #3). The only data is `AcceptanceCriteria` nvarchar →
   stored as `string_value`. No tolerance. This is a real semantic change from
   the current code's intent (boolean) and must be acknowledged in the proposal.
-- **D4 — Use `*_Verdict` directly, don't recompute pass/fail.** Verdict encoding
-  is consistent across all myQA tables (0/10/30/40/50/60). Importers should
-  read the source `*_Verdict` rather than re-deriving pass/fail from tolerance
-  comparison.
+- **D4 — Read `*_Verdict` for logging; storage deferred.** Verdict encoding is
+  consistent across all myQA tables (0/10/30/40/50/60). Importers read the
+  source `*_Verdict` for diagnostic logging during import. The engine hardcodes
+  `pass_fail='no_tol'` (`myqa_import.py:226`) and has no field to store source
+  verdicts; verdict storage is deferred to a future engine enhancement.
 
 ## The four data-model patterns
 
