@@ -9,9 +9,13 @@ every column name and resolve several contradictions. The previous attempt
 please don't skip any query below.
 
 ## Environment
-- myQA database (production or recent restore). Engine is Sybase SQL Anywhere
-  (uses the `sp_columns` procedure and `systable` catalog).
+- myQA database (production or recent restore). Engine is **Microsoft SQL Server**
+  (verified via `pymssql` against production). Uses `sp_columns`, plus the
+  `syscolumns` / `systypes` / `OBJECT_ID()` catalog functions for Steps 5.3–5.5.
 - Read-only access is fine. **Do not modify any data.**
+- Note: Steps 1–4 below were written before the engine was confirmed and use
+  Sybase-style `systable`; they ran successfully anyway. Step 5 uses proper
+  SQL Server catalog syntax.
 
 ## Step 1 — Discover all myQA tables
 List every candidate table (we don't yet know the VMAT/CBCT/Planar result table
@@ -87,11 +91,87 @@ ORDER BY te.TaskName;
 ```
 We need to settle whether Numeric executions live under `.N%`, `.D%`, or `.D2%`.
 
+## Step 5 — Follow-up (resolve gaps from first dump)
+The first dump (now transcribed into `explore-brief.md`) resolved the
+column-name contradictions but left five gaps. Please run the queries below and
+paste output.
+
+### 5.1 — Numeric task-name patterns (critical)
+We still don't know which task-name prefix selects daily-QA Numeric executions.
+The source uses `.N%`, the main spec uses `.D2%`, and the proposed spec uses `.D%`.
+Settle it:
+
+```sql
+SELECT TOP 30 DISTINCT te.TaskName
+FROM MQA_TestExecutions te
+JOIN MQA_TestImplementationExecutions tie ON te.Id = tie.Id
+JOIN MQA_Numeric_TestConditionExecutions tcne ON tie.Id = tcne.NumericTestExecution_Id
+WHERE te.TaskName LIKE '5.Tmt.Linac.%' OR te.TaskName LIKE '5.Tmt.DXR.%'
+ORDER BY te.TaskName;
+```
+
+### 5.2 — One sample row from each results/condition table
+Tolerance format (fraction vs percent), `Verdict` encoding (0/1 vs 1/2), and real
+`Name` strings all need to be seen. For each table, run `SELECT TOP 1 *` and paste
+the column=value list:
+
+```sql
+SELECT TOP 1 * FROM MQA_Numeric_TestConditionExecutions;
+SELECT TOP 1 * FROM MQA_PassFail_TestExecutions;
+SELECT TOP 1 * FROM MQA_MDL_Cbct_Results;
+SELECT TOP 1 * FROM MQA_MDL_Planar_Results;
+SELECT TOP 1 * FROM MQA_MDL_VmatDmlc_Results;
+```
+
+### 5.3 — Full VMAT column list (critical)
+The first dump captured `RoiMean` / `RoiStandardDeviation` tolerance columns but
+**no corresponding `_Result_Value_Value` or `_ExpectedValue_Value`**. Without the
+measured-value column, VMAT can't be implemented. List every column so we can find
+where the measured value lives:
+
+```sql
+SELECT c.name, t.name AS type, c.length, c.is_nullable
+FROM syscolumns c
+JOIN systypes t ON c.xtype = t.xtype
+WHERE c.id = OBJECT_ID('MQA_MDL_VmatDmlc_Results')
+ORDER BY c.colorder;
+```
+
+### 5.4 — CBCT / Planar non-conforming columns
+Several columns don't fit the `{Metric}_Result_Value_Value` pattern
+(`SliceWidthDifference_Value`, `MaxHuDeviationRoi`, `MinUniformityRoi`,
+`EnergyType`, `EnergyValue`). To confirm what exists and which need their own
+slugs, dump full columns for both tables:
+
+```sql
+SELECT 'CBCT' AS src, c.name, t.name AS type, c.length
+FROM syscolumns c JOIN systypes t ON c.xtype = t.xtype
+WHERE c.id = OBJECT_ID('MQA_MDL_Cbct_Results')
+UNION ALL
+SELECT 'Planar', c.name, t.name AS type, c.length
+FROM syscolumns c JOIN systypes t ON c.xtype = t.xtype
+WHERE c.id = OBJECT_ID('MQA_MDL_Planar_Results')
+ORDER BY src, c.name;
+```
+
+### 5.5 — Wedge tolerance column (sanity check)
+The first dump hedged between `Tolerance_Warn`, `WarningTolerance`, and `WarnOn`
+on `MQA_Dosimetry_Wedge_TestExecutions`. Wedge is out of scope, but settle it so
+the schema reference is internally consistent:
+
+```sql
+SELECT c.name
+FROM syscolumns c
+WHERE c.id = OBJECT_ID('MQA_Dosimetry_Wedge_TestExecutions')
+  AND (c.name LIKE '%Tolerance%' OR c.name LIKE 'Warn%' OR c.name LIKE 'Fail%');
+```
+
 ## Output format
 Paste raw query output. No need to format — as long as table and column names are
 unambiguous.
 
 ## Where it goes
-Results get transcribed into
-`openspec/changes/fix-myqa-importers/explore-brief.md` as the verified-schema
-baseline, which unblocks the proposal/design/specs revision.
+Results get appended into
+`openspec/changes/fix-myqa-importers/explore-brief.md` (schema reference section)
+and feed the slug→column mapping tables in the design exploration, which unblocks
+the proposal/design/specs revision.
