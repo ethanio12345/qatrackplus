@@ -233,3 +233,49 @@ IsDeleted         bit
 11. **WinstonLutz: `MaximumDeviation2D` and `Deviation3D`** (direct columns, not nested)
 12. **Units table is `UST_Units`** (not `MQA_Units` or `MQA_TestUnits`)
 13. **Protocol table is `MQA_ProtocolDefinitions`** (not `MQA_TestProtocols`)
+
+## Additional Findings
+
+### VMAT RoiResults Sub-table
+Measured values for RoiMean/RoiStandardDeviation live in a **child table** `MQA_MDL_VmatDmlc_RoiResults`, linked via `VmatDmlcResult_Id`. Columns:
+```
+Id                             uniqueidentifier PK
+VmatDmlcResult_Id              uniqueidentifier FK -> MQA_MDL_VmatDmlc_Results.Id
+ROIId                          nvarchar
+Name                           nvarchar  -- e.g. "[2.0 cm/s]" or "[111 MU/min]"
+Rank                           int
+Mean_Value_Value               float  -- actual measured mean
+Mean_Value_Dimension           int
+Mean_Verdict                   int
+StandardDeviation_Value_Value  float  -- actual measured std dev
+StandardDeviation_Value_Dimension int
+StandardDeviation_Verdict      int
+```
+
+### Verdict Encoding
+Consistent across all myQA tables:
+| Value | Meaning |
+|-------|---------|
+| `0`   | Unknown / untested |
+| `10`  | Queued |
+| `30`  | Running |
+| `40`  | Pass |
+| `50`  | Warning / tolerance exceeded |
+| `60`  | Fail |
+
+`TestResult` and individual metric `*_Verdict` columns all follow this pattern.
+
+### Profile QIE Trailing Spaces
+Two column names in `MQA_Dosimetry_Profile_QueueItemExecutions` have a literal trailing space (confirmed via hex dump):
+- `ReferencePointInnerPercentageOfHalfFieldWidth ` (note space before closing backtick)
+- `ReferencePointOuterPercentageOfHalfFieldWidth `
+
+Must be quoted in SQL: `[ReferencePointInnerPercentageOfHalfFieldWidth ]`
+
+### Numeric Daily QA Task Name Pattern
+Confirmed from actual data (Step 5.1 query):
+- `5.Tmt.Linac.D - myQA Daily Constancy Check` — `.D` suffix
+- `5.Tmt.DXR.D - myQA Daily Constancy Check` — `.D` suffix
+- `5.Tmt.Linac.D2 - Daily QA (Physics)` — `.D2` suffix (separate task)
+- `5.Tmt.Linac.D` matches the proposed spec's `.D%` prefix filter
+- `5.Tmt.Linac.D2` would need `.D2%` or would be caught by `.D%` (`.` is wildcard in LIKE)
