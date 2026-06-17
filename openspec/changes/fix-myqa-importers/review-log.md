@@ -96,7 +96,75 @@ Outstanding:
 5. Re-order `tasks.md` (setup-before-backfill per type, fill TBDs, split 5.1,
    add test tasks). Freeze.
 
-### Status
+### Status (end of Round 1)
 - Frozen artifacts: **none**
-- Next action: await schema dump from production, write `explore-brief.md`, then
-  begin proposal revision (Round 2 review of `proposal.md`)
+- Round 1 blockers: 6 cross-cutting (see above)
+
+---
+
+## Round 1 follow-up — 2026-06-17 (after schema dump + setup reconcile)
+
+**Trigger:** Production schema dump transcribed into `schema-reference.md`; 5
+follow-up queries (Step 5) answered; `setup_myqa_tests.py` re-read against
+verified schema. New `explore-brief.md` written with mapping tables.
+
+### 🔴 Resolved (no longer outstanding)
+- **`MQA_TestConditions` confirmed NOT to exist.** Round 1 issue #2 closed. The
+  design's "TABLE MISSING" diagnosis was correct.
+- **Numeric tolerance columns confirmed `WarnOn`/`FailOn`** (not
+  `WarningTolerance`/`ErrorTolerance`). Round 1 design issue closed.
+- **MLC FK confirmed `MlcQATestExecutionBase_Id` → `MQA_MDL_MlcQA_TestExecutions.Id`
+  → TIE.** Neither current code (`MlcQAQueueItemExecution_Id`) nor the proposed
+  spec (direct to TIE) matched; both were wrong. Round 1 specs/mlc R2 issue closed.
+- **WinstonLutz columns confirmed** (`MaximumDeviation2D`, `Deviation3D`,
+  `Tolerance_Warn`, `Tolerance_Fail`). 2 metrics are exhaustive (direct columns,
+  not denormalized).
+- **4 missing importer tables discovered** (PassFail, VMAT, CBCT, Planar) with
+  full column lists. Round 1 cross-cutting #1 has the raw material to close.
+- **VMAT measured-value gap closed** — `RoiMean`/`RoiStandardDeviation` live in
+  child table `MQA_MDL_VmatDmlc_RoiResults` linked via `VmatDmlcResult_Id`.
+- **Task-name pattern issue closed** — `.D` (Constancy) and `.D2` (Physics) both
+  carry Numeric data; `.D%` cannot distinguish them.
+
+### 🔴 New findings (worse than Round 1 thought)
+- **`setup_myqa_tests.py:77-87` is triple-broken, not just incomplete.** The
+  Numeric setup query references a non-existent table (`MQA_TestConditions`),
+  non-existent columns (`tcne.WarningTolerance`/`ErrorTolerance`), and
+  non-existent FK columns (`tcne.TestCondition_Id`,
+  `tcne.TestImplementationExecution_Id`). Real columns: `tcne.WarnOn`/`FailOn`,
+  `tcne.NumericTestExecution_Id`, `tcne.Name` (direct). Plus
+  `setup_myqa_tests.py:148-150` explicitly SKIPs all non-Numeric types.
+  Conclusion: setup needs a **rewrite** + new per-type code paths, not the
+  proposal's "extend". (Decision D2 in explore-brief.)
+- **VMAT is Pattern C (child-table fan-out), not Pattern B (wide-row).** The
+  Round 1 assumption that all denormalized types share one pattern was wrong.
+  VMAT design must iterate ROI child rows. (Decision in explore-brief mapping.)
+- **`.D%` filter breadth.** `5.Tmt.Linac.D%` matches both Constancy (`.D`) and
+  Physics (`.D2`). The schema-reference.md previously claimed `.` is a wildcard
+  in LIKE — **corrected**: `.` is literal; `%` swallows the `2 - Daily QA
+  (Physics)` suffix. Either way, `.D%` cannot split the two task types.
+
+### 🟡 Decisions taken (documented in explore-brief.md, reversible via unfreeze)
+- **D1 — Numeric split** into existing `myqa_daily_constancy` (`.D`) and
+  `myqa_daily_physics` (`.D2`). `myqa_numeric` slug deleted. Resolves Round 1
+  cross-cutting #4.
+- **D2 — Setup rewrite**, not extend.
+- **D3 — PassFail stores `AcceptanceCriteria` text** (no `PassStatus` column).
+- **D4 — Read `*_Verdict` directly** (encoding 0/10/30/40/50/60).
+
+### 🟡 Still outstanding (must be resolved during Round 2 batched revision)
+- Proposal "Files Affected" still says "extend setup"; needs rewrite per D2.
+- design.md Numeric query still in bulk form; needs per-`execution_id` rewrite.
+- 4 missing specs (PassFail/VMAT/CBCT/Planar) not yet written.
+- tasks.md: Phase 2/3 backfills still depend on Phase 5 setup; TBD columns
+  (`...`) in Task 3.2; Task 5.1 still >2h bundled; no test tasks.
+- Open questions in explore-brief.md (MLC tolerance-only columns, CBCT/Planar
+  non-conforming columns, VMAT slugification, `IsDeleted` filter).
+
+### Status (end of Round 1 follow-up)
+- Frozen artifacts: **none**.
+- Baseline artifacts now in place: `schema-reference.md` (verified schema),
+  `explore-brief.md` (mapping tables + decisions D1–D4).
+- Next action: Round 2 — revise `proposal.md` to reflect D1–D4 and the
+  setup-rewrite reality, then send to `@openspec-reviewer` for the proposal
+  batch freeze decision.

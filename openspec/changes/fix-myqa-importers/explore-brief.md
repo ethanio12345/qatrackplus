@@ -1,281 +1,198 @@
-# myQA Schema Reference (Verified)
+# Explore Brief — fix-myqa-importers
 
-> Database: SQL Server (not Sybase). Verified via `pymssql` against production myQA DB.
+> Verified schema lives in `schema-reference.md`. This brief captures the design
+> commitments, mapping tables, rejected alternatives, data flow, and open
+> questions that the proposal/design/specs/tasks must be checked against.
 
-## Table Inventory
+## Decisions (authoritative for downstream artifacts)
 
-### Execution-Type Tables
+- **D1 — Numeric list strategy = SPLIT (option b).** Numeric executions live
+  under both `.D` (Constancy) and `.D2` (Physics) task names. They map to the
+  **existing** main-spec lists, not a new `myqa_numeric` slug:
+  - `5.Tmt.Linac.D` + `5.Tmt.DXR.D` → `myqa_daily_constancy`
+  - `5.Tmt.Linac.D2` → `myqa_daily_physics`
+  - The proposed `myqa_numeric` slug is **deleted** from all artifacts. This
+    resolves the Round 1 slug conflict with the frozen main spec.
+  - *Override: if the user wants (a) one combined list or (c) only one task,
+    unfreeze from proposal downward.*
+- **D2 — Setup is rewritten, not extended.** `setup_myqa_tests.py` currently
+  has a triple-broken Numeric query (`MQA_TestConditions` doesn't exist;
+  `WarningTolerance`/`ErrorTolerance` should be `WarnOn`/`FailOn`;
+  `TestCondition_Id`/`TestImplementationExecution_Id` should be
+  `NumericTestExecution_Id`) and explicitly `SKIP`s every non-Numeric type
+  (`setup_myqa_tests.py:148-150`). The proposal's "extend" framing is wrong:
+  Numeric needs a fix, the other 6 types need new code paths.
+- **D3 — PassFail stores `AcceptanceCriteria` text.** No `PassStatus` column
+  exists (Key Finding #3). The only data is `AcceptanceCriteria` nvarchar →
+  stored as `string_value`. No tolerance. This is a real semantic change from
+  the current code's intent (boolean) and must be acknowledged in the proposal.
+- **D4 — Use `*_Verdict` directly, don't recompute pass/fail.** Verdict encoding
+  is consistent across all myQA tables (0/10/30/40/50/60). Importers should
+  read the source `*_Verdict` rather than re-deriving pass/fail from tolerance
+  comparison.
 
-| Type | Table | FK/Result Link |
-|------|-------|----------------|
-| **Numeric** | `MQA_Numeric_TestConditionExecutions` | `NumericTestExecution_Id` -> `MQA_TestImplementationExecutions.Id` |
-| **PassFail** | `MQA_PassFail_TestExecutions` | `Id` -> `MQA_TestImplementationExecutions.Id` |
-| **Profile** | `MQA_Dosimetry_Profile_Results` | `ProfileQueueItemExecution_Id` -> `MQA_Dosimetry_Profile_QueueItemExecutions.Id` |
-| **Energy** | `MQA_Dosimetry_Energy_TestExecutions` | `Id` -> `MQA_TestImplementationExecutions.Id` |
-| **Wedge** | `MQA_Dosimetry_Wedge_TestExecutions` | `Id` -> `MQA_TestImplementationExecutions.Id` |
-| **Output** | `MQA_Dosimetry_Output_TestExecutions` | `Id` -> `MQA_TestImplementationExecutions.Id` |
-| **MLC** | `MQA_MDL_MlcQA_Results` | `MlcQATestExecutionBase_Id` -> `MQA_MDL_MlcQA_TestExecutions.Id` |
-| **CBCT** | `MQA_MDL_Cbct_Results` | `Id` -> `MQA_MDL_Cbct_TestExecutions.Id` (same UUID) |
-| **Planar** | `MQA_MDL_Planar_Results` | `Id` -> `MQA_MDL_Planar_TestExecutions.Id` (same UUID) |
-| **VMAT** | `MQA_MDL_VmatDmlc_Results` | `Id` -> `MQA_MDL_VmatDmlc_TestExecutions.Id` (same UUID) |
-| **WinstonLutz** | `MQA_IsoCheck_WinstonLutz_TestExecutions` | `Id` -> `MQA_TestImplementationExecutions.Id` |
+## The four data-model patterns
 
-### Common Tables
+| Pattern | Types | Row shape | Slug strategy | Setup strategy |
+|---|---|---|---|---|
+| **A. Dynamic row-per-condition** | Numeric | 1 exec → N rows | dynamic, from `Name` | `SELECT DISTINCT tcne.Name` + corrected cols |
+| **B. Fixed denormalized wide-row** | MLC, CBCT, Planar | 1 exec → 1 wide row | static `METRICS` dict | iterate `METRICS` (no discovery query — no `Name` col) |
+| **C. Child-table fan-out (hybrid)** | VMAT | 1 exec → 1 parent + N child rows | parent static; child dynamic from ROI `Name` | static parent + `SELECT DISTINCT Name` from child |
+| **D. Direct simple columns** | WinstonLutz, PassFail | 1 exec → 1 row | static fixed list | hardcoded list |
 
-| Table | Purpose |
-|-------|---------|
-| `MQA_TestImplementationExecutions` | Bridge: all type-specific execution tables join here |
-| `MQA_TestExecutions` | Root execution metadata (TaskName, FinishingDate, etc.) |
-| `MQA_TaskExecutions` | Task-level metadata |
-| `MQA_DefinitionsRoots` | Schema root |
-| `MQA_ProtocolDefinitions` | Protocol definition |
-| `UST_Units` | Unit settings (serialized JSON) |
+## Per-type mapping tables
 
-## Join Paths
+### Numeric (Pattern A) — two lists per D1
 
-### Standard Pattern (most types)
-```
-<Type>_TestExecutions/Results
-  JOIN MQA_TestImplementationExecutions tie ON <type>.Id = tie.Id
-  JOIN MQA_TestExecutions te ON tie.Id = te.Id
-```
+| Item | Value |
+|---|---|
+| Lists | `myqa_daily_constancy` (task patterns `5.Tmt.Linac.D`, `5.Tmt.DXR.D`); `myqa_daily_physics` (`5.Tmt.Linac.D2`) |
+| Test slug | dynamic: `slugify_name(list_slug, tcne.Name)` |
+| Value | `tcne.Actual` |
+| Reference | `tcne.Expected` |
+| Warn / Fail tol | `tcne.WarnOn`, `tcne.FailOn` |
+| Tendency / Bounding / Relative | `tcne.LimitTendency`, `tcne.BoundingType`, `tcne.IsRelative` |
+| JOIN | `tcne.NumericTestExecution_Id = tie.Id = te.Id` |
+| Setup query | `SELECT DISTINCT tcne.Name, tcne.WarnOn, tcne.FailOn, tcne.BoundingType, tcne.IsRelative, tcne.LimitTendency FROM MQA_Numeric_TestConditionExecutions tcne JOIN MQA_TestImplementationExecutions tie ON tcne.NumericTestExecution_Id = tie.Id JOIN MQA_TestExecutions te ON tie.Id = te.Id WHERE te.TaskName LIKE %s` |
+| Importer `extract_results(execution_id)` | per-execution: `WHERE tcne.NumericTestExecution_Id = %s` (NOT a bulk `TaskName LIKE` — see rejected alt A1) |
 
-### Numeric
-```
-MQA_Numeric_TestConditionExecutions tcne
-  JOIN MQA_TestImplementationExecutions tie ON tcne.NumericTestExecution_Id = tie.Id
-  JOIN MQA_TestExecutions te ON tie.Id = te.Id
-```
+### WinstonLutz (Pattern D)
 
-### Profile (multi-table path)
-```
-MQA_Dosimetry_Profile_Results pr
-  JOIN MQA_Dosimetry_Profile_QueueItemExecutions qie ON pr.ProfileQueueItemExecution_Id = qie.Id
-  JOIN MQA_Dosimetry_Profile_TestExecutions pte ON qie.Id = pte.ProfileQueueItem_Id
-  JOIN MQA_TestImplementationExecutions tie ON pte.Id = tie.Id
-  JOIN MQA_TestExecutions te ON tie.Id = te.Id
-```
+| Item | Value |
+|---|---|
+| List | `myqa_winston_lutz` (new) |
+| Static slugs | `myqa_winston_lutz_max_deviation_2d`, `myqa_winston_lutz_deviation_3d` |
+| Values | `MaximumDeviation2D`, `Deviation3D` |
+| Warn / Fail tol (shared) | `Tolerance_Warn`, `Tolerance_Fail` |
+| JOIN | standard: `Id = tie.Id = te.Id` |
+| Setup | hardcoded 2-test list, shared tolerance |
 
-### MLC
-```
-MQA_MDL_MlcQA_Results r
-  JOIN MQA_MDL_MlcQA_TestExecutions mte ON r.MlcQATestExecutionBase_Id = mte.Id
-  JOIN MQA_TestImplementationExecutions tie ON mte.Id = tie.Id
-  JOIN MQA_TestExecutions te ON tie.Id = te.Id
-```
+### MLC (Pattern B)
 
-## Column Schemas
+| Item | Value |
+|---|---|
+| List | `myqa_mlc` (new) |
+| Static metric prefixes | `FailingPeaks`, `MaximumDeviation`, `InterstripRatio`, `StandardDeviation`, `IsocenterToStripDistance` (each has `_Result_Value_Value`, `_Result_Verdict`, `_AcceptanceCriterion_Tolerances_Warn_Value`, `_Fail_Value`) |
+| Loose columns (own slugs) | `TestResult` (verdict-only), `TotalPeaks`, `LeavesThatFailed` (string) |
+| JOIN | `r.MlcQATestExecutionBase_Id = mte.Id → tie.Id = te.Id` (extra hop through `MQA_MDL_MlcQA_TestExecutions`) |
+| Setup | iterate `METRICS` dict; for each prefix, read the 4-tuple columns |
 
-### MQA_Numeric_TestConditionExecutions
-```
-Id          uniqueidentifier PK
-WarnOn      float   -- tolerance warning threshold
-FailOn      float   -- tolerance error threshold
-Actual      float   -- measured value
-Expected    float   -- reference value
-Name        nvarchar  -- condition name (e.g. "Field Width (crossline)")
-NumericTestExecution_Id uniqueidentifier FK -> MQA_TestImplementationExecutions
-LimitTendency, BoundingType, IsRelative, Dimension, State, RowVersion, TestConditionTemplateId
-```
+### CBCT (Pattern B)
 
-### MQA_PassFail_TestExecutions
-```
-Id                uniqueidentifier PK (also FK -> TIE)
-AcceptanceCriteria nvarchar  -- text description, may be NULL
-```
+| Item | Value |
+|---|---|
+| List | `myqa_cbct` (new) |
+| Static metric prefixes (9) | `ScalingDiscrepancy`, `GeometricDistortion`, `SpatialResolution`, `OverallUniformity`, `MinimumUniformity`, `Contrast`, `CNR`, `MaxHuDeviation`, `MeasuredSliceWidth` |
+| Non-conforming | `SliceWidthDifference_Value` / `_Dimension` (own slug, no verdict/tol); `MaxHuDeviationRoi`, `MinUniformityRoi` (metadata, no slug); `EnergyType`, `EnergyValue`, `TestResult` (metadata) |
+| JOIN | same-UUID: `r.Id = tie.Id = te.Id` |
+| Setup | iterate `METRICS` + special-case `SliceWidthDifference` |
 
-### MQA_Dosimetry_Profile_Results
-```
-Id                           uniqueidentifier PK
-ProfileQueueItemExecution_Id uniqueidentifier FK -> MQA_Dosimetry_Profile_QueueItemExecutions
-DisplayName                  nvarchar  -- metric name
-Actual                       float
-Expected                     float
-Warn                         float  -- tolerance warning
-Fail                         float  -- tolerance error
-State, Dimension, ProfileDirection, RowVersion
-```
+### Planar (Pattern B)
 
-### MQA_Dosimetry_Energy_TestExecutions
-```
-Id               uniqueidentifier PK (also FK -> TIE)
-RadiationDeviceId uniqueidentifier
-WarningTolerance  float  -- note: WarningTolerance, NOT WarnOn
-ErrorTolerance    float  -- note: ErrorTolerance, NOT FailOn
-InlineFieldSize, CrosslineFieldSize, IsAbsolute, GantryAngle
-```
+| Item | Value |
+|---|---|
+| List | `myqa_planar` (new) |
+| Static metric prefixes (7) | `ScalingDiscrepancy`, `SpatialResolution`, `MinimumUniformity`, `Contrast`, `CNR`, `XOffset`, `YOffset` |
+| Non-conforming | `MinUniformityRoi`, `TestResult`, `EnergyType`, `EnergyValue` (metadata, no slug) |
+| JOIN | same-UUID: `r.Id = tie.Id = te.Id` |
+| Setup | iterate `METRICS` |
 
-### MQA_Dosimetry_Output_TestExecutions
-```
-Id               uniqueidentifier PK (also FK -> TIE)
-RadiationDeviceId uniqueidentifier
-WarningTolerance  float
-ErrorTolerance    float
-InlineFieldSize, CrosslineFieldSize, IsAbsolute, GantryAngle
-```
+### VMAT (Pattern C — hybrid)
 
-### MQA_Dosimetry_Wedge_TestExecutions
-```
-Id               uniqueidentifier PK (also FK -> TIE)
-Tolerance_Warn    float  -- note: Tolerance_Warn, WarningTolerance, or WarnOn
-Tolerance_Fail    float  -- note: Tolerance_Fail
-Tolerance_Dimension, InlineFieldSize, CrosslineFieldSize, RadiationDeviceId
-BeamQuality_EnergyValue, BeamQuality_EnergyDimension, GantryAngle
-```
+| Item | Value |
+|---|---|
+| List | `myqa_vmat` (new) |
+| Parent metric (static) | `NormalizationValue` — value `NormalizationValueResult_Value_Value`, verdict `_Verdict`, warn/fail `NormalizationValueAcceptanceCriterion_Tolerances_Warn/Fail_Value`, expected `NormalizationValueAcceptanceCriterion_ExpectedValue_Value` |
+| Child metrics (dynamic per ROI) | from `MQA_MDL_VmatDmlc_RoiResults`: `Mean_Value_Value`, `Mean_Verdict`, `StandardDeviation_Value_Value`, `StandardDeviation_Verdict`; tolerances from parent table `RoiMeanAcceptanceCriterion_Tolerances_Warn/Fail_Value`, `RoiStandardDeviationAcceptanceCriterion_Tolerances_Warn/Fail_Value` |
+| ROI slug derivation | `slugify_name(list_slug, rr.Name)` — strip brackets from `[2.0 cm/s]` first |
+| JOIN parent | same-UUID: `r.Id = tie.Id = te.Id` |
+| JOIN child | `rr.VmatDmlcResult_Id = r.Id` |
+| Setup | static for `NormalizationValue`; `SELECT DISTINCT rr.Name` from child table for ROI metrics |
 
-### MQA_MDL_MlcQA_Results
-```
-Id uniqueidentifier PK
-MlcQATestExecutionBase_Id uniqueidentifier FK -> MQA_MDL_MlcQA_TestExecutions
-FailingPeaks_Result_Value_Value                         float  -- failing leaf count
-FailingPeaks_Result_Verdict                             int    -- pass/fail status
-FailingPeaks_AcceptanceCriterion_Tolerances_Warn_Value  float  -- warn threshold
-FailingPeaks_AcceptanceCriterion_Tolerances_Fail_Value  float  -- fail threshold
-MaximumDeviation_Result_Value_Value                     float  -- max deviation in mm
-MaximumDeviation_Result_Verdict                         int
-MaximumDeviation_AcceptanceCriterion_Tolerances_Warn_Value  float
-MaximumDeviation_AcceptanceCriterion_Tolerances_Fail_Value  float
-TestResult                  int    -- overall test result
-TotalPeaks                  float
-LeavesThatFailed            nvarchar
-MlcTolerance_Value, MlcTolerance_Dimension, GantryAngle_Value
-InterstripRatio_* (same structure as FailingPeaks)
-StandardDeviation_* (same structure)
-IsocenterToStripDistance_* (same structure)
-LineDistanceAcceptanceCriterion_* (warn/fail values)
-LineSlopeAcceptanceCriterion_* (warn/fail values)
-AreStripeNumbersMissmatched
-```
+### PassFail (Pattern D, degenerate)
 
-### MQA_MDL_Cbct_Results
+| Item | Value |
+|---|---|
+| List | `myqa_passfail` (new) |
+| Static slug | `myqa_passfail_acceptance_criteria` |
+| Value | `AcceptanceCriteria` (nvarchar → `string_value`) |
+| Tolerance | none (no numeric value, no tolerance columns) |
+| JOIN | standard: `Id = tie.Id = te.Id` |
+| Setup | hardcoded 1-test list, no tolerance |
+
+## Rejected alternatives
+
+- **A1 — Bulk `WHERE TaskName LIKE` in `extract_results`.** Rejected: the engine
+  calls `extract_results(execution_id)` once per session and constrains by
+  `TaskExecutionId`/`NumericTestExecution_Id`. A bulk query returns the wrong
+  row cardinality. Task-name filtering belongs in `query_new_sessions`, not
+  `extract_results`. (This was the design.md error.)
+- **A2 — Dynamic `DisplayName` scan for all types.** Rejected: only Numeric has
+  a `Name` column. MLC/CBCT/Planar metric names exist only as column-name
+  prefixes, not row values. There is nothing to `SELECT DISTINCT`.
+- **A3 — Uniform denormalized `METRICS` for all denormalized types.** Rejected:
+  VMAT has a child-table fan-out that breaks the wide-row assumption; CBCT and
+  Planar have non-conforming columns (`SliceWidthDifference`, `*Roi`) that need
+  special handling. Each Pattern-B type needs its own `METRICS` dict + edge cases.
+- **A4 — Single `myqa_numeric` list.** Rejected per D1: conflicts with the
+  frozen main spec's `myqa_daily_physics` / `myqa_daily_constancy` and would
+  merge Constancy + Physics data into one list.
+- **A5 — Store PassFail as boolean.** Rejected per D3: `PassStatus` column
+  doesn't exist; only `AcceptanceCriteria` text is available.
+- **A6 — Extend `setup_myqa_tests.py`.** Rejected per D2: the Numeric path is
+  triple-broken and non-Numeric is stub-skipped. Needs rewrite + new code paths.
+
+## Cross-module data flow
+
 ```
-Id  uniqueidentifier PK (same UUID as MQA_MDL_Cbct_TestExecutions.Id)
-ScalingDiscrepancy_Result_Value_Value  float
-ScalingDiscrepancy_Result_Verdict      int
-ScalingDiscrepancy_AcceptanceCriterion_Tolerances_Warn_Value  float
-ScalingDiscrepancy_AcceptanceCriterion_Tolerances_Fail_Value  float
-GeometricDistortion_* (same structure)
-SpatialResolution_* (same structure)
-OverallUniformity_* (same structure)
-MinimumUniformity_* (same structure)
-Contrast_* (same structure)
-CNR_* (same structure)
-MaxHuDeviation_* (same structure)
-MeasuredSliceWidth_* (same structure)
-SliceWidthDifference_Value, SliceWidthDifference_Dimension
-MaxHuDeviationRoi, MinUniformityRoi, TestResult, EnergyType, EnergyValue
+[one-shot setup]
+setup_myqa_tests.py
+  ├─ Numeric:  SELECT DISTINCT tcne.Name + tolerance cols (corrected query)
+  ├─ Pattern B (MLC/CBCT/Planar): iterate static METRICS dict
+  ├─ Pattern C (VMAT): static parent + SELECT DISTINCT child.Name
+  ├─ Pattern D (WL/PassFail): hardcoded slug list
+  └─ creates: TestList, Test, Tolerance (where applicable), TestListMembership, UnitTestCollection
+
+[per-import run]
+myqa_import.py engine
+  ├─ query_new_sessions(task_name_patterns, device)  → list of execution_ids
+  │     (this is where TaskName LIKE + RadiationDevice filtering happens)
+  ├─ for each execution_id:
+  │     extract_results(execution_id)  → list of (test_slug, value, verdict, tolerance?)
+  └─ engine writes TestListInstance + TestInstance rows keyed by slug
 ```
 
-### MQA_MDL_Planar_Results
-```
-Id  uniqueidentifier PK (same UUID as MQA_MDL_Planar_TestExecutions.Id)
-ScalingDiscrepancy_* (same structure as CBCT)
-SpatialResolution_* (same structure)
-MinimumUniformity_* (same structure)
-Contrast_* (same structure)
-CNR_* (same structure)
-XOffset_Result_Value_Value, XOffset_Result_Verdict, XOffset_AcceptanceCriterion_Tolerances_Warn/Fail_Value
-YOffset_Result_Value_Value, YOffset_Result_Verdict, YOffset_AcceptanceCriterion_Tolerances_Warn/Fail_Value
-MinUniformityRoi, TestResult, EnergyType, EnergyValue
-```
+Key invariant: **task-name and device filtering happens in `query_new_sessions`,
+NOT in `extract_results`.** `extract_results` is always scoped to one
+`execution_id`. Design/specs that show `TaskName LIKE` inside `extract_results`
+are wrong.
 
-### MQA_MDL_VmatDmlc_Results
-```
-Id  uniqueidentifier PK (same UUID as MQA_MDL_VmatDmlc_TestExecutions.Id)
-TestResult                          int
-NormalizationValueResult_Verdict    int
-NormalizationValueAcceptanceCriterion_ExpectedValue_Value  float
-NormalizationValueAcceptanceCriterion_Tolerances_Warn_Value  float
-NormalizationValueAcceptanceCriterion_Tolerances_Fail_Value  float
-NormalizationValueResult_Value_Value   float
-RoiMeanAcceptanceCriterion_Tolerances_Warn_Value   float
-RoiMeanAcceptanceCriterion_Tolerances_Fail_Value   float
-RoiStandardDeviationAcceptanceCriterion_Tolerances_Warn_Value  float
-RoiStandardDeviationAcceptanceCriterion_Tolerances_Fail_Value  float
-```
+## Open questions
 
-### MQA_IsoCheck_WinstonLutz_TestExecutions
-```
-Id                uniqueidentifier PK (also FK -> TIE)
-MaximumDeviation2D float
-Deviation3D        float
-Tolerance_Warn     float
-Tolerance_Fail     float
-Tolerance_Dimension, SourceDetectorDistance, SourceAxisDistance, DotsPerInch, Expected
-```
+1. **MLC `LineDistanceAcceptanceCriterion_*` / `LineSlopeAcceptanceCriterion_*`
+   (schema-reference.md:145-146)** — listed as warn/fail values with no
+   corresponding `_Result_Value_Value`. Are these tolerance-only (no metric), or
+   is there a paired result column not captured? Needs confirmation before MLC
+   `METRICS` is finalized.
+2. **CBCT/Planar non-conforming columns** (`SliceWidthDifference_Value`,
+   `MaxHuDeviationRoi`, `MinUniformityRoi`, `EnergyType`, `EnergyValue`) —
+   confirm which get their own test slug vs. which are pure metadata. Current
+   assumption above: only `SliceWidthDifference` gets a slug; rest are metadata.
+3. **VMAT ROI `Name` slugification** — values like `[2.0 cm/s]`, `[111 MU/min]`
+   contain brackets, slashes, units. Confirm slugify rules (strip brackets?
+   replace `/`? keep units?).
+4. **`IsDeleted` flag** on `MQA_TestExecutions` — should importers filter
+   `WHERE IsDeleted = 0`? Current engine does not. Silent inclusion risk.
+5. **Profile QIE trailing-space columns** (schema-reference.md "Profile QIE
+   Trailing Spaces") — confirm the working Profile importer already bracket-quotes
+   them. Out of scope but worth a one-line check.
+6. **Energy/Wedge/Output** — out of scope per proposal, but their tolerance
+   columns differ (`WarningTolerance`/`ErrorTolerance` for Energy/Output;
+   `Tolerance_Warn`/`Tolerance_Fail` for Wedge, unverified). If the change
+   touches the shared `get_or_create_tolerance` helper, ensure no regression.
 
-### MQA_TestExecutions (selected columns)
-```
-Id               uniqueidentifier PK
-TaskName         nvarchar  -- fully qualified task name
-FinishingDate    datetime  -- when test was performed
-RadiationDeviceName, RadiationDeviceVendor, RadiationDeviceModel
-ClinicName, ProtocolName, ProtocolTag, FinishingUser
-Description, State, OriginalState, Name, TestImplementationExecutionType
-TaskExecutionId   uniqueidentifier FK -> MQA_TaskExecutions
-RadiationDeviceId uniqueidentifier
-ReferenceDate     datetime
-IsDeleted         bit
-```
+## Status
 
-## Key Findings vs Current Code
-
-1. **`MQA_TestConditions` does NOT exist** — `Name` is directly on `MQA_Numeric_TestConditionExecutions`
-2. **`MQA_Numeric_TestConditionExecutions` uses `WarnOn`/`FailOn`** (not `WarningTolerance`/`ErrorTolerance`)
-3. **`MQA_PassFail_TestExecutions` has only `Id, AcceptanceCriteria`** — no `PassStatus` column
-4. **Profile table is `MQA_Dosimetry_Profile_Results`** (not `MQA_Profiler_TestExecutions`)
-5. **Energy table is `MQA_Dosimetry_Energy_TestExecutions`** with `WarningTolerance`/`ErrorTolerance`
-6. **Output table is `MQA_Dosimetry_Output_TestExecutions`** with `WarningTolerance`/`ErrorTolerance`
-7. **Wedge table is `MQA_Dosimetry_Wedge_TestExecutions`** with `Tolerance_Warn`/`Tolerance_Fail`
-8. **MLC: `MQA_MDL_MlcQA_Results`** — `MlcQATestExecutionBase_Id` FK to `MQA_MDL_MlcQA_TestExecutions`
-9. **MLC uses denormalized metric columns** (`FailingPeaks_AcceptanceCriterion_Tolerances_Warn_Value` etc.)
-10. **CBCT/Planar/VMAT: Results.Id = TestExecution.Id** (same UUID, no separate FK)
-11. **WinstonLutz: `MaximumDeviation2D` and `Deviation3D`** (direct columns, not nested)
-12. **Units table is `UST_Units`** (not `MQA_Units` or `MQA_TestUnits`)
-13. **Protocol table is `MQA_ProtocolDefinitions`** (not `MQA_TestProtocols`)
-
-## Additional Findings
-
-### VMAT RoiResults Sub-table
-Measured values for RoiMean/RoiStandardDeviation live in a **child table** `MQA_MDL_VmatDmlc_RoiResults`, linked via `VmatDmlcResult_Id`. Columns:
-```
-Id                             uniqueidentifier PK
-VmatDmlcResult_Id              uniqueidentifier FK -> MQA_MDL_VmatDmlc_Results.Id
-ROIId                          nvarchar
-Name                           nvarchar  -- e.g. "[2.0 cm/s]" or "[111 MU/min]"
-Rank                           int
-Mean_Value_Value               float  -- actual measured mean
-Mean_Value_Dimension           int
-Mean_Verdict                   int
-StandardDeviation_Value_Value  float  -- actual measured std dev
-StandardDeviation_Value_Dimension int
-StandardDeviation_Verdict      int
-```
-
-### Verdict Encoding
-Consistent across all myQA tables:
-| Value | Meaning |
-|-------|---------|
-| `0`   | Unknown / untested |
-| `10`  | Queued |
-| `30`  | Running |
-| `40`  | Pass |
-| `50`  | Warning / tolerance exceeded |
-| `60`  | Fail |
-
-`TestResult` and individual metric `*_Verdict` columns all follow this pattern.
-
-### Profile QIE Trailing Spaces
-Two column names in `MQA_Dosimetry_Profile_QueueItemExecutions` have a literal trailing space (confirmed via hex dump):
-- `ReferencePointInnerPercentageOfHalfFieldWidth ` (note space before closing backtick)
-- `ReferencePointOuterPercentageOfHalfFieldWidth `
-
-Must be quoted in SQL: `[ReferencePointInnerPercentageOfHalfFieldWidth ]`
-
-### Numeric Daily QA Task Name Pattern
-Confirmed from actual data (Step 5.1 query):
-- `5.Tmt.Linac.D - myQA Daily Constancy Check` — `.D` suffix
-- `5.Tmt.DXR.D - myQA Daily Constancy Check` — `.D` suffix
-- `5.Tmt.Linac.D2 - Daily QA (Physics)` — `.D2` suffix (separate task)
-- `5.Tmt.Linac.D` matches the proposed spec's `.D%` prefix filter
-- `5.Tmt.Linac.D2` would need `.D2%` or would be caught by `.D%` (`.` is wildcard in LIKE)
+- This brief is the baseline for Round 2 proposal revision.
+- Frozen artifacts: **none**.
+- Next: revise `proposal.md` (per D1–D4), then send to `@openspec-reviewer`.
