@@ -181,6 +181,7 @@ dev = [
     "sphinxcontrib-serializinghtml==2.0.0",
     "sphinxcontrib-websupport==1.2.4",
     "sphinx-copybutton>=0.5.2",
+    "sphinx-design>=0.6.0",
 ]
 
 [tool.ruff]
