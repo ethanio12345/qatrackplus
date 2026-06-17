@@ -410,3 +410,74 @@ fixed pre-freeze.
 - Next action: Round 2, batch 4 — revise `tasks.md` (setup-before-backfill per
   type, fill TBDs, split 5.1, add test tasks, add schedule-migration task);
   then `@openspec-reviewer`.
+
+---
+
+## tasks Round 1 — 2026-06-17 (Batch 4 of 4 — FINAL)
+
+**Reviewer:** `@openspec-reviewer`
+**Newly created:** `tasks.md` (revised — comprehensive rewrite addressing all
+Round 1 issues).
+**Already frozen:** `proposal.md`, `design.md`, `specs/` (all 7).
+**Verdict:** **PASS — frozen.** No 🔴 blockers; all 9 Round 1 tasks.md defects
+closed; every frozen spec (7) and design commitment (D1–D4, S1–S3, M1, M4, M8,
+O1–O6) traces to at least one implementing task.
+
+### ✅ Round 1 closure (all 9 issues CLOSED)
+- Dependency inversion → resolved: every phase self-contains setup→backfill.
+- VMAT `...` TBD → filled with real columns.
+- CBCT "10+" → exact 9 + SliceWidthDifference.
+- Tasks without spec backing → every task cites frozen spec R-numbers.
+- PassFail silent semantic change → documented per D3.
+- Task 5.1 >2h bundled → split per type.
+- No test tasks → Tasks 8.1 (importers) + 8.2 (setup) added.
+- No rollback/idempotency → Cross-cutting section added.
+- Acceptance criteria uneven → expected TLI counts from Data Volumes.
+
+### 🟡 Pre-freeze soft amendments (this round, per reviewer recommendations)
+- **UNITS_PER_LIST enumerated explicitly** (Task 0.2) — `myqa_mlc`/`myqa_cbct`/
+  etc. → `[1,2,3,4,5,7,8]` only; DXR (unit 50) excluded from linac-specific QA
+  types. Removes the "Linac lists" ambiguity that risked rework.
+- **VMAT URL-safety decision line** (Task 4.1) — if QATrack+ URL routing
+  rejects periods in slugs, pre-strip in `clean()`; both outcomes acceptable
+  per O3. Removes the hidden spike inside the implementation task.
+- **PassFail pattern confirmation** (Task 7.1) — verify
+  `task_name_patterns` (`['5.Tmt.Linac.P%', '5.Tmt.DXR.P%']`) against actual
+  myQA TaskName values; correct if wrong (else zero sessions imported).
+- **`uv run rm -rf .mypy_cache` → `rm -rf .mypy_cache`** (header) — `rm` is not
+  a Python tool; `uv run rm` would fail.
+
+### 🟢 Reviewer-noted strengths
+- Dependency inversion fully resolved — every phase self-contains
+  setup→backfill internally.
+- Every task cites frozen spec R-numbers — one-hop traceability.
+- S1 (`te.TaskExecutionId` filter) asserted in all 7 extract tasks.
+- MLC/CBCT setup-coverage (specs-batch 🔴 fix) faithfully transcribed —
+  Task 3.2 names all 7 MLC slugs; Task 5.1 names all 10 CBCT Tests.
+- `--force` safety on main-spec lists documented inline + Cross-cutting.
+- Expected row counts match Data Volumes exactly.
+- User preferences honoured: `uv run`, feature branch, pytest-only,
+  verification pipeline.
+- D4 verdict-deferral consistently reflected — `pass_fail='no_tol'` everywhere.
+- No task over-reaches into writing actual SQL/code — right altitude.
+
+### 🟡 Deferred to implementer's discretion (non-blocking)
+- Task 8.1 (7 importer tests) is over the 2h budget — implementer may split
+  into commits per importer.
+- Task 8.3 bundles django-q migration + production pre-flight — implementer
+  may split.
+- Task 0.2 bundles registry + default + UNITS_PER_LIST across two files —
+  implementer may split.
+
+### Coverage matrix summary
+- 7/7 frozen specs → implementing tasks identified. ✅
+- 17/17 design commitments (D1–D4, S1–S3, M1, M4, M8, O1–O6, engine contract,
+  default change, registry change) → implementing tasks identified. ✅
+- No unimplemented commitments.
+
+### Status (end of tasks Round 1 — CHANGE COMPLETE)
+- **`tasks.md`: FROZEN.**
+- **All 4 batches frozen:** `proposal.md`, `design.md`, `specs/`, `tasks.md`.
+- **Change `fix-myqa-importers` is READY for `/opsx-apply`.**
+- Review rounds used: proposal 1, design 2, specs 2, tasks 1 = 6 total (well
+  under the MAX_ROUNDS=5-per-batch cap).
