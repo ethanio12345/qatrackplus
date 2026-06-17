@@ -12,14 +12,16 @@ and DXR checks — must be manually entered or viewed separately in the myQA
 web interface. Automating the full sync eliminates duplicate data entry,
 reduces transcription errors, and provides a single source of truth for all
 linac QA results in QATrack+. The existing myQA monthly dosimetry import
-provides the proven pattern (read-only myQA query, de-duplication via
-mtx_taskid, ORM-based persistence) that this proposal extends to all QA
-task types.
+provides the proven pattern (read-only myQA query via `pymssql`,
+de-duplication via a single shared slug whose `string_value` holds the
+myQA `TaskExecutionId`, ORM-based persistence in a per-session
+transaction) that this proposal extends to all QA task types.
 
 ## Scope
 
 - 19 new TestList objects (one per myQA task type × frequency)
-- ~800 new Test objects with tolerances derived from myQA Warn/Fail values
+- ~800 new Test objects with tolerances derived from myQA `WarnOn`/`FailOn`
+  values (mapped to QATrack+'s two-band `tol_*`/`act_*` offset model)
 - UnitTestCollections for 8 linac units + 1 DXR unit
 - Import engine handling 11 execution types (Numeric, PassFail, Profile, Energy,
   Wedge, Output, MLC, CBCT, Planar, VMAT, WinstonLutz)
@@ -44,6 +46,7 @@ task types.
 | `qatrack/qa/tasks.py` | Modify — add `import_myqa_all()` |
 | `qatrack/qa/apps.py` | Modify — register Schedule entries |
 | `qatrack/matrix_import.py` | Modify — consolidate into new scheme |
+| `qatrack/qa/management/commands/import_matrix_monthly.py` | Modify — deprecation shim |
 
 ## Risks
 
