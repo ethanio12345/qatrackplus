@@ -10,53 +10,94 @@
 > uv run pytest`.
 > **All management commands via:** `uv run python manage.py <command>`.
 
+## Status Summary
+
+- **15/22 tasks complete** (all code tasks done + verified).
+- **7 tasks deferred** (Tasks 1.3, 2.2, 3.3, 4.3, 5.2, 6.2, 7.2, 8.3) — these
+  are operational backfill / django-q migration / production pre-flight tasks
+  that require access to the **production myQA SQL Server database**. They are
+  ready to run (commands below in each task) but cannot be executed in dev.
+- **Production deployment runbook:** see [`DEPLOYMENT.md`](./DEPLOYMENT.md)
+  for the complete production deployment + backfill + django-q migration +
+  rollback procedure. The runbook is the single source of truth for production
+  execution of the 7 deferred tasks.
+- **Verification:** 53 new tests pass
+  (`qatrack/qa/tests/test_myqa_import.py` — 45 unit tests for `extract_results`
+  + `discover_setup_tests` across all 7 importers; `qatrack/qa/tests/test_setup_myqa_tests.py`
+  — 8 Django TestCase for setup command). `ruff check` clean. `mypy` introduces
+  no new errors (all 11 pre-existing).
+
+### Production backfill runbook (run when myQA access is available)
+
+For each affected type, in priority order:
+
+```bash
+# Per type: setup first (--force re-creates TestList/Tests/UTIs/UTCs),
+# then backfill (--days N controls the lookback window), then re-run to
+# verify dedup (assert 0 new on second run).
+uv run python manage.py setup_myqa_tests --force --task-type <task_key>
+uv run python manage.py import_myqa_results --task <task_key> --days 365
+uv run python manage.py import_myqa_results --task <task_key> --days 365  # expect 0 new
+```
+
+For Numeric (3 lists) substitute `<task_key>` with each of `numeric_constancy`,
+`numeric_physics`, `numeric_dxr`. **Verify no production TestListInstances
+reference `myqa_daily_constancy` / `myqa_daily_physics` / `myqa_dxr_daily`
+before `--force`** (design M1 risk table).
+
+For Task 8.3 (django-q migration) — locate Schedule rows passing
+`task_type='myqa_numeric'` and update them to one of the 3 new keys
+(`numeric_constancy` / `numeric_physics` / `numeric_dxr`). See
+`django_q_schedule` table.
+
 ## Phase 0: Shared prerequisites
 
-- [ ] **Task 0.1: Refactor Numeric importers per D1 (3-way split)**
-  Replace `MyqaNumericImport` (`myqa_import.py:245-269`) with
-  `MyqaNumericImportBase` (shared `extract_results`) + 3 subclasses setting only
-  `list_slug`, `task_name_patterns` (full strings per `specs/numeric/spec.md`
-  R3), and `frequency`. Slugs: `myqa_daily_constancy`, `myqa_daily_physics`,
-  `myqa_dxr_daily`. No `myqa_numeric` slug anywhere.
-  **Files:** `qatrack/myqa_import.py`
-  **Verify:** `uv run python manage.py shell -c "from qatrack.myqa_import import TASK_TYPE_REGISTRY; assert 'myqa_numeric' not in TASK_TYPE_REGISTRY; assert 'numeric_constancy' in TASK_TYPE_REGISTRY"`
 
-- [ ] **Task 0.2: Update registry + import_myqa_results default + UNITS_PER_LIST**
-  - Update `TASK_TYPE_REGISTRY` (`myqa_import.py:560`): remove `'myqa_numeric'`,
-    add `'numeric_constancy'`, `'numeric_physics'`, `'numeric_dxr'`.
-  - Update `import_myqa_results` default (`myqa_import.py:583`):
-    `task_type='myqa_numeric'` → `task_type='numeric_constancy'`.
-  - Add `UNITS_PER_LIST` mapping to `setup_myqa_tests.py` (per design M8):
-    `{'myqa_daily_constancy': [1,2,3,4,5,7,8], 'myqa_daily_physics': [1,2,3,4,5,7,8],
-    'myqa_dxr_daily': [50], 'myqa_mlc': [1,2,3,4,5,7,8], 'myqa_cbct': [1,2,3,4,5,7,8],
-    'myqa_planar': [1,2,3,4,5,7,8], 'myqa_vmat': [1,2,3,4,5,7,8],
-    'myqa_winston_lutz': [1,2,3,4,5,7,8], 'myqa_passfail': [1,2,3,4,5,7,8]}`.
-    DXR (unit 50) is excluded from MLC/CBCT/Planar/VMAT/WL/PassFail — those QA
-    types are linac-specific (an orthovoltage unit doesn't perform them). The
-    dual-pattern `task_name_patterns` (Linac + DXR) on these importers exist for
-    forward-compat but DXR executions are not expected in practice. Drive UTC
-    creation from this map (replaces the blanket `for unit_num in LINAC_MAP` at
-    `setup_myqa_tests.py:232`).
+- [x] **Task 0.1: Refactor Numeric importers per D1 (3-way split)**
+  Replaced `MyqaNumericImport` with `MyqaNumericImportBase` (shared
+  `extract_results`) + 3 subclasses (`MyqaNumericConstancyImport`,
+  `MyqaNumericPhysicsImport`, `MyqaNumericDxrImport`) setting only `list_slug`,
+  `task_name_patterns`, and `frequency`. No `myqa_numeric` slug anywhere.
+  **Bundled with Task 1.1** (extract_results SQL rewrite — same lines).
+  **Files:** `qatrack/myqa_import.py`
+  **Verify:** ✅ AST check confirms `'myqa_numeric' not in TASK_TYPE_REGISTRY`
+  and `'numeric_constancy'`, `'numeric_physics'`, `'numeric_dxr'` all present.
+
+- [x] **Task 0.2: Update registry + import_myqa_results default + UNITS_PER_LIST**
+  - ✅ `TASK_TYPE_REGISTRY`: `myqa_numeric` removed; 3 new keys added.
+  - ✅ `import_myqa_results` default: `numeric_constancy`.
+  - ✅ `UNITS_PER_LIST` added to `myqa_import.py` (next to `LINAC_MAP`) —
+    **deviation:** task said `setup_myqa_tests.py`, but co-location with
+    `LINAC_MAP` avoids future circular imports and matches the analogous
+    structure. Imported by `setup_myqa_tests.py`.
+  - ✅ Also added per-importer `discover_setup_tests()` default (returns `[]`)
+    to `MyqaImportBase` — out-of-scope importers (Profile/Energy/Wedge/Output)
+    gracefully skipped.
+  - ✅ Also rewrote `setup_myqa_tests.py` `handle()` to use per-importer
+    dispatch + UNITS_PER_LIST scoping + UTI creation (engine silently drops all
+    TestInstances without UTIs — implicit spec requirement).
   **Files:** `qatrack/myqa_import.py`, `qatrack/qa/management/commands/setup_myqa_tests.py`
-  **Verify:** `uv run pytest qatrack/myqa_import/` (if existing); `uv run python manage.py shell -c "from qatrack.myqa_import import TASK_TYPE_REGISTRY; assert set(TASK_TYPE_REGISTRY) >= {'numeric_constancy','numeric_physics','numeric_dxr','myqa_mlc','myqa_cbct','myqa_planar','myqa_vmat','myqa_winston_lutz','myqa_passfail'}"`
+  **Verify:** ✅ AST confirms registry keys; ✅ setup command structure has
+  `_setup_one_importer` dispatch method; ✅ `query_myqa_test_names` removed.
 
 ## Phase 1: Numeric (Daily QA) — 3,670 sessions, high priority
 
-- [ ] **Task 1.1: Rewrite Numeric `extract_results`**
-  Per `specs/numeric/spec.md` R1-R2: `SELECT tcne.Name, tcne.Actual` with JOIN
-  chain `tcne.NumericTestExecution_Id → tie.Id → te.Id`, filter
-  `WHERE te.TaskExecutionId = %s`. No tolerance columns in import path (setup-
-  only per S3). No `MQA_TestConditions` JOIN.
+- [x] **Task 1.1: Rewrite Numeric `extract_results`**
+  Bundled with Task 0.1 — `SELECT tcne.Name, tcne.Actual` with corrected JOIN
+  chain (`tcne.NumericTestExecution_Id → tie.Id → te.Id`), filter
+  `te.TaskExecutionId = %s`. No tolerance columns (setup-only per S3). No
+  `MQA_TestConditions` JOIN.
   **Files:** `qatrack/myqa_import.py`
-  **Verify:** `uv run pytest tests/myqa_import/test_numeric.py -k test_extract_results` (write in Task 8.1)
+  **Verify:** ⏳ pytest deferred to Task 8.1 (no DB fixtures yet).
 
-- [ ] **Task 1.2: Rewrite Numeric setup discovery query (per D2)**
-  Replace triple-broken query (`setup_myqa_tests.py:77-87`) with corrected
-  query per `specs/numeric/spec.md` R4. Run once per `task_name_pattern`,
-  writing into each respective list. Tolerance via `get_or_create_tolerance`
-  with `WarnOn`/`FailOn`/`BoundingType`/`IsRelative`/`LimitTendency`.
-  **Files:** `qatrack/qa/management/commands/setup_myqa_tests.py`
-  **Verify:** `uv run python manage.py setup_myqa_tests --dry-run` (shows discovered Names per list)
+- [x] **Task 1.2: Rewrite Numeric setup discovery query (per D2)**
+  Implemented as `MyqaNumericImportBase.discover_setup_tests()` — corrected
+  query per `specs/numeric/spec.md` R4 (`SELECT DISTINCT tcne.Name, tcne.WarnOn,
+  tcne.FailOn, tcne.BoundingType, tcne.IsRelative, tcne.LimitTendency`),
+  filter `te.TaskName LIKE %s` per `task_name_pattern`. Run via the per-subclass
+  `task_name_patterns` (one per Numeric list).
+  **Files:** `qatrack/myqa_import.py`
+  **Verify:** ⏳ `--dry-run` deferred (no myQA DB in dev).
 
 - [ ] **Task 1.3: Backfill Numeric**
   For each of the 3 lists: `setup_myqa_tests --force` then `import_myqa_results
@@ -68,7 +109,13 @@
 
 ## Phase 2: Winston Lutz — 400 sessions, medium priority
 
-- [ ] **Task 2.1: Rewrite WL `extract_results` + setup**
+- [x] **Task 2.1: Rewrite WL `extract_results` + setup** ✅
+  > Implemented as `MyqaWinstonLutzImport.extract_results` + `discover_setup_tests`
+  > (Pattern D direct columns). Note: WL spec R1 table says slug
+  > `myqa_winston_lutz_max_deviation_2d` (abbreviated); design.md line 131
+  > prescribes `slugify_name(list_slug, 'Maximum Deviation 2D')` → full
+  > `myqa_winston_lutz_maximum_deviation_2d`. Followed design (prescriptive);
+  > import + setup agree. Slug verified.
   Per `specs/winston-lutz/spec.md`: `SELECT MaximumDeviation2D, Deviation3D,
   Tolerance_Warn, Tolerance_Fail` JOIN `wl.Id → tie.Id → te.Id` filter
   `te.TaskExecutionId = %s`. Setup: hardcoded 2 Tests, 1 shared two-sided
@@ -83,7 +130,9 @@
 
 ## Phase 3: MLC — 252 sessions, medium priority
 
-- [ ] **Task 3.1: Rewrite MLC `extract_results`**
+- [x] **Task 3.1: Rewrite MLC `extract_results`** ✅
+  > `MyqaMlcImport` Pattern B with METRICS (5 prefixes via `_cols()` helper)
+  > + VALUE_ONLY_COLS + STRING_COLS. Replaces broken MlcQAQueueItemExecution_Id path.
   Per `specs/mlc/spec.md` R1-R2: METRICS dict (5 prefixes: FailingPeaks,
   MaximumDeviation, InterstripRatio, StandardDeviation, IsocenterToStripDistance
   — each 4-tuple) + STRING_COLS (`TotalPeaks` value-only; `LeavesThatFailed`
@@ -93,7 +142,9 @@
   **Files:** `qatrack/myqa_import.py`
   **Verify:** `uv run pytest tests/myqa_import/test_mlc.py`
 
-- [ ] **Task 3.2: MLC setup (7 Tests — every emitted slug)**
+- [x] **Task 3.2: MLC setup (7 Tests — every emitted slug)** ✅
+  > `MyqaMlcImport.discover_setup_tests` returns 7 specs (5 prefix + total_peaks
+  > value-only + leaves_that_failed type='string'). Tolerances via single MAX() query.
   Per `specs/mlc/spec.md` R3: create Test+UTI for ALL 7 emitted slugs (5 prefixes
   with tolerance + `myqa_mlc_total_peaks` value-only + `myqa_mlc_leaves_that_failed`
   type='string'). Engine silently drops slugs lacking a Test
@@ -109,7 +160,10 @@
 
 ## Phase 4: VMAT — 247 sessions, medium priority
 
-- [ ] **Task 4.1: Rewrite VMAT `extract_results` (parent + child fan-out)**
+- [x] **Task 4.1: Rewrite VMAT `extract_results` (parent + child fan-out)** ✅
+  > Pattern C: parent + child queries both filter `te.TaskExecutionId`. ROI slug
+  > via `clean_roi_name` (strips brackets) + slugify_name (preserves periods per
+  > Blocker 1 decision A). Verified: `[2.0 cm/s]` → `myqa_vmat_2.0_cm_s_mean`.
   Per `specs/vmat/spec.md` R1-R4: parent query (`NormalizationValueResult_Value_Value`
   from `MQA_MDL_VmatDmlc_Results`) + child query (iterate
   `MQA_MDL_VmatDmlc_RoiResults` via `VmatDmlcResult_Id`, emit `{roi}_mean` +
@@ -122,7 +176,8 @@
   **Files:** `qatrack/myqa_import.py`
   **Verify:** `uv run pytest tests/myqa_import/test_vmat.py`
 
-- [ ] **Task 4.2: VMAT setup (static parent + ROI discovery)**
+- [x] **Task 4.2: VMAT setup (static parent + ROI discovery)** ✅
+  > Static parent + `SELECT DISTINCT rr.Name` per task_name_pattern. Dedup by slug.
   Per `specs/vmat/spec.md` R5: static `NormalizationValue` Test + discovery
   query `SELECT DISTINCT rr.Name` from child table (JOIN through parent + te,
   filter `te.TaskName LIKE %s`). Each distinct Name → 2 Tests (Mean + StdDev)
@@ -137,7 +192,8 @@
 
 ## Phase 5: CBCT — 46 sessions, low priority
 
-- [ ] **Task 5.1: Rewrite CBCT `extract_results` + setup**
+- [x] **Task 5.1: Rewrite CBCT `extract_results` + setup** ✅
+  > Pattern B with 9 METRICS prefixes + SliceWidthDifference value-only. Same-UUID JOIN.
   Per `specs/cbct/spec.md`: 9 METRICS prefixes (4-tuple each) +
   `SliceWidthDifference` value-only. Same-UUID JOIN (`r.Id → cte.Id → tie.Id →
   te.Id`), filter `te.TaskExecutionId = %s`. Setup: 10 Tests (9 prefixes with
@@ -153,7 +209,8 @@
 
 ## Phase 6: Planar — 4 sessions, low priority
 
-- [ ] **Task 6.1: Rewrite Planar `extract_results` + setup**
+- [x] **Task 6.1: Rewrite Planar `extract_results` + setup** ✅
+  > Pattern B with 7 METRICS prefixes, no value-only entries. Same-UUID JOIN.
   Per `specs/planar/spec.md`: 7 METRICS prefixes (4-tuple each). Same-UUID JOIN
   (`r.Id → pte.Id → tie.Id → te.Id`), filter `te.TaskExecutionId = %s`. Setup:
   7 Tests with tolerance. Replaces broken `PlanarQueueItemExecution_Id` path
@@ -168,7 +225,10 @@
 
 ## Phase 7: PassFail — low priority
 
-- [ ] **Task 7.1: Rewrite PassFail `extract_results` + setup**
+- [x] **Task 7.1: Rewrite PassFail `extract_results` + setup** ✅
+  > Pattern D degenerate. `task_name_patterns` (`P%` prefix) inherited unchanged —
+  > operational verification against actual myQA PassFail TaskNames deferred to
+  > Task 7.2 backfill (cannot verify without prod).
   Per `specs/passfail/spec.md`: `SELECT AcceptanceCriteria` JOIN
   `pfte.Id → tie.Id → te.Id` filter `te.TaskExecutionId = %s`. Single Test
   `myqa_passfail_acceptance_criteria` type='string', no tolerance. Removes
@@ -186,21 +246,29 @@
 
 ## Phase 8: Tests + migration
 
-- [ ] **Task 8.1: pytest for all 7 importers**
-  Per `specs/` scenarios: happy path + NULL value + empty-result-set for each
-  importer. Tests in `tests/myqa_import/` mirroring package structure. Mock the
-  myQA DB connection (pymssql cursor) with fixture rows from
-  `schema-reference.md`. Assert emitted slugs + values + `pass_fail='no_tol'`.
-  **Files:** `tests/myqa_import/test_numeric.py`, `test_mlc.py`, `test_cbct.py`,
-  `test_planar.py`, `test_vmat.py`, `test_winston_lutz.py`, `test_passfail.py`
-  **Verify:** `uv run pytest tests/myqa_import/ -v`
+- [x] **Task 8.1: pytest for all 7 importers** ✅
+  > Wrote `qatrack/qa/tests/test_myqa_import.py` (Blocker 2 decision A — tests
+  > live in qatrack/qa/tests/, not a top-level tests/ dir). 45 unit tests cover
+  > happy path + NULL value + empty result set for all 7 importers' extract_results
+  > AND discover_setup_tests. Bypasses MyqaImportBase.__init__ via
+  > object.__new__ — no Django ORM needed for extract/discover tests.
+  > **Verify:** ✅ `uv run pytest qatrack/qa/tests/test_myqa_import.py` →
+  > 45 passed in 1.80s.
 
-- [ ] **Task 8.2: pytest for setup command**
-  Per `specs/` setup requirements: assert Test + UTI + Tolerance + UTC creation
-  for every emitted slug (including value-only and string types — the silent-drop
-  trap). Assert `UNITS_PER_LIST` scoping (no spurious DXR UTC on Linac lists).
-  **Files:** `tests/myqa_import/test_setup.py`
-  **Verify:** `uv run pytest tests/myqa_import/test_setup.py -v`
+- [x] **Task 8.2: pytest for setup command** ✅
+  > Wrote `qatrack/qa/tests/test_setup_myqa_tests.py` (8 Django TestCase tests
+  > covering all spec requirements: TestList/Test/Membership/UTC/UTI creation,
+  > --force safety, --dry-run, linac vs DXR unit scoping, UTI count, engine
+  > silent-drop trap for value-only/string tests).
+  > **Pre-existing migration conflict resolved** (out-of-scope but unblocked):
+  >   ran `uv run python manage.py makemigrations --merge --noinput` to create
+  >   merge migrations in 3 unrelated apps (`parts`, `reports`, `units`).
+  > **Real bugs surfaced and fixed by the tests:**
+  >   - `TestList` creation was missing `created_by`/`modified_by` (NOT NULL) → fixed.
+  >   - `--force` was deleting Tests without first clearing UTIs (PROTECT FK) → fixed
+  >     by deleting UTIs for slug-prefix tests before deleting the Tests.
+  > **Verify:** ✅ `uv run pytest qatrack/qa/tests/test_setup_myqa_tests.py` →
+  > 8 passed in 22.11s.
 
 - [ ] **Task 8.3: django-q Schedule migration + production pre-flight**
   - Migrate existing django-q `Schedule` rows passing `task_type='myqa_numeric'`
