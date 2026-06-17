@@ -17,6 +17,10 @@
   are operational backfill / django-q migration / production pre-flight tasks
   that require access to the **production myQA SQL Server database**. They are
   ready to run (commands below in each task) but cannot be executed in dev.
+- **Production deployment runbook:** see [`DEPLOYMENT.md`](./DEPLOYMENT.md)
+  for the complete production deployment + backfill + django-q migration +
+  rollback procedure. The runbook is the single source of truth for production
+  execution of the 7 deferred tasks.
 - **Verification:** 53 new tests pass
   (`qatrack/qa/tests/test_myqa_import.py` — 45 unit tests for `extract_results`
   + `discover_setup_tests` across all 7 importers; `qatrack/qa/tests/test_setup_myqa_tests.py`
