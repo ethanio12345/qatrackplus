@@ -1,3 +1,5 @@
+import warnings
+
 from django.core.management.base import BaseCommand
 
 from qatrack.qa.tasks import import_matrix_monthly
@@ -6,7 +8,10 @@ from qatrack.qa.tasks import import_matrix_monthly
 class Command(BaseCommand):
     """A management command to import monthly matrix dosimetry data"""
 
-    help = 'Import monthly matrix dosimetry results from myQA into QATrack+'
+    help = (
+        'Import monthly matrix dosimetry results from myQA into QATrack+. '
+        'DEPRECATED: use import_myqa --task myqa_profile instead.'
+    )
 
     def add_arguments(self, parser):
         parser.add_argument(

@@ -70,8 +70,10 @@ dependencies = [
     "django-recurrence>=1.11.0",
     "django-sql-explorer>=5.3",
     "black>=23.1.0",
-    "blessed>=1.20.0",  # Required for django-q2 qmonitor
-    "wcwidth<0.2.13",  # Pinned due to django-q2 qmonitor bug passing int instead of str
+    "blessed>=1.20.0", # Required for django-q2 qmonitor
+    "wcwidth<0.2.13", # Pinned due to django-q2 qmonitor bug passing int instead of str
+    "psycopg2-binary>=2.9.12",
+    "pymssql>=2.3.13",
 ]
 
 [project.optional-dependencies]

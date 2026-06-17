@@ -17,8 +17,8 @@ def do_scheduling(sender, **kwargs):
     )
 
     _schedule_periodic_task(
-        "qatrack.qa.tasks.import_matrix_monthly",
-        "Matrix Monthly Import",
+        "qatrack.qa.tasks.import_myqa_all",
+        "myQA Full Import",
         schedule_type=Schedule.DAILY,
         next_run=timezone.localtime((timezone.now() + timezone.timedelta(hours=24))).replace(hour=18),
     )
