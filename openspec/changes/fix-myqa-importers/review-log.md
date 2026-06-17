@@ -325,3 +325,88 @@ M1–M8). Also D4 soft-freeze amendments to `proposal.md` and `explore-brief.md`
 - Next action: Round 2, batch 3 — write the 4 missing per-type specs
   (passfail, vmat, cbct, planar) + add edge-case scenarios to all 7; then
   `@openspec-reviewer`.
+
+---
+
+## specs Round 1 — 2026-06-17 (Batch 3 of 4)
+
+**Reviewer:** `@openspec-reviewer`
+**Newly created/revised (7 files):** `numeric`, `mlc`, `winston-lutz` (revised);
+`passfail`, `vmat`, `cbct`, `planar` (new).
+**Already frozen:** `proposal.md`, `design.md`.
+**Verdict:** **NEEDS REVISION** — two 🔴 blockers (same class: setup-coverage
+silent-drop), plus a sweep of 🟡s.
+
+### 🔴 Outstanding (Round 1)
+- **MLC setup-coverage gap.** R3 directed setup only to the 5 tolerance-bearing
+  prefixes, omitting `TotalPeaks` (value-only) and `LeavesThatFailed` (string).
+  Engine silently drops TestInstances for slugs lacking a Test
+  (`myqa_import.py:209-211`).
+- **CBCT setup-coverage gap.** R4 omitted `SliceWidthDifference` (value-only
+  non-conforming). Same silent-drop trap.
+
+### 🟡 Outstanding (Round 1)
+- `pass_fail='no_tol'` / D4 one-liners missing in mlc, vmat, cbct, planar.
+- Empty-result-set scenarios missing in 5 of 7 specs (only numeric + vmat-child
+  had them).
+- VMAT happy-path example slugs impossible (`myqa_vmat_2.0 cm/s_mean` — contains
+  space/slash; `slugify_name` would never produce this).
+- VMAT R2 table suffix column conflated pre-slugify and final forms.
+- VMAT NULL parent `NormalizationValue` scenario missing.
+- WL NULL tolerance setup scenario missing.
+
+### 🟢 Round 1 strengths noted
+- Engine contract (S1: filter `te.TaskExecutionId`) inherited in all 8 queries.
+- Schema accuracy excellent — every column name matches `schema-reference.md`.
+- METRICS prefix counts exact (MLC 5, CBCT 9, Planar 7), each with 4-tuple.
+- Numeric D1 strongest spec — full task-name strings with `.D%`-overlap rationale.
+- VMAT Pattern C correctly models the only 1-to-many relationship.
+- All 9 Round 1 spec issues CLOSED.
+
+---
+
+## specs Round 2 — 2026-06-17 (Batch 3 of 4, re-review)
+
+**Reviewer:** `@openspec-reviewer`
+**Newly revised:** all 7 spec files (🔴 fixes + 🟡 sweep). VMAT cosmetic typos
+fixed pre-freeze.
+**Verdict:** **PASS — frozen.** No 🔴, no new issues, both blockers resolved.
+
+### 🔴 Round 1 blockers — both RESOLVED
+- **MLC R3 RESOLVED.** Now directs setup to create Test + UTI for every emitted
+  slug: 5 prefixes (with tolerance), `myqa_mlc_total_peaks` (value-only),
+  `myqa_mlc_leaves_that_failed` (type='string'). `Test.type` routing note added.
+- **CBCT R4 RESOLVED.** Now directs setup to create
+  `myqa_cbct_slice_width_difference` (value-only) in addition to 9 prefixes.
+
+### 🟡 Round 1 sweep — all RESOLVED
+- `no_tol` / D4 one-liners added to mlc, vmat, cbct, planar happy-path.
+- Empty-result-set scenarios added to mlc, wl, passfail, cbct, planar.
+- VMAT happy-path slugs corrected to `myqa_vmat_2.0_cm_s_mean` form.
+- VMAT R2 table clarified (pre-slugify vs final suffix columns).
+- VMAT NULL parent `NormalizationValue` scenario added.
+- WL NULL tolerance setup scenario added.
+- VMAT `{roi}_std dev` → `{roi}_std_dev` typos fixed (2 occurrences).
+
+### 💡 Reviewer-noted strengths
+- R3/R4 setup requirements now read as defensive specifications — they name
+  every emitted slug group, cite the silent-drop site, call out `Test.type`
+  routing. Exactly the "make the trap visible" documentation that prevents
+  regression.
+- Every spec now has NULL-tolerance-in-setup + empty-result-set scenarios.
+- Numeric "Same Name across two lists" scenario verifies D1 slug-prefixed
+  isolation.
+
+### Deferred to tasks batch (natural home)
+- Pattern B setup-time tolerance-harvest query (frozen design gives strategy
+  "iterate METRICS dict"; implementer derives SQL from import query). No
+  unfreeze required.
+- UTI/UTC creation cross-cutting note (applies to all types; engine requires
+  both `tests_by_slug` and `all_utis` lookups).
+
+### Status (end of specs Round 2)
+- **`specs/`: FROZEN (all 7 files).**
+- Frozen artifacts: `proposal.md`, `design.md`, `specs/`.
+- Next action: Round 2, batch 4 — revise `tasks.md` (setup-before-backfill per
+  type, fill TBDs, split 5.1, add test tasks, add schedule-migration task);
+  then `@openspec-reviewer`.
