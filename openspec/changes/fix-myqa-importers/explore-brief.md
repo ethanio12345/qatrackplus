@@ -6,11 +6,12 @@
 
 ## Decisions (authoritative for downstream artifacts)
 
-- **D1 — Numeric list strategy = SPLIT (option b).** Numeric executions live
-  under both `.D` (Constancy) and `.D2` (Physics) task names. They map to the
-  **existing** main-spec lists, not a new `myqa_numeric` slug:
-  - `5.Tmt.Linac.D` + `5.Tmt.DXR.D` → `myqa_daily_constancy`
-  - `5.Tmt.Linac.D2` → `myqa_daily_physics`
+- **D1 — Numeric list strategy = SPLIT (option b, 3-way).** Numeric executions
+  live under three daily task names that map to the **existing** main-spec lists,
+  not a new `myqa_numeric` slug:
+  - `5.Tmt.Linac.D` → `myqa_daily_constancy` (Linac units 1–8)
+  - `5.Tmt.Linac.D2` → `myqa_daily_physics` (Linac units 1–8)
+  - `5.Tmt.DXR.D` → `myqa_dxr_daily` (DXR unit 50)
   - The proposed `myqa_numeric` slug is **deleted** from all artifacts. This
     resolves the Round 1 slug conflict with the frozen main spec.
   - *Override: if the user wants (a) one combined list or (c) only one task,
@@ -42,11 +43,11 @@
 
 ## Per-type mapping tables
 
-### Numeric (Pattern A) — two lists per D1
+### Numeric (Pattern A) — three lists per D1
 
 | Item | Value |
 |---|---|
-| Lists | `myqa_daily_constancy` (task patterns `5.Tmt.Linac.D`, `5.Tmt.DXR.D`); `myqa_daily_physics` (`5.Tmt.Linac.D2`) |
+| Lists | `myqa_daily_constancy` (`5.Tmt.Linac.D`); `myqa_daily_physics` (`5.Tmt.Linac.D2`); `myqa_dxr_daily` (`5.Tmt.DXR.D`) |
 | Test slug | dynamic: `slugify_name(list_slug, tcne.Name)` |
 | Value | `tcne.Actual` |
 | Reference | `tcne.Expected` |

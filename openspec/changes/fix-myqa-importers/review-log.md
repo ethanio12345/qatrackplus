@@ -168,3 +168,57 @@ verified schema. New `explore-brief.md` written with mapping tables.
 - Next action: Round 2 — revise `proposal.md` to reflect D1–D4 and the
   setup-rewrite reality, then send to `@openspec-reviewer` for the proposal
   batch freeze decision.
+
+---
+
+## proposal Round 2 — 2026-06-17 (Batch 1 of 4)
+
+**Reviewer:** `@openspec-reviewer`
+**Newly created this round:** `proposal.md` (revised per explore-brief
+commitments D1–D4, four patterns, seven per-type scope rows, six deferred open
+questions).
+**Already frozen:** none (first batch of Round 2).
+**Baseline:** `explore-brief.md`, `schema-reference.md`.
+**Verdict:** **PASS — frozen** (no 🔴 blockers; three 🟡 accuracy fixes applied
+pre-freeze).
+
+### ✅ Confirmed resolved (from Round 1)
+- Scope/spec mismatch (7 importers, 3 specs) → resolved via the in-scope table
+  (`proposal.md:70-80`) + deferral of the 4 missing specs to the specs batch.
+- `myqa_numeric` slug conflict → resolved via D1.
+
+### 🟡 Fixed (pre-freeze, per reviewer)
+- **D1 expanded from 2-way to 3-way split.** `5.Tmt.DXR.D` was wrongly mapped to
+  `myqa_daily_constancy` (a Linac-only list, units 1–8); the frozen main spec
+  (`openspec/specs/myqa-sync/spec.md:30`) defines `myqa_dxr_daily` for DXR
+  (unit 50). D1 now reads: Linac.D → `myqa_daily_constancy`, Linac.D2 →
+  `myqa_daily_physics`, DXR.D → `myqa_dxr_daily`. `explore-brief.md` updated to
+  match (D1 + Numeric mapping table).
+- **Energy/Wedge/Output "Working" claim softened** to "Out of scope — not
+  re-verified" — their QueueItem/Chamber tables aren't in `schema-reference.md`,
+  so "Working" was an unverified assertion.
+- **Non-goals: data cleanup statement added.** Broken setup never created the
+  `myqa_numeric` TestList, so `myqa_import.py:174` `TestList.objects.get(...)`
+  would have raised `DoesNotExist`; no TestListInstance/TestInstance data is
+  expected. Flagged "verify in production before `--force`".
+
+### 🟢 Reviewer strengths noted
+- All 7 Background bullets verified schema-accurate against `schema-reference.md`
+  and `setup_myqa_tests.py`.
+- Clean WHAT/HOW separation — no SQL, METRICS dict contents, or per-column
+  mappings leaked into the proposal (all correctly deferred to design/specs).
+- D2 "rewrite, not extend" correctly reflected in Decisions + Files Affected.
+- Pattern labels (A/B/C/D) in scope table match `explore-brief.md` exactly,
+  including VMAT as Pattern C.
+
+### Commitment coverage
+- 20/21 explore-brief items fully captured in the as-reviewed proposal.
+- 21st item (D1 DXR.D reconciliation) captured via the 🟡 #1 pre-freeze fix.
+- No silent omissions.
+
+### Status (end of proposal Round 2)
+- **`proposal.md`: FROZEN.**
+- Frozen artifacts: `proposal.md`.
+- Next action: Round 2, batch 2 — revise `design.md` (per-`execution_id` query
+  shape, per-type `METRICS` dicts including VMAT child-table fan-out, per-type
+  setup rewrite strategy, `--force` safety note), then `@openspec-reviewer`.
