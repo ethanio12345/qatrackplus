@@ -21,9 +21,14 @@ echo ""
 
 # ── Step 0: First-time setup ──────────────────────────────────────────────
 if [ "$MODE" = "--first" ]; then
-    echo "[0] Fixing venv ownership (requires sudo)..."
-    sudo chown -R bchcphysics:bchcphysics "$VENV"
-    echo "    Done."
+    echo "[0] Recreating venv (root-owned → user-owned)..."
+    # The production venv may be owned by root. We can't chown it without
+    # sudo, but we CAN rename it (parent dir is user-owned) and create a
+    # fresh one. The old venv is cleaned up after uv sync succeeds.
+    if [ -d "$VENV" ] && [ ! -w "$VENV/bin" ]; then
+        mv "$VENV" "$VENV.old"
+        echo "    Old root-owned venv moved to .venv.old"
+    fi
     echo ""
 fi
 
@@ -89,11 +94,19 @@ $VENV/bin/python manage.py check 2>&1 | tail -1
 # ── Step 5: Restart services ──────────────────────────────────────────────
 if [ "$MODE" != "--code" ]; then
     echo ""
-    echo "[5] Restarting services (requires sudo)..."
-    sudo systemctl restart qatrack-qcluster
-    echo "    qcluster restarted."
-    sudo systemctl reload apache2 2>/dev/null || sudo systemctl reload httpd 2>/dev/null || true
-    echo "    web server reloaded."
+    echo "[5] Restarting services..."
+    # Try sudo first; if unavailable, kill workers so systemd respawns them.
+    if sudo -n true 2>/dev/null; then
+        sudo systemctl restart qatrack-qcluster
+        sudo systemctl reload apache2 2>/dev/null || true
+        echo "    qcluster + apache restarted (via systemctl)."
+    else
+        pkill -u "$(whoami)" -f "manage.py qcluster" 2>/dev/null || true
+        echo "    Killed qcluster workers — systemd will respawn with new code."
+        echo "    For www-data workers + apache, run manually:"
+        echo "      sudo systemctl restart qatrack-qcluster"
+        echo "      sudo systemctl reload apache2"
+    fi
 else
     echo ""
     echo "[5] Skipping service restart (--code mode)"
