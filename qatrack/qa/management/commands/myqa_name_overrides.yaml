@@ -1,0 +1,20 @@
+# myQA Test Name Overrides
+# =========================
+#
+# Maps (TaskName, condition_name) pairs to custom QATrack+ Test display names.
+# Enrichment rules (number stripping, abbreviation expansion) are applied FIRST,
+# then the override replaces the result entirely if it matches.
+#
+# Schema:
+#   <TaskName>:
+#     <condition_name>: <descriptive_name>
+#
+# The special key "*" applies an override to ALL TaskNames:
+#   "*":
+#     "Acceptance Criteria": "Pass/Fail Acceptance Criteria"
+#
+# The condition_name key is the RAW myQA condition name (with number prefix).
+#
+# Example:
+#   "5.Tmt.Linac.Yearly - Relative Dosimetry":
+#     "01. 6MV_Dose (cGy/MU) @Dmax": "6MV Output Dose at Dmax (cGy/MU)"
