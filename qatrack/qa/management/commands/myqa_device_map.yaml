@@ -1,0 +1,125 @@
+# myQA device map: QATrack+ unit number -> myQA RadiationDeviceName(s).
+# Verified against the production myQA database. Devices renamed over
+# time use a list so all name variants map to the same unit.
+# Generated from LINAC_MAP — edit this file, not the Python dict.
+
+1: CST15 - H192361
+2: OBK15 - H192362
+3:
+- LA317 - H192972
+- Exactrac_LA317
+- LA317
+4: LA414 - H191733
+5: LA512 - H191182
+7: LA524 - H196713
+8: LA224 - H196406
+50:
+- DXR - GM0191
+- DXR - GM191
+100: CPMCC CT22
+102:
+- CPMCC MRI23 Magnetom Vida 3T
+- CPMCC MRI23_Magnetom Vida 3T
+200: BCHC (Sec. Std.) PTW 30012 - 0381 (15)
+201:
+- BCHC (F) PTW 30013 - 8451
+- BCHC (F) PTW 30013 - 8451 (15)
+202: BCHC (F) PTW Roos 34001 - 2649 (15)
+203: BCHC (F) PTW 30013 - 10004 (15)
+206:
+- Flexitron19
+- HDR
+207: BCHC (F) PTW Roos 34001 - 3680 (23)
+208:
+- BCHC (F) PTW Romeo TW10053 - 240379
+- BCHC (F) Romeo TW10053 - 240379
+209: BCHC (F) Juliet TW10053 - 245889
+210: BCHC (F) PCElec 1014 - 103746001
+211: BCHC (F) PCElec 1014 - 104177005
+212: BCHC (Sec. Std) Fluke 35040 - 3120001
+305: CPMCC (F) NE 2571 - 3708
+306: CPMCC (F) NE 2571 - 3708 (18)
+307: CPMCC (F) NE 2571 - 3762
+308: CPMCC (F) NE 2571 - 3762 (20)
+309: CPMCC (F) NE 2571 - 3762 (20) - TBI ONLY
+310: CPMCC (F) IBA FC65-G - 7329 (26)
+311: CPMCC (F) IBA FC65-P - 5485
+312: CPMCC (F) IBA FC65-P - 5485 (22)
+313: CPMCC (F) PTW 30013 - 2417
+314: CPMCC (F) PTW 30013 - 2417 (16)
+315: CPMCC (F) IBA Roos - 198
+316: CPMCC (F) IBA Roos - 2326
+317: CPMCC (F) IBA Roos - 2326 (22)
+318: CPMCC (F) IBA Roos - 2327
+319: CPMCC (F) IBA Roos - 2327 (22)
+320: CPMCC (F) Inovision - 99313
+321: CPMCC (F) Inovision - 99313 (01)
+322: CPMCC (F) IBA Dose 1 - 03-8692
+323: CPMCC (F) IBA Dose 1 - 03-8692 (06)
+324: CPMCC (F) IBA Dose 1 - 20592
+325: CPMCC (F) IBA Dose 1 - 20592 (14)
+326: CPMCC Fluke Ion Chamber - 0000005509
+327: CPMCC Fluke Ion Chamber - 0000005509 (14)
+340: CPMCC (Sec. Std) IBA FC65-G - 5413
+341: CPMCC (Sec. Std) IBA FC65-G - 5413 (22)
+342: CPMCC (Sec. Std) IBA FC65-P - 5485
+343: CPMCC (Sec. Std) IBA Dose 1 - 33699
+344: CPMCC (Sec. Std) IBA Dose 1 - 33699 (22)
+350: CPMCC (R) IBA CC13 - 5463
+351: CPMCC (R) IBA CC13 - 5464
+352: CPMCC (R) IBA CC13 - 5464 (06)
+353: CPMCC (R) IBA CC13 - 20792 (23)
+354: CPMCC (R) IBA CC04 - 13593
+355: CPMCC (R) IBA CC04 - 5430
+356: CPMCC (R) IBA CC04 - 5430 (06)
+357: CPMCC (R) IBA CC04 - 13593 (14)
+365:
+- CPMCC (F) Well Chamber - A060254
+- CPMCC Well Chamber - A060254
+366:
+- CPMCC (F) Well Chamber - A990695
+- CPMCC Well Chamber - A990695
+375: CPMCC Digital Thermometer - 210381212
+376: CPMCC Digital Thermometer - 210381234
+377: CPMCC Digital Thermometer - 210479123
+378: CPMCC Digital Thermometer - Digi1
+379: CPMCC Digital Thermometer Checktemp 1 - 3CC1D4
+380: CPMCC Digital Thermometer Checktemp 1 - 416467
+381: CPMCC Digital Thermometer Checktemp 1 - 41672E
+382: CPMCC Digital Thermometer Checktemp 1 - Digi1
+383: BCHC Digital Thermometer - 1B630A
+384: BCHC Digital Thermometer - 210381234
+385: BCHC Digital Thermometer - 210479122
+386: BCHC Digital Thermometer - 210479123
+387: BCHC Digital Thermometer Checktemp 1 - 1B630A
+388: BCHC Digital Thermometer Checktemp 1 - 41828B
+395: CPMCC GE PACE1000 Barometer - 10488160
+396: BCHC DPI 800 Barometer - 4415686
+400: CPMCC D4
+401:
+- CPMCC D4+
+- D4+
+402: CPMCC D4+ (21)
+410: CPMCC Austral Rad - 2373
+411: CPMCC Ranger - R316845
+412: CPMCC Mirion DMC 3000 01A1A01C
+413: CPMCC Mirion DMC 3000 01A1A0C0
+414: CPMCC Mirion DMC 3000 01A1A0EA
+415: CPMCC Mirion DMC 3000 01A1A29C
+416: CPMCC Neutron Detector
+417: CPMCC Neutron Detector - 289 (??90)
+425: CPMCC IBA IMRT MatrixX 12236
+426: CPMCC IBA MatrixX Resolution (24)
+427: CPMCC IBA SRS Device (23)
+428: CPMCC IBA WP1D
+429: CPMCC IBA myQA Daily - 33059
+435: CPMCC - IAEA Audit
+436: Dosimetry Audit
+437: RFT26 - H197686
+438: Radiation Safety
+439: Source Security
+440: WSLHD Bunker Dosimetry Cables
+441: WSLHD/Staff
+500: Eclipse
+501: TestLinac
+502: test

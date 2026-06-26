@@ -26,7 +26,6 @@ from typing import Any
 import pymssql
 import yaml
 from django.conf import settings
-from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from django.utils import timezone
@@ -52,134 +51,21 @@ MYQA_DB_SETTINGS = {
 
 # Maps QATrack+ unit numbers to myQA RadiationDeviceName strings. Values are
 # verified against the production myQA database. Devices renamed over time use
-# a list so all name variants map to the same unit. Existing QATrack+ units
-# (1-8, 50, 100, 200-203) are preserved at their current numbers; all other
-# devices use unit numbers that avoid collisions with existing units.
+# a list so all name variants map to the same unit.
 #
-# LINAC_MAP is retained for unit resolution only — task_name_patterns,
-# list_slug, and hardcoded importer classes have been removed (specs/
-# myqa-device-expansion).
-LINAC_MAP = {
-    # ===== Treatment LINACs (existing 1-8) =====
-    1: "CST15 - H192361",
-    2: "OBK15 - H192362",
-    3: ["LA317 - H192972", "Exactrac_LA317", "LA317"],
-    4: "LA414 - H191733",
-    5: "LA512 - H191182",
-    7: "LA524 - H196713",
-    8: "LA224 - H196406",
-    # ===== DXR Orthovoltage (existing 50) =====
-    50: ["DXR - GM0191", "DXR - GM191"],
-    # ===== Imaging =====
-    100: "CPMCC CT22",  # existing (QATrack+ name: "BCHC CT")
-    # 101 = GE Lightspeed (existing, no myQA data — intentionally absent)
-    102: ["CPMCC MRI23 Magnetom Vida 3T", "CPMCC MRI23_Magnetom Vida 3T"],
-    # ===== Brachytherapy (206 — 200 taken by BCHC chamber) =====
-    206: ["Flexitron19", "HDR"],
-    # ===== BCHC Chambers (existing 200-203, serial-verified) =====
-    200: "BCHC (Sec. Std.) PTW 30012 - 0381 (15)",
-    201: ["BCHC (F) PTW 30013 - 8451", "BCHC (F) PTW 30013 - 8451 (15)"],
-    202: "BCHC (F) PTW Roos 34001 - 2649 (15)",
-    203: "BCHC (F) PTW 30013 - 10004 (15)",
-    # ===== BCHC Chambers / Electrometers (new) =====
-    207: "BCHC (F) PTW Roos 34001 - 3680 (23)",
-    208: ["BCHC (F) PTW Romeo TW10053 - 240379", "BCHC (F) Romeo TW10053 - 240379"],
-    209: "BCHC (F) Juliet TW10053 - 245889",
-    210: "BCHC (F) PCElec 1014 - 103746001",
-    211: "BCHC (F) PCElec 1014 - 104177005",
-    212: "BCHC (Sec. Std) Fluke 35040 - 3120001",
-    # ===== CPMCC Field Ion Chambers (305+) =====
-    305: "CPMCC (F) NE 2571 - 3708",
-    306: "CPMCC (F) NE 2571 - 3708 (18)",
-    307: "CPMCC (F) NE 2571 - 3762",
-    308: "CPMCC (F) NE 2571 - 3762 (20)",
-    309: "CPMCC (F) NE 2571 - 3762 (20) - TBI ONLY",
-    310: "CPMCC (F) IBA FC65-G - 7329 (26)",
-    311: "CPMCC (F) IBA FC65-P - 5485",
-    312: "CPMCC (F) IBA FC65-P - 5485 (22)",
-    313: "CPMCC (F) PTW 30013 - 2417",
-    314: "CPMCC (F) PTW 30013 - 2417 (16)",
-    315: "CPMCC (F) IBA Roos - 198",
-    316: "CPMCC (F) IBA Roos - 2326",
-    317: "CPMCC (F) IBA Roos - 2326 (22)",
-    318: "CPMCC (F) IBA Roos - 2327",
-    319: "CPMCC (F) IBA Roos - 2327 (22)",
-    320: "CPMCC (F) Inovision - 99313",
-    321: "CPMCC (F) Inovision - 99313 (01)",
-    322: "CPMCC (F) IBA Dose 1 - 03-8692",
-    323: "CPMCC (F) IBA Dose 1 - 03-8692 (06)",
-    324: "CPMCC (F) IBA Dose 1 - 20592",
-    325: "CPMCC (F) IBA Dose 1 - 20592 (14)",
-    326: "CPMCC Fluke Ion Chamber - 0000005509",
-    327: "CPMCC Fluke Ion Chamber - 0000005509 (14)",
-    # ===== CPMCC Secondary Standard Chambers (340+) =====
-    340: "CPMCC (Sec. Std) IBA FC65-G - 5413",
-    341: "CPMCC (Sec. Std) IBA FC65-G - 5413 (22)",
-    342: "CPMCC (Sec. Std) IBA FC65-P - 5485",
-    343: "CPMCC (Sec. Std) IBA Dose 1 - 33699",
-    344: "CPMCC (Sec. Std) IBA Dose 1 - 33699 (22)",
-    # ===== CPMCC Reference / Scanning Chambers (350+) =====
-    350: "CPMCC (R) IBA CC13 - 5463",
-    351: "CPMCC (R) IBA CC13 - 5464",
-    352: "CPMCC (R) IBA CC13 - 5464 (06)",
-    353: "CPMCC (R) IBA CC13 - 20792 (23)",
-    354: "CPMCC (R) IBA CC04 - 13593",
-    355: "CPMCC (R) IBA CC04 - 5430",
-    356: "CPMCC (R) IBA CC04 - 5430 (06)",
-    357: "CPMCC (R) IBA CC04 - 13593 (14)",
-    # ===== Well Chambers (365+) =====
-    365: ["CPMCC (F) Well Chamber - A060254", "CPMCC Well Chamber - A060254"],
-    366: ["CPMCC (F) Well Chamber - A990695", "CPMCC Well Chamber - A990695"],
-    # ===== Thermometers (375+) =====
-    375: "CPMCC Digital Thermometer - 210381212",
-    376: "CPMCC Digital Thermometer - 210381234",
-    377: "CPMCC Digital Thermometer - 210479123",
-    378: "CPMCC Digital Thermometer - Digi1",
-    379: "CPMCC Digital Thermometer Checktemp 1 - 3CC1D4",
-    380: "CPMCC Digital Thermometer Checktemp 1 - 416467",
-    381: "CPMCC Digital Thermometer Checktemp 1 - 41672E",
-    382: "CPMCC Digital Thermometer Checktemp 1 - Digi1",
-    383: "BCHC Digital Thermometer - 1B630A",
-    384: "BCHC Digital Thermometer - 210381234",
-    385: "BCHC Digital Thermometer - 210479122",
-    386: "BCHC Digital Thermometer - 210479123",
-    387: "BCHC Digital Thermometer Checktemp 1 - 1B630A",
-    388: "BCHC Digital Thermometer Checktemp 1 - 41828B",
-    # ===== Barometers (395+) =====
-    395: "CPMCC GE PACE1000 Barometer - 10488160",
-    396: "BCHC DPI 800 Barometer - 4415686",
-    # ===== Electrometers (400+) =====
-    400: "CPMCC D4",
-    401: ["CPMCC D4+", "D4+"],
-    402: "CPMCC D4+ (21)",
-    # ===== Survey Meters / OSLDs / Neutron (410+) =====
-    410: "CPMCC Austral Rad - 2373",
-    411: "CPMCC Ranger - R316845",
-    412: "CPMCC Mirion DMC 3000 01A1A01C",
-    413: "CPMCC Mirion DMC 3000 01A1A0C0",
-    414: "CPMCC Mirion DMC 3000 01A1A0EA",
-    415: "CPMCC Mirion DMC 3000 01A1A29C",
-    416: "CPMCC Neutron Detector",
-    417: "CPMCC Neutron Detector - 289 (??90)",
-    # ===== Detectors / Phantoms (425+) =====
-    425: "CPMCC IBA IMRT MatrixX 12236",
-    426: "CPMCC IBA MatrixX Resolution (24)",
-    427: "CPMCC IBA SRS Device (23)",
-    428: "CPMCC IBA WP1D",
-    429: "CPMCC IBA myQA Daily - 33059",
-    # ===== Audits / Safety / Security (435+) =====
-    435: "CPMCC - IAEA Audit",
-    436: "Dosimetry Audit",
-    437: "RFT26 - H197686",
-    438: "Radiation Safety",
-    439: "Source Security",
-    440: "WSLHD Bunker Dosimetry Cables",
-    441: "WSLHD/Staff",
-    # ===== Non-physical / software / test (500+) =====
-    500: "Eclipse",
-    501: "TestLinac",
-    502: "test",
-}
+# The mapping is loaded from myqa_device_map.yaml at import time.
+_DEVICE_MAP_PATH = os.path.join(
+    os.path.dirname(__file__), "qa", "management", "commands", "myqa_device_map.yaml"
+)
+
+
+def _load_device_map() -> dict[int, str | list[str]]:
+    with open(_DEVICE_MAP_PATH) as f:
+        data = yaml.safe_load(f)
+    return {int(k): v for k, v in data.items()}
+
+
+LINAC_MAP = _load_device_map()
 
 
 # ---------------------------------------------------------------------------
@@ -195,6 +81,32 @@ def get_connection():
         user=MYQA_DB_SETTINGS["username"],
         password=MYQA_DB_SETTINGS["password"],
     )
+
+
+def _fetchall(conn, sql: str, params: tuple = ()) -> list[dict]:
+    """Execute a dict-cursor query and return all rows."""
+    cursor = conn.cursor(as_dict=True)
+    cursor.execute(sql, params)
+    return cursor.fetchall()
+
+
+def _result(
+    value, expected=None, warn=None, fail=None, relative=False, round_to=4
+) -> dict[str, Any]:
+    """Build a standardized extractor result dict with value cleanup."""
+    if round_to and isinstance(value, (int, float)) and not isinstance(value, bool):
+        value = round(value, round_to)
+    return {
+        "value": value,
+        "expected": expected,
+        "warn": warn,
+        "fail": fail,
+        "relative": relative,
+    }
+
+
+# Django Test.name max_length — used by truncation in _energy_prefixed.
+_TEST_NAME_MAX_LEN = 128
 
 
 def build_device_to_unit_map() -> dict[str, int]:
@@ -234,16 +146,6 @@ def clean_roi_name(name: str) -> str:
     display decoration.
     """
     return (name or "").strip("[]")
-
-
-def _humanize_camel(col: str) -> str:
-    """Convert a CamelCase column prefix to a human-readable condition name.
-
-    e.g. ``MaximumDeviation`` -> ``Maximum Deviation``,
-    ``FailingPeaks`` -> ``Failing Peaks``.
-    """
-    s = re.sub(r"(?<!^)(?=[A-Z])", " ", col or "")
-    return s.strip()
 
 
 # ---------------------------------------------------------------------------
@@ -490,14 +392,18 @@ def discover_tasknames(conn) -> list[str]:
     Queries ``SELECT DISTINCT TaskName FROM MQA_TestExecutions WHERE TaskName
     IS NOT NULL``. Result is sorted for deterministic setup ordering.
     """
-    cursor = conn.cursor(as_dict=True)
-    cursor.execute("""
-        SELECT DISTINCT TaskName
-        FROM MQA_TestExecutions
-        WHERE TaskName IS NOT NULL
-        ORDER BY TaskName
-        """)
-    return [row["TaskName"] for row in cursor.fetchall()]
+    return [
+        row["TaskName"]
+        for row in _fetchall(
+            conn,
+            """
+            SELECT DISTINCT TaskName
+            FROM MQA_TestExecutions
+            WHERE TaskName IS NOT NULL
+            ORDER BY TaskName
+            """,
+        )
+    ]
 
 
 def discover_task_protocol(conn, taskname: str) -> str:
@@ -565,34 +471,9 @@ def discover_conditions(conn, taskname: str) -> list[dict[str, Any]]:
         seen_names.add(name)
         conditions.append({"name": name, "type": ctype, "source": source})
 
-    # Numeric — row-per-condition (Name column).
-    for name in discover_numeric_conditions(conn, taskname):
-        _add(name, "simple", "Numeric")
-
-    # PassFail — one condition per PassFail test execution (by Name).
-    for name in discover_passfail_conditions(conn, taskname):
-        _add(name, "string", "PassFail")
-
-    # MatrixX specialized types — each returns a list of human-readable
-    # condition names produced from its results tables.
-    for name in discover_profile_conditions(conn, taskname):
-        _add(name, "simple", "Profile")
-    for name in discover_wedge_conditions(conn, taskname):
-        _add(name, "simple", "Wedge")
-    for name in discover_output_conditions(conn, taskname):
-        _add(name, "simple", "Output")
-    for name in discover_energy_conditions(conn, taskname):
-        _add(name, "simple", "Energy")
-    for name in discover_mlc_conditions(conn, taskname):
-        _add(name, "simple", "MLC")
-    for name in discover_cbct_conditions(conn, taskname):
-        _add(name, "simple", "CBCT")
-    for name in discover_planar_conditions(conn, taskname):
-        _add(name, "simple", "Planar")
-    for name in discover_vmat_conditions(conn, taskname):
-        _add(name, "simple", "VMAT")
-    for name in discover_winston_lutz_conditions(conn, taskname):
-        _add(name, "simple", "WinstonLutz")
+    for label, fn, ctype in _DISCOVERERS:
+        for name in fn(conn, taskname):
+            _add(name, ctype, label)
 
     return conditions
 
@@ -695,7 +576,7 @@ def _energy_prefixed(condition: str, test_step: str | None, multi: bool) -> str:
         energy = _test_step_prefix(test_step)
     name = f"{energy} {condition}" if energy else condition
     # Safety: truncate to fit Test.name max_length (128 chars).
-    if len(name) > 128:
+    if len(name) > _TEST_NAME_MAX_LEN:
         name = name[:125] + "..."
     return name
 
@@ -1094,8 +975,8 @@ def extract_numeric(
     Returns ``{condition_name: {"value": Actual, "state": int, "expected": float,
     "warn": float, "fail": float, "relative": bool}}``.
     """
-    cursor = conn.cursor(as_dict=True)
-    cursor.execute(
+    rows = _fetchall(
+        conn,
         """
         SELECT tcne.Name, tcne.Actual, te.State, te.Name AS test_step,
                tcne.Expected, tcne.WarnOn, tcne.FailOn, tcne.IsRelative
@@ -1107,7 +988,6 @@ def extract_numeric(
         """,
         (execution_id,),
     )
-    rows = cursor.fetchall()
     if multi_override is not None:
         multi = multi_override
     else:
@@ -1136,8 +1016,9 @@ def extract_passfail(conn, execution_id: str) -> dict[str, dict[str, Any]]:
     Returns ``{test_name: {"value": AcceptanceCriteria, "state": int}}``.
     Filters State=10 (not started).
     """
-    cursor = conn.cursor(as_dict=True)
-    cursor.execute(
+    results: dict[str, dict[str, Any]] = {}
+    for row in _fetchall(
+        conn,
         """
         SELECT te.Name, pfte.AcceptanceCriteria, te.State
         FROM MQA_PassFail_TestExecutions pfte
@@ -1147,9 +1028,7 @@ def extract_passfail(conn, execution_id: str) -> dict[str, dict[str, Any]]:
         ORDER BY te.Name
         """,
         (execution_id,),
-    )
-    results: dict[str, dict[str, Any]] = {}
-    for row in cursor.fetchall():
+    ):
         if row["Name"]:
             results[row["Name"]] = {
                 "value": row.get("AcceptanceCriteria"),
@@ -1162,8 +1041,8 @@ def extract_profile(
     conn, execution_id: str, *, multi_override: bool | None = None
 ) -> dict[str, Any]:
     """Profile: key by DisplayName + direction + energy. Includes tolerance data."""
-    cursor = conn.cursor(as_dict=True)
-    cursor.execute(
+    rows = _fetchall(
+        conn,
         """
         SELECT dpr.Actual, dpr.DisplayName, dpr.Expected, dpr.Warn, dpr.Fail,
                dpr.ProfileDirection, te.Name AS test_step
@@ -1178,7 +1057,6 @@ def extract_profile(
         """,
         (execution_id,),
     )
-    rows = cursor.fetchall()
     if multi_override is not None:
         multi = multi_override
     else:
@@ -1189,20 +1067,16 @@ def extract_profile(
         name = _profile_condition_name(
             row["DisplayName"], row.get("ProfileDirection"), row["test_step"], multi
         )
-        results[name] = {
-            "value": round(row["Actual"], 4) if row["Actual"] is not None else None,
-            "expected": row.get("Expected"),
-            "warn": row.get("Warn"),
-            "fail": row.get("Fail"),
-            "relative": False,
-        }
+        results[name] = _result(
+            row["Actual"], row.get("Expected"), row.get("Warn"), row.get("Fail")
+        )
     return results
 
 
 def extract_wedge(conn, execution_id: str) -> dict[str, Any]:
     """Wedge: key by ``Wedge Constancy {energy}x``. Includes tolerance data."""
-    cursor = conn.cursor(as_dict=True)
-    cursor.execute(
+    rows = _fetchall(
+        conn,
         """
         SELECT wqie.ActualValue, wqie.ExpectedValue,
                wqie.Tolerance_Warn, wqie.Tolerance_Fail,
@@ -1217,24 +1091,22 @@ def extract_wedge(conn, execution_id: str) -> dict[str, Any]:
         (execution_id,),
     )
     results: dict[str, Any] = {}
-    for row in cursor.fetchall():
+    for row in rows:
         energy = int(round(row["BeamQuality_EnergyValue"] or 0))
-        results[f"Wedge Constancy {energy}x"] = {
-            "value": (
-                round(row["ActualValue"], 4) if row["ActualValue"] is not None else None
-            ),
-            "expected": row.get("ExpectedValue"),
-            "warn": row.get("Tolerance_Warn"),
-            "fail": row.get("Tolerance_Fail"),
-            "relative": True,
-        }
+        results[f"Wedge Constancy {energy}x"] = _result(
+            row["ActualValue"],
+            row.get("ExpectedValue"),
+            row.get("Tolerance_Warn"),
+            row.get("Tolerance_Fail"),
+            relative=True,
+        )
     return results
 
 
 def extract_output(conn, execution_id: str) -> dict[str, Any]:
     """Output: key by ``Output {energy}x``. Includes tolerance data."""
-    cursor = conn.cursor(as_dict=True)
-    cursor.execute(
+    rows = _fetchall(
+        conn,
         """
         SELECT oqie.Actual, oqie.Expected, oqie.WarningTolerance, oqie.ErrorTolerance,
                cqie.BeamQuality_EnergyValue
@@ -1249,22 +1121,22 @@ def extract_output(conn, execution_id: str) -> dict[str, Any]:
         (execution_id,),
     )
     results: dict[str, Any] = {}
-    for row in cursor.fetchall():
+    for row in rows:
         energy = int(round(row["BeamQuality_EnergyValue"] or 0))
-        results[f"Output {energy}x"] = {
-            "value": round(row["Actual"], 4) if row["Actual"] is not None else None,
-            "expected": row.get("Expected"),
-            "warn": row.get("WarningTolerance"),
-            "fail": row.get("ErrorTolerance"),
-            "relative": True,
-        }
+        results[f"Output {energy}x"] = _result(
+            row["Actual"],
+            row.get("Expected"),
+            row.get("WarningTolerance"),
+            row.get("ErrorTolerance"),
+            relative=True,
+        )
     return results
 
 
 def extract_energy(conn, execution_id: str) -> dict[str, Any]:
     """Energy: key by ``Energy {energy}{fff?} ch{chamber}``. Includes tolerance data."""
-    cursor = conn.cursor(as_dict=True)
-    cursor.execute(
+    rows = _fetchall(
+        conn,
         """
         SELECT ece.Actual, ece.Expected, ece.WarningTolerance, ece.ErrorTolerance,
                cqie.BeamQuality_EnergyValue,
@@ -1282,17 +1154,17 @@ def extract_energy(conn, execution_id: str) -> dict[str, Any]:
         (execution_id,),
     )
     results: dict[str, Any] = {}
-    for row in cursor.fetchall():
+    for row in rows:
         energy = int(round(row["BeamQuality_EnergyValue"] or 0))
         fff = "fff" if row.get("BeamQuality_IsFlatteningFilterFree") else ""
         chamber = int(row.get("ChamberNumber") or 1)
-        results[f"Energy {energy}{fff} ch{chamber}"] = {
-            "value": round(row["Actual"], 4) if row["Actual"] is not None else None,
-            "expected": row.get("Expected"),
-            "warn": row.get("WarningTolerance"),
-            "fail": row.get("ErrorTolerance"),
-            "relative": True,
-        }
+        results[f"Energy {energy}{fff} ch{chamber}"] = _result(
+            row["Actual"],
+            row.get("Expected"),
+            row.get("WarningTolerance"),
+            row.get("ErrorTolerance"),
+            relative=True,
+        )
     return results
 
 
@@ -1553,34 +1425,15 @@ def extract_winston_lutz(
     return results
 
 
-# Table metadata for Pattern B execution types, used by compute_multi_flags.
-# Mirrors the parameters passed by discover_*_conditions / extract_* wrappers.
-_PATTERN_B_TABLES = {
-    "MLC": {
-        "results_table": "MQA_MDL_MlcQA_Results",
-        "exec_table": "MQA_MDL_MlcQA_TestExecutions",
-        "exec_alias": "mte",
-        "join_col": "MlcQATestExecutionBase_Id",
-    },
-    "CBCT": {
-        "results_table": "MQA_MDL_Cbct_Results",
-        "exec_table": "MQA_MDL_Cbct_TestExecutions",
-        "exec_alias": "cte",
-        "join_col": "Id",
-    },
-    "Planar": {
-        "results_table": "MQA_MDL_Planar_Results",
-        "exec_table": "MQA_MDL_Planar_TestExecutions",
-        "exec_alias": "pte",
-        "join_col": "Id",
-    },
-}
-
-# Per-type DISTINCT test_step queries for multi-flag computation.
-# Each mirrors the query in the corresponding discover_* function so that
-# the multi flag is consistent between setup and import.
-_MULTI_FLAG_QUERIES = {
-    "Numeric": """
+# DISTINCT test_step queries per execution type that uses the multi flag.
+# Single source of truth — each query string is defined ONCE here and used
+# only by compute_multi_flags. The discover_* functions embed the same
+# JOIN/WHERE in their own queries; if a schema change is needed, update
+# both the query here and the corresponding discover_* function.
+_MULTI_FLAG_SQL: list[tuple[str, str]] = [
+    (
+        "Numeric",
+        """
         SELECT DISTINCT te.Name AS test_step
         FROM MQA_Numeric_TestConditionExecutions tcne
         JOIN MQA_TestImplementationExecutions tie
@@ -1588,7 +1441,10 @@ _MULTI_FLAG_QUERIES = {
         JOIN MQA_TestExecutions te ON tie.Id = te.Id
         WHERE te.TaskName = %s AND te.State != 10
     """,
-    "Profile": """
+    ),
+    (
+        "Profile",
+        """
         SELECT DISTINCT te.Name AS test_step
         FROM MQA_Dosimetry_Profile_Results dpr
         JOIN MQA_Dosimetry_Profile_QueueItemExecutions dpqie
@@ -1599,7 +1455,10 @@ _MULTI_FLAG_QUERIES = {
         JOIN MQA_TestExecutions te ON tie.Id = te.Id
         WHERE te.TaskName = %s
     """,
-    "VMAT": """
+    ),
+    (
+        "VMAT",
+        """
         SELECT DISTINCT te.Name AS test_step
         FROM MQA_MDL_VmatDmlc_Results r
         JOIN MQA_MDL_VmatDmlc_TestExecutions vte ON r.Id = vte.Id
@@ -1607,49 +1466,82 @@ _MULTI_FLAG_QUERIES = {
         JOIN MQA_TestExecutions te ON tie.Id = te.Id
         WHERE te.TaskName = %s
     """,
-    "WinstonLutz": """
+    ),
+    (
+        "WinstonLutz",
+        """
         SELECT DISTINCT te.Name AS test_step
         FROM MQA_IsoCheck_WinstonLutz_TestExecutions wl
         JOIN MQA_TestImplementationExecutions tie ON wl.Id = tie.Id
         JOIN MQA_TestExecutions te ON tie.Id = te.Id
         WHERE te.TaskName = %s
     """,
-}
+    ),
+    # Pattern B types — generated from table metadata.
+    (
+        "MLC",
+        """
+        SELECT DISTINCT te.Name AS test_step
+        FROM MQA_MDL_MlcQA_Results r
+        JOIN MQA_MDL_MlcQA_TestExecutions mte ON r.MlcQATestExecutionBase_Id = mte.Id
+        JOIN MQA_TestImplementationExecutions tie ON mte.Id = tie.Id
+        JOIN MQA_TestExecutions te ON tie.Id = te.Id
+        WHERE te.TaskName = %s
+    """,
+    ),
+    (
+        "CBCT",
+        """
+        SELECT DISTINCT te.Name AS test_step
+        FROM MQA_MDL_Cbct_Results r
+        JOIN MQA_MDL_Cbct_TestExecutions cte ON r.Id = cte.Id
+        JOIN MQA_TestImplementationExecutions tie ON cte.Id = tie.Id
+        JOIN MQA_TestExecutions te ON tie.Id = te.Id
+        WHERE te.TaskName = %s
+    """,
+    ),
+    (
+        "Planar",
+        """
+        SELECT DISTINCT te.Name AS test_step
+        FROM MQA_MDL_Planar_Results r
+        JOIN MQA_MDL_Planar_TestExecutions pte ON r.Id = pte.Id
+        JOIN MQA_TestImplementationExecutions tie ON pte.Id = tie.Id
+        JOIN MQA_TestExecutions te ON tie.Id = te.Id
+        WHERE te.TaskName = %s
+    """,
+    ),
+]
+
+# Parallel to _EXTRACTORS — maps each execution type to its discover function
+# and condition type. Used by discover_conditions to iterate all types.
+_DISCOVERERS = [
+    ("Numeric", discover_numeric_conditions, "simple"),
+    ("PassFail", discover_passfail_conditions, "string"),
+    ("Profile", discover_profile_conditions, "simple"),
+    ("Wedge", discover_wedge_conditions, "simple"),
+    ("Output", discover_output_conditions, "simple"),
+    ("Energy", discover_energy_conditions, "simple"),
+    ("MLC", discover_mlc_conditions, "simple"),
+    ("CBCT", discover_cbct_conditions, "simple"),
+    ("Planar", discover_planar_conditions, "simple"),
+    ("VMAT", discover_vmat_conditions, "simple"),
+    ("WinstonLutz", discover_winston_lutz_conditions, "simple"),
+]
 
 
 def compute_multi_flags(conn, taskname: str) -> dict[str, bool]:
     """Compute the ``multi`` flag for each execution type at the TaskName level.
 
-    Mirrors the DISTINCT test_step queries used by the ``discover_*``
-    functions so that prefixing behaviour is identical between setup and
-    import.  Returns a dict keyed by the ``_EXTRACTORS`` label
+    Returns a dict keyed by the ``_EXTRACTORS`` label
     (``"Numeric"``, ``"Profile"``, ``"MLC"``, …).  Types that don't use a
     multi flag (PassFail, Wedge, Output, Energy) are omitted.
     """
     flags: dict[str, bool] = {}
-    cursor = conn.cursor(as_dict=True)
-
-    for label, sql in _MULTI_FLAG_QUERIES.items():
-        cursor.execute(sql, (taskname,))
-        steps = {r["test_step"] for r in cursor.fetchall() if r["test_step"]}
+    for label, sql in _MULTI_FLAG_SQL:
+        rows = _fetchall(conn, sql, (taskname,))
+        steps = {r["test_step"] for r in rows if r["test_step"]}
         flags[label] = len(steps) > 1
-
-    for label, tables in _PATTERN_B_TABLES.items():
-        cursor.execute(
-            f"""
-            SELECT DISTINCT te.Name AS test_step
-            FROM {tables["results_table"]} r
-            JOIN {tables["exec_table"]} {tables["exec_alias"]}
-                ON r.{tables["join_col"]} = {tables["exec_alias"]}.Id
-            JOIN MQA_TestImplementationExecutions tie ON {tables["exec_alias"]}.Id = tie.Id
-            JOIN MQA_TestExecutions te ON tie.Id = te.Id
-            WHERE te.TaskName = %s
-            """,
-            (taskname,),
-        )
-        steps = {r["test_step"] for r in cursor.fetchall() if r["test_step"]}
-        flags[label] = len(steps) > 1
-
     return flags
 
 
@@ -2068,7 +1960,7 @@ def import_session(
 
 
 def import_myqa_results(META: dict) -> str:
-    """Top-level django-q entry point.
+    """django-q entry point. Delegates to ``qatrack.qa.tasks.import_myqa_all``.
 
     ``META`` keys:
       * ``task_name`` (str|None): limit to one TaskName; otherwise discover all.
@@ -2076,56 +1968,10 @@ def import_myqa_results(META: dict) -> str:
 
     Returns a JSON summary string.
     """
-    taskname = META.get("task_name")
-    days = int(META.get("days", 30))
+    from qatrack.qa.tasks import import_myqa_all
 
-    conn = get_connection()
-    try:
-        internal_user = User.objects.get(username="QATrack+ Internal")
-        default_status = TestInstanceStatus.objects.get(is_default=True)
-        status_map = {
-            "unreviewed": default_status,
-            "approved": TestInstanceStatus.objects.get(slug="Approved"),
-            "skipped": TestInstanceStatus.objects.get(slug="skipped"),
-        }
-
-        tasknames = [taskname] if taskname else discover_tasknames(conn)
-
-        results = {
-            "imported": 0,
-            "skipped_dup": 0,
-            "skipped_empty": 0,
-            "skipped_err": 0,
-            "total": 0,
-            "details": [],
-        }
-
-        for tn in tasknames:
-            sessions = query_sessions(conn, tn, days)
-            results["total"] += len(sessions)
-            multi_flags = compute_multi_flags(conn, tn)
-
-            for session in sessions:
-                outcome = import_session(
-                    conn,
-                    tn,
-                    session,
-                    internal_user,
-                    default_status,
-                    status_map,
-                    multi_flags=multi_flags,
-                )
-                results["details"].append(outcome)
-                status = outcome["status"]
-                if status == "imported":
-                    results["imported"] += 1
-                elif status == "skipped_dup":
-                    results["skipped_dup"] += 1
-                elif status == "skipped_empty":
-                    results["skipped_empty"] += 1
-                else:
-                    results["skipped_err"] += 1
-
-        return json.dumps(results)
-    finally:
-        conn.close()
+    result = import_myqa_all(
+        task_name=META.get("task_name"),
+        days=int(META.get("days", 30)),
+    )
+    return json.dumps(result)

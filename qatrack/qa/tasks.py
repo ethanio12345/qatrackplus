@@ -53,21 +53,21 @@ def import_myqa_all(dry_run=False, unit=None, days=30, task_name=None):
         "total": 0,
     }
 
+    # Open a short-lived connection just to discover TaskNames, then close it.
+    # Each TaskName batch re-opens its own connection below.
     conn = get_connection()
     try:
-        internal_user = User.objects.get(username="QATrack+ Internal")
-        default_status = TestInstanceStatus.objects.get(is_default=True)
-        status_map = {
-            "unreviewed": default_status,
-            "approved": TestInstanceStatus.objects.get(slug="Approved"),
-            "skipped": TestInstanceStatus.objects.get(slug="skipped"),
-        }
-
         tasknames = [task_name] if task_name else discover_tasknames(conn)
     finally:
-        # Keep the connection closed between session batches; we re-open per
-        # session inside the loop. (pymssql connections are cheap to open.)
-        pass
+        conn.close()
+
+    internal_user = User.objects.get(username="QATrack+ Internal")
+    default_status = TestInstanceStatus.objects.get(is_default=True)
+    status_map = {
+        "unreviewed": default_status,
+        "approved": TestInstanceStatus.objects.get(slug="Approved"),
+        "skipped": TestInstanceStatus.objects.get(slug="skipped"),
+    }
 
     for tn in tasknames:
         # Re-open per TaskName so a long iteration doesn't sit on a stale
