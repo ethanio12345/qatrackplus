@@ -94,19 +94,11 @@ $VENV/bin/python manage.py check 2>&1 | tail -1
 # ── Step 5: Restart services ──────────────────────────────────────────────
 if [ "$MODE" != "--code" ]; then
     echo ""
-    echo "[5] Restarting services..."
-    # Try sudo first; if unavailable, kill workers so systemd respawns them.
-    if sudo -n true 2>/dev/null; then
-        sudo systemctl restart qatrack-qcluster
-        sudo systemctl reload apache2 2>/dev/null || true
-        echo "    qcluster + apache restarted (via systemctl)."
-    else
-        pkill -u "$(whoami)" -f "manage.py qcluster" 2>/dev/null || true
-        echo "    Killed qcluster workers — systemd will respawn with new code."
-        echo "    For www-data workers + apache, run manually:"
-        echo "      sudo systemctl restart qatrack-qcluster"
-        echo "      sudo systemctl reload apache2"
-    fi
+    echo "[5] Restarting services (will prompt for sudo password)..."
+    sudo systemctl restart qatrack-qcluster
+    echo "    qcluster restarted."
+    sudo systemctl reload apache2 2>/dev/null || sudo systemctl reload httpd 2>/dev/null || true
+    echo "    web server reloaded."
 else
     echo ""
     echo "[5] Skipping service restart (--code mode)"
