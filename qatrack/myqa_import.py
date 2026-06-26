@@ -529,24 +529,65 @@ def discover_condition_metadata(conn, taskname: str) -> dict[str, dict[str, Any]
 # Per-type discovery helpers (condition names per TaskName)
 # ---------------------------------------------------------------------------
 
-
-def discover_numeric_conditions(conn, taskname: str) -> list[str]:
-    cursor = conn.cursor(as_dict=True)
-    cursor.execute(
-        """
-        SELECT DISTINCT tcne.Name, te.Name AS test_step
+# Shared FROM/JOIN blocks — each Pattern A type's discover and extract functions
+# use the same JOIN structure, differing only in SELECT/WHERE. Defining once
+# eliminates the discover/extract SQL drift hazard.
+_NUMERIC_FROM = """\
         FROM MQA_Numeric_TestConditionExecutions tcne
         JOIN MQA_TestImplementationExecutions tie
             ON tcne.NumericTestExecution_Id = tie.Id
+        JOIN MQA_TestExecutions te ON tie.Id = te.Id"""
+
+_PASSFAIL_FROM = """\
+        FROM MQA_PassFail_TestExecutions pfte
+        JOIN MQA_TestImplementationExecutions tie ON pfte.Id = tie.Id
+        JOIN MQA_TestExecutions te ON tie.Id = te.Id"""
+
+_PROFILE_FROM = """\
+        FROM MQA_Dosimetry_Profile_Results dpr
+        JOIN MQA_Dosimetry_Profile_QueueItemExecutions dpqie
+            ON dpr.ProfileQueueItemExecution_Id = dpqie.Id
+        JOIN MQA_Dosimetry_Profile_TestExecutions dpte
+            ON dpqie.Id = dpte.ProfileQueueItem_Id
+        JOIN MQA_TestImplementationExecutions tie ON dpte.Id = tie.Id
+        JOIN MQA_TestExecutions te ON tie.Id = te.Id"""
+
+_WEDGE_FROM = """\
+        FROM MQA_Dosimetry_Wedge_QueueItemExecutions wqie
+        JOIN MQA_Dosimetry_Wedge_TestExecutions wte
+            ON wqie.WedgeConstancyExecution_Id = wte.Id
+        JOIN MQA_TestImplementationExecutions tie ON wte.Id = tie.Id
+        JOIN MQA_TestExecutions te ON tie.Id = te.Id"""
+
+_OUTPUT_FROM = """\
+        FROM MQA_Dosimetry_Output_QueueItemExecutions oqie
+        JOIN MQA_Dosimetry_Common_QueueItemExecutions cqie ON oqie.Id = cqie.Id
+        JOIN MQA_Dosimetry_Output_TestExecutions ote
+            ON oqie.OutputConstancyExecution_Id = ote.Id
+        JOIN MQA_TestImplementationExecutions tie ON ote.Id = tie.Id
+        JOIN MQA_TestExecutions te ON tie.Id = te.Id"""
+
+_ENERGY_FROM = """\
+        FROM MQA_Dosimetry_Energy_ChamberExecutions ece
+        JOIN MQA_Dosimetry_Energy_QueueItemExecutions eqie
+            ON ece.EnergyConstancyQueueItemExecution_Id = eqie.Id
+        JOIN MQA_Dosimetry_Energy_TestExecutions ete ON eqie.EnergyConstancyExecution_Id = ete.Id
+        JOIN MQA_TestImplementationExecutions tie ON ete.Id = tie.Id
         JOIN MQA_TestExecutions te ON tie.Id = te.Id
+        JOIN MQA_Dosimetry_Common_QueueItemExecutions cqie ON eqie.Id = cqie.Id"""
+
+
+def discover_numeric_conditions(conn, taskname: str) -> list[str]:
+    rows = _fetchall(
+        conn,
+        f"""
+        SELECT DISTINCT tcne.Name, te.Name AS test_step
+        {_NUMERIC_FROM}
         WHERE te.TaskName = %s AND tcne.Name IS NOT NULL AND te.State != 10
         ORDER BY tcne.Name
         """,
         (taskname,),
     )
-    rows = cursor.fetchall()
-    # When multiple test steps (energies) produce the same condition names,
-    # prefix with the energy code parsed from the test step name.
     test_steps = {r["test_step"] for r in rows if r["test_step"]}
     multi = len(test_steps) > 1
     seen: set[str] = set()
@@ -587,19 +628,19 @@ def discover_passfail_conditions(conn, taskname: str) -> list[str]:
     Each PassFail test execution becomes a separate condition, replacing the
     old single "Acceptance Criteria" approach. State=10 tests are excluded.
     """
-    cursor = conn.cursor(as_dict=True)
-    cursor.execute(
-        """
-        SELECT DISTINCT te.Name
-        FROM MQA_PassFail_TestExecutions pfte
-        JOIN MQA_TestImplementationExecutions tie ON pfte.Id = tie.Id
-        JOIN MQA_TestExecutions te ON tie.Id = te.Id
-        WHERE te.TaskName = %s AND te.Name IS NOT NULL AND te.State != 10
-        ORDER BY te.Name
-        """,
-        (taskname,),
-    )
-    return [row["Name"] for row in cursor.fetchall()]
+    return [
+        row["Name"]
+        for row in _fetchall(
+            conn,
+            f"""
+            SELECT DISTINCT te.Name
+            {_PASSFAIL_FROM}
+            WHERE te.TaskName = %s AND te.Name IS NOT NULL AND te.State != 10
+            ORDER BY te.Name
+            """,
+            (taskname,),
+        )
+    ]
 
 
 def _profile_condition_name(
@@ -630,22 +671,15 @@ def discover_profile_conditions(conn, taskname: str) -> list[str]:
     Direction is appended when not already in the name. Energy prefix is added
     when multiple test steps exist.
     """
-    cursor = conn.cursor(as_dict=True)
-    cursor.execute(
-        """
+    rows = _fetchall(
+        conn,
+        f"""
         SELECT DISTINCT dpr.DisplayName, dpr.ProfileDirection, te.Name AS test_step
-        FROM MQA_Dosimetry_Profile_Results dpr
-        JOIN MQA_Dosimetry_Profile_QueueItemExecutions dpqie
-            ON dpr.ProfileQueueItemExecution_Id = dpqie.Id
-        JOIN MQA_Dosimetry_Profile_TestExecutions dpte
-            ON dpqie.Id = dpte.ProfileQueueItem_Id
-        JOIN MQA_TestImplementationExecutions tie ON dpte.Id = tie.Id
-        JOIN MQA_TestExecutions te ON tie.Id = te.Id
+        {_PROFILE_FROM}
         WHERE te.TaskName = %s AND dpr.DisplayName IS NOT NULL
         """,
         (taskname,),
     )
-    rows = cursor.fetchall()
     test_steps = {r["test_step"] for r in rows if r["test_step"]}
     multi = len(test_steps) > 1
     seen: set[str] = set()
@@ -666,23 +700,18 @@ def discover_wedge_conditions(conn, taskname: str) -> list[str]:
     Returns ``Wedge Constancy {energy}x`` so the same measurement across
     sessions produces the same condition name (shared Test).
     """
-    cursor = conn.cursor(as_dict=True)
-    cursor.execute(
-        """
-        SELECT DISTINCT wte.BeamQuality_EnergyValue
-        FROM MQA_Dosimetry_Wedge_QueueItemExecutions wqie
-        JOIN MQA_Dosimetry_Wedge_TestExecutions wte
-            ON wqie.WedgeConstancyExecution_Id = wte.Id
-        JOIN MQA_TestImplementationExecutions tie ON wte.Id = tie.Id
-        JOIN MQA_TestExecutions te ON tie.Id = te.Id
-        WHERE te.TaskName = %s AND wte.BeamQuality_EnergyValue IS NOT NULL
-        ORDER BY wte.BeamQuality_EnergyValue
-        """,
-        (taskname,),
-    )
     return [
         f"Wedge Constancy {int(row['BeamQuality_EnergyValue'])}x"
-        for row in cursor.fetchall()
+        for row in _fetchall(
+            conn,
+            f"""
+            SELECT DISTINCT wte.BeamQuality_EnergyValue
+            {_WEDGE_FROM}
+            WHERE te.TaskName = %s AND wte.BeamQuality_EnergyValue IS NOT NULL
+            ORDER BY wte.BeamQuality_EnergyValue
+            """,
+            (taskname,),
+        )
     ]
 
 
@@ -692,23 +721,18 @@ def discover_output_conditions(conn, taskname: str) -> list[str]:
     Returns ``Output {energy}x`` so the same measurement produces the same
     condition name across sessions.
     """
-    cursor = conn.cursor(as_dict=True)
-    cursor.execute(
-        """
-        SELECT DISTINCT cqie.BeamQuality_EnergyValue
-        FROM MQA_Dosimetry_Output_QueueItemExecutions oqie
-        JOIN MQA_Dosimetry_Common_QueueItemExecutions cqie ON oqie.Id = cqie.Id
-        JOIN MQA_Dosimetry_Output_TestExecutions ote
-            ON oqie.OutputConstancyExecution_Id = ote.Id
-        JOIN MQA_TestImplementationExecutions tie ON ote.Id = tie.Id
-        JOIN MQA_TestExecutions te ON tie.Id = te.Id
-        WHERE te.TaskName = %s AND cqie.BeamQuality_EnergyValue IS NOT NULL
-        ORDER BY cqie.BeamQuality_EnergyValue
-        """,
-        (taskname,),
-    )
     return [
-        f"Output {int(row['BeamQuality_EnergyValue'])}x" for row in cursor.fetchall()
+        f"Output {int(row['BeamQuality_EnergyValue'])}x"
+        for row in _fetchall(
+            conn,
+            f"""
+            SELECT DISTINCT cqie.BeamQuality_EnergyValue
+            {_OUTPUT_FROM}
+            WHERE te.TaskName = %s AND cqie.BeamQuality_EnergyValue IS NOT NULL
+            ORDER BY cqie.BeamQuality_EnergyValue
+            """,
+            (taskname,),
+        )
     ]
 
 
@@ -717,26 +741,20 @@ def discover_energy_conditions(conn, taskname: str) -> list[str]:
 
     Returns ``Energy {energy}{fff?} ch{chamber}`` for each distinct combo.
     """
-    cursor = conn.cursor(as_dict=True)
-    cursor.execute(
-        """
+    rows = _fetchall(
+        conn,
+        f"""
         SELECT DISTINCT cqie.BeamQuality_EnergyValue,
                         cqie.BeamQuality_IsFlatteningFilterFree,
                         ece.ChamberNumber
-        FROM MQA_Dosimetry_Energy_ChamberExecutions ece
-        JOIN MQA_Dosimetry_Energy_QueueItemExecutions eqie
-            ON ece.EnergyConstancyQueueItemExecution_Id = eqie.Id
-        JOIN MQA_Dosimetry_Energy_TestExecutions ete ON eqie.EnergyConstancyExecution_Id = ete.Id
-        JOIN MQA_TestImplementationExecutions tie ON ete.Id = tie.Id
-        JOIN MQA_TestExecutions te ON tie.Id = te.Id
-        JOIN MQA_Dosimetry_Common_QueueItemExecutions cqie ON eqie.Id = cqie.Id
+        {_ENERGY_FROM}
         WHERE te.TaskName = %s AND cqie.BeamQuality_EnergyValue IS NOT NULL
         ORDER BY cqie.BeamQuality_EnergyValue, ece.ChamberNumber
         """,
         (taskname,),
     )
     names: list[str] = []
-    for row in cursor.fetchall():
+    for row in rows:
         energy = int(round(row["BeamQuality_EnergyValue"] or 0))
         fff = "fff" if row.get("BeamQuality_IsFlatteningFilterFree") else ""
         chamber = int(row.get("ChamberNumber") or 1)
@@ -977,13 +995,10 @@ def extract_numeric(
     """
     rows = _fetchall(
         conn,
-        """
+        f"""
         SELECT tcne.Name, tcne.Actual, te.State, te.Name AS test_step,
                tcne.Expected, tcne.WarnOn, tcne.FailOn, tcne.IsRelative
-        FROM MQA_Numeric_TestConditionExecutions tcne
-        JOIN MQA_TestImplementationExecutions tie
-            ON tcne.NumericTestExecution_Id = tie.Id
-        JOIN MQA_TestExecutions te ON tie.Id = te.Id
+        {_NUMERIC_FROM}
         WHERE te.TaskExecutionId = %s AND te.State != 10
         """,
         (execution_id,),
@@ -1019,11 +1034,9 @@ def extract_passfail(conn, execution_id: str) -> dict[str, dict[str, Any]]:
     results: dict[str, dict[str, Any]] = {}
     for row in _fetchall(
         conn,
-        """
+        f"""
         SELECT te.Name, pfte.AcceptanceCriteria, te.State
-        FROM MQA_PassFail_TestExecutions pfte
-        JOIN MQA_TestImplementationExecutions tie ON pfte.Id = tie.Id
-        JOIN MQA_TestExecutions te ON tie.Id = te.Id
+        {_PASSFAIL_FROM}
         WHERE te.TaskExecutionId = %s AND te.State != 10
         ORDER BY te.Name
         """,
@@ -1043,16 +1056,10 @@ def extract_profile(
     """Profile: key by DisplayName + direction + energy. Includes tolerance data."""
     rows = _fetchall(
         conn,
-        """
+        f"""
         SELECT dpr.Actual, dpr.DisplayName, dpr.Expected, dpr.Warn, dpr.Fail,
                dpr.ProfileDirection, te.Name AS test_step
-        FROM MQA_Dosimetry_Profile_Results dpr
-        JOIN MQA_Dosimetry_Profile_QueueItemExecutions dpqie
-            ON dpr.ProfileQueueItemExecution_Id = dpqie.Id
-        JOIN MQA_Dosimetry_Profile_TestExecutions dpte
-            ON dpqie.Id = dpte.ProfileQueueItem_Id
-        JOIN MQA_TestImplementationExecutions tie ON dpte.Id = tie.Id
-        JOIN MQA_TestExecutions te ON tie.Id = te.Id
+        {_PROFILE_FROM}
         WHERE te.TaskExecutionId = %s AND dpr.DisplayName IS NOT NULL
         """,
         (execution_id,),
@@ -1077,15 +1084,11 @@ def extract_wedge(conn, execution_id: str) -> dict[str, Any]:
     """Wedge: key by ``Wedge Constancy {energy}x``. Includes tolerance data."""
     rows = _fetchall(
         conn,
-        """
+        f"""
         SELECT wqie.ActualValue, wqie.ExpectedValue,
                wqie.Tolerance_Warn, wqie.Tolerance_Fail,
                wte.BeamQuality_EnergyValue
-        FROM MQA_Dosimetry_Wedge_QueueItemExecutions wqie
-        JOIN MQA_Dosimetry_Wedge_TestExecutions wte
-            ON wqie.WedgeConstancyExecution_Id = wte.Id
-        JOIN MQA_TestImplementationExecutions tie ON wte.Id = tie.Id
-        JOIN MQA_TestExecutions te ON tie.Id = te.Id
+        {_WEDGE_FROM}
         WHERE te.TaskExecutionId = %s AND wte.BeamQuality_EnergyValue IS NOT NULL
         """,
         (execution_id,),
@@ -1107,15 +1110,10 @@ def extract_output(conn, execution_id: str) -> dict[str, Any]:
     """Output: key by ``Output {energy}x``. Includes tolerance data."""
     rows = _fetchall(
         conn,
-        """
+        f"""
         SELECT oqie.Actual, oqie.Expected, oqie.WarningTolerance, oqie.ErrorTolerance,
                cqie.BeamQuality_EnergyValue
-        FROM MQA_Dosimetry_Output_QueueItemExecutions oqie
-        JOIN MQA_Dosimetry_Common_QueueItemExecutions cqie ON oqie.Id = cqie.Id
-        JOIN MQA_Dosimetry_Output_TestExecutions ote
-            ON oqie.OutputConstancyExecution_Id = ote.Id
-        JOIN MQA_TestImplementationExecutions tie ON ote.Id = tie.Id
-        JOIN MQA_TestExecutions te ON tie.Id = te.Id
+        {_OUTPUT_FROM}
         WHERE te.TaskExecutionId = %s AND cqie.BeamQuality_EnergyValue IS NOT NULL
         """,
         (execution_id,),
@@ -1137,18 +1135,12 @@ def extract_energy(conn, execution_id: str) -> dict[str, Any]:
     """Energy: key by ``Energy {energy}{fff?} ch{chamber}``. Includes tolerance data."""
     rows = _fetchall(
         conn,
-        """
+        f"""
         SELECT ece.Actual, ece.Expected, ece.WarningTolerance, ece.ErrorTolerance,
                cqie.BeamQuality_EnergyValue,
                cqie.BeamQuality_IsFlatteningFilterFree,
                ece.ChamberNumber
-        FROM MQA_Dosimetry_Energy_ChamberExecutions ece
-        JOIN MQA_Dosimetry_Energy_QueueItemExecutions eqie
-            ON ece.EnergyConstancyQueueItemExecution_Id = eqie.Id
-        JOIN MQA_Dosimetry_Energy_TestExecutions ete ON eqie.EnergyConstancyExecution_Id = ete.Id
-        JOIN MQA_TestImplementationExecutions tie ON ete.Id = tie.Id
-        JOIN MQA_TestExecutions te ON tie.Id = te.Id
-        JOIN MQA_Dosimetry_Common_QueueItemExecutions cqie ON eqie.Id = cqie.Id
+        {_ENERGY_FROM}
         WHERE te.TaskExecutionId = %s AND cqie.BeamQuality_EnergyValue IS NOT NULL
         """,
         (execution_id,),
@@ -1426,33 +1418,22 @@ def extract_winston_lutz(
 
 
 # DISTINCT test_step queries per execution type that uses the multi flag.
-# Single source of truth — each query string is defined ONCE here and used
-# only by compute_multi_flags. The discover_* functions embed the same
-# JOIN/WHERE in their own queries; if a schema change is needed, update
-# both the query here and the corresponding discover_* function.
+# Numeric and Profile use the shared FROM constants; other types have unique
+# JOINs not shared with Pattern A extractors.
 _MULTI_FLAG_SQL: list[tuple[str, str]] = [
     (
         "Numeric",
-        """
+        f"""
         SELECT DISTINCT te.Name AS test_step
-        FROM MQA_Numeric_TestConditionExecutions tcne
-        JOIN MQA_TestImplementationExecutions tie
-            ON tcne.NumericTestExecution_Id = tie.Id
-        JOIN MQA_TestExecutions te ON tie.Id = te.Id
+        {_NUMERIC_FROM}
         WHERE te.TaskName = %s AND te.State != 10
     """,
     ),
     (
         "Profile",
-        """
+        f"""
         SELECT DISTINCT te.Name AS test_step
-        FROM MQA_Dosimetry_Profile_Results dpr
-        JOIN MQA_Dosimetry_Profile_QueueItemExecutions dpqie
-            ON dpr.ProfileQueueItemExecution_Id = dpqie.Id
-        JOIN MQA_Dosimetry_Profile_TestExecutions dpte
-            ON dpqie.Id = dpte.ProfileQueueItem_Id
-        JOIN MQA_TestImplementationExecutions tie ON dpte.Id = tie.Id
-        JOIN MQA_TestExecutions te ON tie.Id = te.Id
+        {_PROFILE_FROM}
         WHERE te.TaskName = %s
     """,
     ),
