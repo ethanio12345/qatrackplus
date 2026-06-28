@@ -6,6 +6,50 @@ Release Notes
 QATrack+ Unreleased Release Notes
 ---------------------------------
 
+myQA Import System
+~~~~~~~~~~~~~~~~~~
+
+* **Dynamic TaskName-driven import**: Replaced the old hardcoded importer-class
+  architecture with a fully dynamic system that discovers all TaskNames,
+  conditions, and devices directly from the myQA database. One TestList per
+  TaskName (242 discovered), Tests shared by condition name via
+  TestListMembership.
+
+* **New management commands**:
+
+  * ``setup_myqa_tests`` — discovers TaskNames + conditions from myQA, creates
+    TestLists/Tests/UTCs/UTIs. Supports ``--dry-run`` and ``--task-name``.
+  * ``import_myqa --days N`` — imports sessions within a lookback window.
+    Aggregates all execution types (Numeric, PassFail, Profile, Wedge, Output,
+    Energy, MLC, CBCT, Planar, VMAT, Winston-Lutz) into one TestListInstance.
+  * ``clear_myqa_data --yes`` — deletes all myQA-sourced data in FK-safe order.
+  * ``create_myqa_units`` — creates Unit rows from ``myqa_device_map.yaml``.
+  * ``import_old_qatrack --file`` — restores old QATrack+ backup data.
+
+* **Device expansion**: 101 myQA devices mapped (LINACs, imaging, chambers,
+  electrometers, phantoms, survey meters, thermometers, barometers, etc.) via
+  ``myqa_device_map.yaml``.
+
+* **State-aware import**: myQA execution states (10=not started, 30=incomplete,
+  40=completed, 50/60=approved/skipped) are mapped to QATrack+
+  TestInstanceStatus. State=10 conditions are skipped.
+
+* **Tolerance import**: Numeric and Pattern B tolerances (expected/warn/fail)
+  are imported from myQA and applied to UnitTestInfo objects.
+
+* **Scheduled daily import**: django-q Schedule runs
+  ``import_myqa_results({"days": 2})`` daily, importing new sessions
+  automatically.
+
+* **Bug fixes**:
+
+  * Fixed ``multi`` flag discrepancy between discover and extract functions
+    that caused ~5% of conditions to silently drop during import.
+  * Fixed Pattern B / Winston-Lutz discover functions returning spurious
+    conditions for execution types with no data (e.g. CNR in Dosimetry lists).
+  * Fixed VMAT parent name prefixing mismatch between discover and extract.
+  * Fixed connection leak in ``import_myqa_all``.
+
 Technical Improvements
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -15,6 +59,15 @@ Technical Improvements
   * Export/Import TestPack functionality moved to admin interface  
   * Removed duplicate URL patterns and consolidated admin views
   * **Known Issue**: Copy References & Tolerances feature needs to be reimplemented in the new admin interface
+
+* **Production deployment via git**: Production at ``/home/bchcphysics/web/qatrackplus``
+  is now a git clone of ``origin/develop``. Deploy with ``deploy_to_prod.sh``
+  (git fetch -> reset --hard -> uv sync -> restart).
+
+* **Code refactoring**: Simplified myQA import engine by 173 lines via shared
+  FROM/JOIN constants, ``_fetchall``/``_result`` helpers, YAML externalization
+  of device map, ``_DISCOVERERS``/``_EXTRACTORS`` lists, and multi-flag
+  consolidation.
 
 Bug Fixes
 ~~~~~~~~~

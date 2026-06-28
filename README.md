@@ -24,6 +24,7 @@ This is a Free and Open Source (FOSS) project. The goal is to provide a tool for
 - FAQ's, community guides for unsupported solutions, rules, and other developer focused information can be found on the [project wiki](https://github.com/qatrackplus/qatrackplus/wiki) currently a work in progress.
 - Email - for inquiries not covered within the scope of the above tools, please email [medphys@crcrewso.ca](mailto:medphys@crcrewso.ca)
 - Here are the links for the [main website](http://qatrackplus.com) and the [list of users around the world](http://qatrackplus.com/#whos-using). If you would like to be listed, please email us.
+- **AI agents**: See `AGENTS.md` in the repo root for project conventions, myQA import system docs, deployment instructions, and known gotchas.
 
 ### In-Scope
 

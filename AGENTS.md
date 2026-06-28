@@ -122,3 +122,21 @@ Active and archived changes under `openspec/changes/`. Design docs for the myQA 
 - Selects: `E, F, I, UP, DJ`.
 - Ignores: `E501` (line length), `E741`, `DJ001`, `DJ006`, `DJ007`, `DJ008`, `UP031`.
 - Excludes: `fixtures/`, `migration_data/`, `migrations/`, `south_migrations/`, `node_modules/`, `media/`, `static/`, `*tmp*`.
+
+## Production deployment
+
+- **Dev repo**: `/home/bchcphysics/Github/qatrackplus` (git clone, `develop` branch).
+- **Production**: `/home/bchcphysics/web/qatrackplus` (git clone of same `origin/develop`).
+- **Shared database**: Both dev and prod use the same PostgreSQL database
+  (`qatrackplus31`). Running `manage.py` from either repo modifies the
+  production database.
+- **Deploy script**: `bash deploy_to_prod.sh` — fetches latest `origin/develop`,
+  resets production, runs `uv sync`, restarts qcluster + apache.
+  - `--first` for initial setup (recreates venv if root-owned).
+  - `--code` for code-only deploys (skip deps/restart).
+- **Scheduled task**: django-q Schedule #7 ("myQA Daily Import") runs
+  `import_myqa_results({"days": 2})` daily at ~03:37 UTC.
+- **Pipeline command**: Run `/myqa-pipeline` in opencode for the full
+  clear -> setup -> import -> deploy workflow.
+- **Restart script**: `bash restart_qcluster.sh` — kills all stale qcluster
+  processes and restarts the systemd service cleanly.

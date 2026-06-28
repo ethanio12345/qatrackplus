@@ -38,16 +38,48 @@ uv sync --frozen
 # --frozen is used to prevent uv sync from attempting to update the lock file, only using it as the source of truth.
 ```
 
-Once you have the requirements installed, copy the debug `local_settings.py` file from the deploy subdirectory and then create your database:
+Once you have the requirements installed, copy the local_settings.py file for your database backend:
 
 ```bash
-cp deploy/dev/local_settings.dev.py qatrack/local_settings.py
+# For SQLite (dev/CI):
+cp deploy/sqlite/local_settings.py qatrack/local_settings.py
 mkdir db
+
+# For PostgreSQL (production):
+# Create qatrack/local_settings.py with your DATABASES config manually.
+
 python manage.py migrate
 python manage.py createcachetable
 ```
 
-This will put a database called `default.db` in the `db` subdirectory.
+## myQA import setup (optional)
+
+If you need to import QA data from a myQA SQL Server database, additional
+configuration is required:
+
+1. Add myQA database credentials to `qatrack/local_settings.py`:
+
+```python
+MYQA_DB_SERVER = "10.x.x.x"
+MYQA_DB_NAME = "myQA"
+MYQA_DB_USERNAME = "user"
+MYQA_DB_PASSWORD = "password"
+```
+
+2. `pymssql` is already in `pyproject.toml` and installed by `uv sync`.
+
+3. Review the device map at `qatrack/qa/management/commands/myqa_device_map.yaml`
+   and add any new devices.
+
+4. Run the pipeline (see `/myqa-pipeline` command or AGENTS.md):
+
+```bash
+python manage.py create_myqa_units        # create Unit rows from device map
+python manage.py setup_myqa_tests         # discover + create TestLists/Tests
+python manage.py import_myqa --days 3650  # import session data
+```
+
+See `AGENTS.md` for the full myQA import system documentation.
 
 ## Running the development server
 
@@ -108,7 +140,7 @@ export PATH="/home/$USER/.local/bin:$PATH"
 uv python pin 3.12
 uv sync --frozen
 source .venv/bin/activate
-cp deploy/dev/local_settings.dev.py qatrack/local_settings.py
+cp deploy/sqlite/local_settings.py qatrack/local_settings.py
 mkdir db
 python manage.py migrate
 python manage.py createcachetable
@@ -116,4 +148,5 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-You're now ready to start developing QATrack+! 
+You're now ready to start developing QATrack+! See `AGENTS.md` for project
+conventions, myQA import system docs, and deployment instructions. 
