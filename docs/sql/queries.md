@@ -16,11 +16,15 @@ Table of Contents
 5. `Pattern C Queries (VMAT)`_
 6. `Pattern D Queries (Winston-Lutz)`_
 7. `Shared FROM/JOIN Constants`_
-8. `Session Discovery (query_sessions)`_
-9. `Condition Metadata (discover_condition_metadata)`_
-10. `Pattern B Dynamic Column Generation`_
-11. `Tolerance & Reference Processing`_
-12. `FK-Safe Deletion (clear_myqa_data)`_
+8. `Protocol Lookup (discover_task_protocol)`_
+9. `Unit Discovery (discover_units_for_taskname)`_
+10. `VMAT ROI Discovery (discover_vmat_conditions, second query)`_
+11. `Session Discovery (query_sessions)`_
+12. `Condition Metadata (discover_condition_metadata)`_
+13. `Pattern B Dynamic Column Generation`_
+14. `Tolerance & Reference Processing`_
+15. `Import Session Data Flow (import_session)`_
+16. `FK-Safe Deletion (clear_myqa_data)`_
 
 
 Discover vs Extract: Two Query Modes
@@ -205,6 +209,68 @@ This ensures that if a schema change requires modifying a JOIN, only one
 constant needs updating — not three copies (discover, extract, multi-flag).
 
 
+Protocol Lookup (discover_task_protocol)
+-----------------------------------------
+
+Fetches the myQA protocol/template name for a TaskName. This populates the
+TestList description during setup.
+
+.. code-block:: sql
+
+   SELECT TOP 1 te.ProtocolName
+   FROM MQA_TestExecutions te
+   WHERE te.TaskName = %s AND te.ProtocolName IS NOT NULL
+
+**Processing**: Returns the first non-null ProtocolName (stripped). If no
+rows have a protocol, returns empty string. The value is informational only
+— stored in ``TestList.description``, not used for matching.
+
+
+Unit Discovery (discover_units_for_taskname)
+---------------------------------------------
+
+Finds which QATrack+ units have execution data for a TaskName. Used during
+setup to create UTCs/UTIs only for units that actually have sessions.
+
+.. code-block:: sql
+
+   SELECT DISTINCT te.RadiationDeviceName
+   FROM MQA_TestExecutions te
+   WHERE te.TaskName = %s
+     AND te.RadiationDeviceName IS NOT NULL
+
+**Processing**: Each ``RadiationDeviceName`` is looked up in
+``LINAC_MAP`` (reverse-mapped via ``build_device_to_unit_map()``). Unknown
+devices are silently skipped. Returns a sorted list of unique unit numbers.
+
+
+VMAT ROI Discovery (discover_vmat_conditions, second query)
+------------------------------------------------------------
+
+After checking that VMAT data exists (via the DISTINCT test_step query), this
+query discovers the ROI names that become child Test conditions:
+
+.. code-block:: sql
+
+   SELECT DISTINCT rr.Name, te.Name AS test_step
+   FROM MQA_MDL_VmatDmlc_RoiResults rr
+   JOIN MQA_MDL_VmatDmlc_Results r ON rr.VmatDmlcResult_Id = r.Id
+   JOIN MQA_MDL_VmatDmlc_TestExecutions vte ON r.Id = vte.Id
+   JOIN MQA_TestImplementationExecutions tie ON vte.Id = tie.Id
+   JOIN MQA_TestExecutions te ON tie.Id = te.Id
+   WHERE te.TaskName = %s AND rr.Name IS NOT NULL
+
+**Processing**: Each ROI name is cleaned (``clean_roi_name`` strips brackets),
+prefixed with test step when ``multi=True``, and duplicated with ``" mean"``
+and ``" std dev"`` suffixes. The parent ``"Normalization Value"`` is always
+prepended to the list (unprefixed).
+
+**Note**: The extract variant (``extract_vmat``) uses a single query with a
+``LEFT JOIN`` to ``RoiResults`` (not ``INNER JOIN``) so that sessions with a
+parent value but no ROI children still return the parent. The discover query
+uses ``INNER JOIN`` because it only needs to know which ROI names exist.
+
+
 Session Discovery (query_sessions)
 -----------------------------------
 
@@ -351,6 +417,117 @@ by zero would occur. This returns ``"no_tol"`` (no tolerance applied).
 
 **Missing tolerances**: If any of (expected, warn, fail) is None, returns
 ``"no_tol"`` — the TestInstance is created without pass/fail status.
+
+
+Import Session Data Flow (import_session)
+------------------------------------------
+
+The ``import_session`` function is the core of the import pipeline. It takes
+extracted results from ``extract_all_types`` and creates QATrack+ objects.
+Here's the complete data flow:
+
+### 1. Dedup check
+
+Before any work, checks if this session was already imported:
+
+.. code-block:: python
+
+   taskid_slug = f"{slugify_name(taskname)}_taskid"
+   already_imported = TestInstance.objects.filter(
+       unit_test_info__test__slug=taskid_slug,
+       unit_test_info__unit__number=unit_number,
+       string_value=execution_id,  # the myQA TaskExecutionId UUID
+   ).exists()
+
+### 2. Extract all types
+
+Calls ``extract_all_types(conn, execution_id, multi_flags=multi_flags)`` which
+runs all 11 extractors and merges results into one dict:
+
+.. code-block:: python
+
+   results = {
+       "Flatness": {"value": 1.03, "expected": 1.0, "warn": 0.03, "fail": 0.05, "relative": True},
+       "Gating interlock": {"value": "Functional", "state": 30},
+       "Output 6x": {"value": 0.987, "expected": 1.0, "warn": 0.03, "fail": 0.05, "relative": True},
+       ...
+   }
+
+### 3. Test lookup (3-dict approach)
+
+Three dicts are built from the TestList's memberships for fast lookup:
+
+- ``tests_by_slug``: ``{test.slug: Test}`` — primary lookup by ``slugify_name(condition_name)``
+- ``tests_by_name``: ``{test.name: Test}`` — fallback for name collision cases
+- ``utis_by_slug``: ``{uti.test.slug: UnitTestInfo}`` — UTI lookup by test slug
+
+**Fallback chain**: If slug lookup misses, tries enriched name, then raw name.
+This handles the case where ``setup_myqa_tests`` linked a TestList to a Test
+by name (due to UNIQUE constraint collision) rather than by slug.
+
+### 4. Per-condition TestInstance creation
+
+For each condition in results, the extracted data maps to TestInstance fields:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 35 35
+
+   * - Extracted field
+     - TestInstance field
+     - Conversion
+   * - ``info["value"]`` (numeric)
+     - ``value``
+     - ``float(val)`` if int/float, else None
+   * - ``info["value"]`` (string)
+     - ``string_value``
+     - ``str(val)`` if isinstance str
+   * - ``info["state"]``
+     - ``status``
+     - Via ``MYQA_STATE_MAP`` → TestInstanceStatus
+   * - ``info["expected"/"warn"/"fail"]``
+     - ``tolerance``, ``reference``
+     - Via ``_get_or_create_tolerance`` / ``_get_or_create_reference``
+   * - computed from above
+     - ``pass_fail``
+     - Via ``_compute_pass_fail``
+
+**State filtering**: State=10 (not started) → ``continue`` (no TestInstance).
+State=30 (incomplete) → unreviewed status. State=40/50 → approved. State=60
+→ skipped status.
+
+### 5. UTI tolerance/reference updates
+
+If the extracted tolerances differ from the UTI's current values, the UTI is
+updated (latest import wins — handles rebaselining):
+
+.. code-block:: python
+
+   if new_tol.pk != uti.tolerance_id:
+       uti.tolerance = new_tol
+       utis_to_update.append(uti)
+   if new_ref.pk != uti.reference_id:
+       uti.reference = new_ref
+       utis_to_update.append(uti)
+
+UTI updates are batched and saved after all TestInstances are built.
+
+### 6. Taskid dedup TestInstance
+
+A special TestInstance storing the myQA ``TaskExecutionId`` UUID as
+``string_value`` is appended to the batch. Its Test has slug
+``{list_slug}_taskid``. This is what ``duplicate_check`` queries to prevent
+re-importing the same session.
+
+### 7. Bulk create
+
+All TestInstances (conditions + taskid) are created in one
+``bulk_create`` call inside a ``transaction.atomic()`` block. UTI tolerance
+updates are saved first (individual ``save(update_fields=["tolerance", "reference"])``
+calls), then TestInstances are bulk-created.
+
+**Error handling**: If any exception occurs, the entire transaction rolls
+back and the function returns ``{"status": "error", "reason": str(e)}``.
 
 
 FK-Safe Deletion (clear_myqa_data)
