@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 
 # -*- coding: utf-8 -*-
 #
@@ -15,15 +16,13 @@ import re
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+sys.path.insert(0, os.path.abspath(".."))
 
 
 # -- Project information -----------------------------------------------------
 
 project = 'QATrack+'
-copyright = '2018 QATrack+ Contributors'
+copyright = "2018-2026 QATrack+ Contributors"
 author = 'Randle Taylor, Ryan Bottema & Contributors'
 
 # The short X.Y version

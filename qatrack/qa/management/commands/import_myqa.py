@@ -1,3 +1,5 @@
+"""Import myQA results into QATrack+ for one or all TaskNames."""
+
 from django.core.management.base import BaseCommand
 
 

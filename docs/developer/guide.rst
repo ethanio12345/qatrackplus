@@ -14,6 +14,8 @@ Developers Guide
 
    self
    schema
+   myqa_import
+   myqa_commands
 
 
 Installing QATrack+ For Development

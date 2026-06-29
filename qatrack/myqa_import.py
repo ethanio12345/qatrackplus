@@ -60,6 +60,7 @@ _DEVICE_MAP_PATH = os.path.join(
 
 
 def _load_device_map() -> dict[int, str | list[str]]:
+    """Load device mapping from myqa_device_map.yaml."""
     with open(_DEVICE_MAP_PATH) as f:
         data = yaml.safe_load(f)
     return {int(k): v for k, v in data.items()}
@@ -578,6 +579,11 @@ _ENERGY_FROM = """\
 
 
 def discover_numeric_conditions(conn, taskname: str) -> list[str]:
+    """Return distinct Numeric condition names for a TaskName.
+
+    Excludes State=10 (not started). When multiple test steps exist,
+    conditions are energy-prefixed via ``_energy_prefixed``.
+    """
     rows = _fetchall(
         conn,
         f"""
@@ -862,6 +868,7 @@ def _discover_pattern_b_conditions(
 
 
 def discover_mlc_conditions(conn, taskname: str) -> list[str]:
+    """Discover MLC (Pattern B) conditions for a TaskName."""
     return _discover_pattern_b_conditions(
         conn,
         taskname,
@@ -876,6 +883,7 @@ def discover_mlc_conditions(conn, taskname: str) -> list[str]:
 
 
 def discover_cbct_conditions(conn, taskname: str) -> list[str]:
+    """Discover CBCT (Pattern B) conditions for a TaskName."""
     return _discover_pattern_b_conditions(
         conn,
         taskname,
@@ -889,6 +897,7 @@ def discover_cbct_conditions(conn, taskname: str) -> list[str]:
 
 
 def discover_planar_conditions(conn, taskname: str) -> list[str]:
+    """Discover Planar imaging (Pattern B) conditions for a TaskName."""
     return _discover_pattern_b_conditions(
         conn,
         taskname,
@@ -1266,6 +1275,7 @@ def _extract_pattern_b(
 def extract_mlc(
     conn, execution_id: str, *, multi_override: bool | None = None
 ) -> dict[str, Any]:
+    """Extract MLC (Pattern B) results for a session."""
     return _extract_pattern_b(
         conn,
         execution_id,
@@ -1283,6 +1293,7 @@ def extract_mlc(
 def extract_cbct(
     conn, execution_id: str, *, multi_override: bool | None = None
 ) -> dict[str, Any]:
+    """Extract CBCT (Pattern B) results for a session."""
     return _extract_pattern_b(
         conn,
         execution_id,
@@ -1299,6 +1310,7 @@ def extract_cbct(
 def extract_planar(
     conn, execution_id: str, *, multi_override: bool | None = None
 ) -> dict[str, Any]:
+    """Extract Planar imaging (Pattern B) results for a session."""
     return _extract_pattern_b(
         conn,
         execution_id,

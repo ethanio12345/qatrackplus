@@ -1,3 +1,5 @@
+"""Create QATrack+ Unit rows from the myQA device map (myqa_device_map.yaml)."""
+
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 

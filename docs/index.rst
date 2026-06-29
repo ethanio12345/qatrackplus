@@ -150,6 +150,9 @@ email directly:
    user/guide
    api/guide
    developer/guide
+   sql/myqa_schema
+   sql/queries
+   sql/mapping
    tutorials/index
    screenshots
 

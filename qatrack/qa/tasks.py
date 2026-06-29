@@ -1,3 +1,5 @@
+"""Scheduled tasks for django-q (myQA import, autosave cleanup)."""
+
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils import timezone
