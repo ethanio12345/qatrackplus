@@ -16,6 +16,11 @@ Table of Contents
 5. `Pattern C Queries (VMAT)`_
 6. `Pattern D Queries (Winston-Lutz)`_
 7. `Shared FROM/JOIN Constants`_
+8. `Session Discovery (query_sessions)`_
+9. `Condition Metadata (discover_condition_metadata)`_
+10. `Pattern B Dynamic Column Generation`_
+11. `Tolerance & Reference Processing`_
+12. `FK-Safe Deletion (clear_myqa_data)`_
 
 
 Discover vs Extract: Two Query Modes
@@ -198,6 +203,178 @@ constant via f-string::
 
 This ensures that if a schema change requires modifying a JOIN, only one
 constant needs updating — not three copies (discover, extract, multi-flag).
+
+
+Session Discovery (query_sessions)
+-----------------------------------
+
+During import, ``query_sessions`` finds all sessions for a TaskName within a
+date range. It uses ``DISTINCT`` because ``MQA_TestExecutions`` has one row
+per test implementation within a session — the same ``TaskExecutionId``
+appears in multiple rows (one per execution type).
+
+.. code-block:: sql
+
+   SELECT DISTINCT te.TaskExecutionId, te.ReferenceDate, te.FinishingDate,
+          te.TaskName, te.RadiationDeviceName
+   FROM MQA_TestExecutions te
+   WHERE te.TaskName = %s
+     AND te.ReferenceDate IS NOT NULL
+     AND te.ReferenceDate >= %s    -- cutoff date (now - days)
+     AND te.ReferenceDate <= %s    -- now
+   ORDER BY te.ReferenceDate, te.FinishingDate
+
+After fetching, each row's ``RadiationDeviceName`` is resolved to a QATrack+
+unit number via ``LINAC_MAP``. Sessions with unknown devices (not in the
+map) are silently skipped.
+
+**Why DISTINCT**: Session-level fields (TaskName, RadiationDeviceName,
+ReferenceDate) are denormalised — identical across all test implementation
+rows for the same session. DISTINCT collapses them to one row per session.
+
+
+Condition Metadata (discover_condition_metadata)
+-------------------------------------------------
+
+During setup, this query fetches descriptive metadata for Numeric conditions.
+The result populates ``Test.description`` with provenance info.
+
+.. code-block:: sql
+
+   SELECT tcne.Name AS condition_name,
+          te.Name AS test_step,
+          te.Description AS description,
+          te.Category AS category,
+          tcne.Expected AS expected,
+          tcne.WarnOn AS warn_on,
+          tcne.FailOn AS fail_on
+   FROM MQA_Numeric_TestConditionExecutions tcne
+   JOIN MQA_TestImplementationExecutions tie
+       ON tcne.NumericTestExecution_Id = tie.Id
+   JOIN MQA_TestExecutions te ON tie.Id = te.Id
+   WHERE te.TaskName = %s AND tcne.Name IS NOT NULL
+
+**Deduplication**: When the same condition name appears in multiple test
+steps (e.g. different energies), the query prefers rows with non-empty
+descriptions over empty ones.
+
+
+Pattern B Dynamic Column Generation
+------------------------------------
+
+The ``_extract_pattern_b`` function builds its SELECT clause dynamically
+from the metric column map. For each metric, it checks if the column name
+ends with ``_Result_Value_Value`` or ``_Value``, then derives the
+tolerance column names by replacing the suffix:
+
+.. code-block:: text
+
+   Metric column:     FailingPeaks_Result_Value_Value
+                        ^^^^^^^^^^^^^^^^ ^^^^^^^^^^^^^
+                        prefix            suffix
+
+   Derived tolerance columns:
+     {prefix}_AcceptanceCriterion_ExpectedValue_Value   → expected
+     {prefix}_AcceptanceCriterion_Tolerances_Warn_Value  → warn tolerance
+     {prefix}_AcceptanceCriterion_Tolerances_Fail_Value  → fail tolerance
+
+The final SELECT is built as::
+
+   SELECT te.Name AS test_step,
+          r.FailingPeaks_Result_Value_Value,
+          r.FailingPeaks_AcceptanceCriterion_ExpectedValue_Value,
+          r.FailingPeaks_AcceptanceCriterion_Tolerances_Warn_Value,
+          r.FailingPeaks_AcceptanceCriterion_Tolerances_Fail_Value,
+          r.MaximumDeviation_Result_Value_Value,
+          ...
+   FROM MQA_MDL_MlcQA_Results r
+   JOIN MQA_MDL_MlcQA_TestExecutions mte ON r.MlcQATestExecutionBase_Id = mte.Id
+   JOIN MQA_TestImplementationExecutions tie ON mte.Id = tie.Id
+   JOIN MQA_TestExecutions te ON tie.Id = te.Id
+   WHERE te.TaskExecutionId = %s
+
+Value-only columns (``_MLC_VALUE_ONLY``, ``_CBCT_VALUE_ONLY``) and string
+columns (``_MLC_STRING``) are included in the SELECT but don't get tolerance
+columns derived.
+
+
+Tolerance & Reference Processing
+---------------------------------
+
+### Tolerance creation (_get_or_create_tolerance)
+
+myQA stores tolerances as symmetric absolute or relative (fractional) values.
+QATrack+ uses a 4-value symmetric Tolerance model (act_low, tol_low,
+tol_high, act_high).
+
+.. code-block:: python
+
+   # myQA: WarnOn=0.3, FailOn=0.5, IsRelative=True
+   # → QATrack+ Percent tolerance:
+   #   act_low=-0.5, tol_low=-0.3, tol_high=0.3, act_high=0.5
+
+   # myQA: WarnOn=0.3, FailOn=0.5, IsRelative=False
+   # → QATrack+ Absolute tolerance:
+   #   act_low=-0.5, tol_low=-0.3, tol_high=0.3, act_high=0.5
+
+**Relative conversion**: myQA stores relative tolerances as fractions
+(0.015 = 1.5%). QATrack+ stores them as percentages (1.5 = 1.5%). The
+conversion multiplies by 100.
+
+Tolerances are ``get_or_create``'d — shared across all units/tests with the
+same values.
+
+### Reference creation (_get_or_create_reference)
+
+The myQA ``Expected`` value becomes a QATrack+ ``Reference`` of type
+``absolute``. References are also ``get_or_create``'d by value.
+
+### Pass/fail computation (_compute_pass_fail)
+
+.. code-block:: python
+
+   if relative:
+       deviation = abs(value - expected) / abs(expected) * 100
+       warn_limit = warn * 100
+       fail_limit = fail * 100
+   else:
+       deviation = abs(value - expected)
+       warn_limit = warn
+       fail_limit = fail
+
+   if deviation <= warn_limit:   → "ok"
+   elif deviation <= fail_limit: → "tolerance"
+   else:                          → "action"
+
+**Edge case**: When ``expected == 0`` and tolerances are relative, division
+by zero would occur. This returns ``"no_tol"`` (no tolerance applied).
+
+**Missing tolerances**: If any of (expected, warn, fail) is None, returns
+``"no_tol"`` — the TestInstance is created without pass/fail status.
+
+
+FK-Safe Deletion (clear_myqa_data)
+-----------------------------------
+
+The ``clear_myqa_data`` command deletes all myQA-sourced data in a specific
+order to avoid FK constraint violations. The 11-step sequence:
+
+1. Null out ``UnitTestCollection.last_instance`` for affected UTCs
+2. Delete ``TestInstance`` rows under affected TestListInstances
+3. Delete ``TestListInstance`` rows for affected TestLists
+4. Delete ``UnitTestInfoChanges`` referencing affected UTIs
+5. Delete ``UnitTestInfo`` rows for affected Tests
+6. Clear ``UnitTestCollection.visible_to`` M2M for affected UTCs
+7. Delete ``UnitTestCollection`` rows pointing at affected TestLists
+8. Delete ``TestListMembership`` rows for affected TestLists
+9. Delete ``Attachments`` attached to affected objects
+10. Delete ``Test`` rows by membership / slug prefix
+11. Delete ``TestList`` rows by description pattern
+
+**Identification**: myQA TestLists are identified by the description prefix
+``"Auto-created TestList for myQA TaskName"`` (set by ``setup_myqa_tests``).
+Tests are identified by membership in those TestLists or slug prefixes
+``myqa_`` / ``mtx_``.
 
 
 Adapting These Queries for Other Sites
