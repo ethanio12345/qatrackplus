@@ -67,6 +67,7 @@ def _load_device_map() -> dict[int, str | list[str]]:
 
 
 LINAC_MAP = _load_device_map()
+"""Dict mapping QATrack+ unit numbers to myQA RadiationDeviceName(s). Loaded from myqa_device_map.yaml."""
 
 
 # ---------------------------------------------------------------------------
@@ -254,6 +255,7 @@ MYQA_STATE_MAP: dict[int, str] = {
     50: "approved",
     60: "skipped",
 }
+"""Maps myQA State values to QATrack+ import actions. See docs/sql/mapping.md for details."""
 
 
 def ensure_statuses_exist():
