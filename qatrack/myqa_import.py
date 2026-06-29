@@ -205,14 +205,16 @@ def enrich_test_name(
     """Apply enrichment rules to produce a descriptive Test display name.
 
     Rules applied in order:
-    1. Strip leading sequence-number prefix (``01. ``, ``00. ``, etc.).
-    2. Expand word-boundary abbreviations (Vrt→Vertical, Lng→Longitudinal,
-       Lat→Lateral, SN→Serial Number).
-    3. Apply YAML override if one matches (specific taskname, then wildcard
-       ``*``). An override replaces the result of rules 1+2 entirely.
 
-    The slug is NOT computed here — callers must derive it from the raw name
-    via :func:`slugify_name` so that enrichment doesn't break FK references.
+    1. Strip leading sequence-number prefix (``01. ``, ``00. ``, etc.).
+    2. Expand word-boundary abbreviations (Vrt to Vertical, Lng to
+       Longitudinal, Lat to Lateral, SN to Serial Number).
+    3. Apply YAML override if one matches (specific taskname, then
+       wildcard ``*``). An override replaces the result of rules 1+2
+       entirely.
+
+    The slug is NOT computed here -- callers must derive it from the raw
+    name via slugify_name so that enrichment doesn't break FK references.
     """
     name = condition_name or ""
 

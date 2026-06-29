@@ -102,8 +102,10 @@ Frequency & Status Setup
 Module-Level Constants
 ----------------------
 
-.. autoattribute:: LINAC_MAP
-.. autoattribute:: MYQA_STATE_MAP
+.. autodata:: LINAC_MAP
+   :no-value:
+.. autodata:: MYQA_STATE_MAP
+   :no-value:
 .. data:: _EXTRACTORS
 
    List of ``(label, extract_fn)`` tuples defining the execution type pipeline.
