@@ -18,6 +18,7 @@ uv.lock
 .vscode
 /backup.sh
 /backups
+/pdf
 backup_pre_*.sql
 /QATrack*ServiceLocal.py
 /cherrypy_deploy.py

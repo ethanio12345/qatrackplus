@@ -4,6 +4,7 @@
 {% load qatrack_tags %}
 {% load attach_tags %}
 {% load comments %}
+{% load chart_links %}
 
 {% block content %}
 
@@ -136,6 +137,10 @@
                 {% endif %}
                 <th style="width: 10%" class="review-status">{% trans "Pass/Fail" %}</th>
                 <th style="width: 10%" class="review-status">{% trans "Status" %}</th>
+                {% if include_chart_links %}
+                  <th style="width: 7%">{% trans "Run Chart" %}</th>
+                  <th style="width: 7%">{% trans "Control Chart" %}</th>
+                {% endif %}
               </tr>
             </thead>
             <tbody>
@@ -200,6 +205,19 @@
                     <td class="review-status">
                       {{ti.status.name}}
                     </td>
+                    {% if include_chart_links %}
+                      <td>
+                        {% if test.chart_visibility %}
+                          {% chart_link_urls ti as row_chart_urls %}
+                          <a href="{{ row_chart_urls.0 }}">{% trans "Run Chart" %}</a>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if test.chart_visibility %}
+                          <a href="{{ row_chart_urls.1 }}">{% trans "Control Chart" %}</a>
+                        {% endif %}
+                      </td>
+                    {% endif %}
                   </tr>
 
                   {% if ti.comment %}

@@ -162,6 +162,10 @@ class BaseReport(metaclass=ReportMeta):
             'include_signature': self.base_opts.get("include_signature", False),
             'include_logo': self.base_opts.get("include_logo", True),
             'paper_size': self.base_opts.get("paper_size", "letter"),
+            # Chart-link rendering (design D3/D5). Off by default so existing
+            # saved reports render byte-identically.
+            'include_chart_links': self.base_opts.get("include_chart_links", False),
+            'chart_window': self.base_opts.get("chart_window"),
         }
 
     def make_url(self, url, text='', title='', plain=False):

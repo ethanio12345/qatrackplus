@@ -1,0 +1,13 @@
+QATrack+ Linac QA Archive for {{ label }} ({{ count }} suite{{ count|pluralize }}).
+{% if attached %}
+The archive is attached as {{ zip_name }}.
+{% else %}
+WARNING: The archive ({{ zip_name }}) is too large to attach and is available on-site only.
+{% endif %}
+{% for r in summary.rendered %}- {{ r.unit }} :: {{ r.utc }} ({{ r.tli_count }} TLI{{ r.tli_count|pluralize }})
+{% endfor %}
+{% if skipped %}
+Skipped {{ skipped|length }} suite{{ skipped|length|pluralize }}:
+{% for s in skipped %}- {{ s.unit }} :: {{ s.utc }} ({{ s.reason }})
+{% endfor %}
+{% endif %}

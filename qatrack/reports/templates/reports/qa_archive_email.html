@@ -1,0 +1,35 @@
+{% extends "email/base.html" %}
+{% load i18n %}
+{% block title %}QATrack+ Linac QA Archive: {{ label }}{% endblock %}
+{% block preheader %}QATrack+ Linac QA Archive: {{ label }} ({{ count }} suite{{ count|pluralize }}){% endblock %}
+
+{% block content %}
+<p>{% blocktrans with label=label count=count asvar n %}QATrack+ Linac QA Archive for {{ label }} ({{ n }} suite).{% endblocktrans %}</p>
+
+{% if attached %}
+  <p>{% trans "The archive is attached as" %} <strong>{{ zip_name }}</strong>.</p>
+{% else %}
+  <p style="color: #a00;">
+    {% blocktrans with name=zip_name %}WARNING: The archive ({{ name }}) is too large to attach and is available on-site only.{% endblocktrans %}
+  </p>
+  <p>{% trans "On-site path:" %} <code>{{ zip_path }}</code></p>
+{% endif %}
+
+<table style="width:100%; border-collapse: collapse;" border="1" cellpadding="4">
+  <tr><th>{% trans "Unit" %}</th><th>{% trans "Suite" %}</th><th>{% trans "TLIs" %}</th></tr>
+  {% for r in summary.rendered %}
+    <tr>
+      <td>{{ r.unit }}</td>
+      <td>{{ r.utc }}</td>
+      <td>{{ r.tli_count }}</td>
+    </tr>
+  {% endfor %}
+</table>
+
+{% if skipped %}
+  <p>{% blocktrans count skipped|length asvar nsk %}{{ nsk }} suite skipped:{% endblocktrans %}</p>
+  <ul>
+    {% for s in skipped %}<li>{{ s.unit }} :: {{ s.utc }} ({{ s.reason }})</li>{% endfor %}
+  </ul>
+{% endif %}
+{% endblock %}

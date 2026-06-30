@@ -75,6 +75,7 @@ dependencies = [
     "wcwidth<0.2.13", # Pinned due to django-q2 qmonitor bug passing int instead of str
     "psycopg2-binary>=2.9.12",
     "pymssql>=2.3.13",
+    "croniter>=6.2.2",
 ]
 
 [project.optional-dependencies]

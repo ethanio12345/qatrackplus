@@ -117,6 +117,42 @@ openspec instructions apply --change "<name>" --json
 
 Active and archived changes under `openspec/changes/`. Design docs for the myQA redesign at `openspec/changes/myqa-dynamic-taskname-import/`.
 
+## Linac QA report archive
+
+Periodic PDF record-keeping for linac QA (see `openspec/changes/linac-qa-report-archive/`).
+
+| What | Where |
+|------|-------|
+| UTC selection rule | `qatrack/reports/qa_selection.py` (`select_archive_utcs`, `previous_month_window`, `LINAC_UNIT_TYPE_NAMES`) |
+| Archive (per-UTC PDF → zip → email) | `qatrack/reports/qa_archive.py` (`generate_archive`, `render_utc_pdf`, `email_archive`) |
+| Daily QA bundle (constancy + RT/MPC) | `qatrack/reports/qc/daily_bundle.py` (`generate_daily_bundles`, `resolve_current_daily_constancy_utc`) |
+| Chart-link helper + templatetag | `qatrack/reports/chart_links.py`, `qatrack/reports/templatetags/chart_links.py` |
+| Management commands | `archive_linac_qa` (render/email/dry-run), `setup_qa_report_schedules` (register django-q Schedules) |
+| django-q entry points | `qatrack/reports/tasks.py` (`run_linac_qa_archive`, `run_daily_qa_bundle`) |
+| Daily-constancy UTC override | `qatrack/reports/daily_constancy_override.yaml` (optional, `{unit_name: utc_pk}`) |
+
+### Operational workflow
+
+```bash
+uv run python manage.py archive_linac_qa --dry-run --window lastmonth      # preview selection
+uv run python manage.py archive_linac_qa --window lastmonth --out-dir /tmp/qa  # render to zip
+uv run python manage.py setup_qa_report_schedules --email-group physicists    # register monthly Schedules
+```
+
+### Scheduling
+
+Two django-q `Schedule` rows (cron `0 7 1 * *`, 1st of month 07:00) drive the
+monthly cadence covering the previous calendar month, mirroring the myQA
+Schedule #7 pattern. Register them with `setup_qa_report_schedules`. By default
+the rendered zips are written to the `pdf` folder (`<repo>/pdf`, overridable via
+the `QA_REPORTS_OUT_DIR` setting) and **no email is sent**; pass
+`--email-group <group>` to the setup command to also email. Both entry points
+accept `META` (`{"window": ..., "email_group": ..., "out_dir": ...}`) or direct
+kwargs (`window`, `email_group`, `out_dir`); when neither `email_group` nor
+`out_dir` is given, `out_dir` defaults to the `pdf` folder. Requires the
+`croniter` dependency for cron schedules.
+
+
 ## Ruff config
 
 - Selects: `E, F, I, UP, DJ`.
