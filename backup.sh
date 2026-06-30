@@ -2,7 +2,11 @@
 set -euo pipefail
 
 # QATrack+ PostgreSQL rolling backup script.
-# GFS rotation: 7 daily, 3 weekly, 6 monthly, unlimited quarterly.
+# Grandfather-Father-Son rotation:
+#   Daily:   keep 28 (4 weeks — recover recently lost files)
+#   Weekly:  keep 4  (1 month — end-of-week snapshot)
+#   Monthly: keep 12 (1 year — retrieve files from earlier in the year)
+#   Yearly:  unlimited (never deleted — long-term archive)
 #
 # Run daily via cron at 3 AM:
 #   0 3 * * * /home/bchcphysics/web/qatrackplus/backup.sh
@@ -14,10 +18,10 @@ DB_USER="postgres"
 LOCAL_DIR="/home/bchcphysics/web/qatrackplus/backups"
 NETWORK_DIR="/mnt/oncology_d/Physics Data/4. Software/QATrackPlus/Backups"
 
-# Retention counts (quarterly = unlimited, never pruned)
-KEEP_DAILY=7
-KEEP_WEEKLY=3
-KEEP_MONTHLY=6
+# Retention counts (yearly = unlimited, never pruned)
+KEEP_DAILY=28    # 4 weeks
+KEEP_WEEKLY=4    # 1 month
+KEEP_MONTHLY=12  # 1 year
 
 TIMESTAMP=$(date +"%Y-%m-%d")
 DOW=$(date +%u)   # 1=Monday ... 7=Sunday
@@ -42,9 +46,9 @@ if [ "$DOM" = "1" ]; then
     TYPES+=("monthly")
 fi
 
-# Quarterly: Jan 1, Apr 1, Jul 1, Oct 1
-if [ "$DOM" = "1" ] && { [ "$(date +%-m)" = "1" ] || [ "$(date +%-m)" = "4" ] || [ "$(date +%-m)" = "7" ] || [ "$(date +%-m)" = "10" ]; }; then
-    TYPES+=("quarterly")
+# Yearly: January 1st only (never pruned)
+if [ "$DOM" = "1" ] && [ "$(date +%-m)" = "1" ]; then
+    TYPES+=("yearly")
 fi
 
 echo "=== QATrack+ Backup — $(date) ==="
@@ -80,7 +84,7 @@ for TYPE in "${TYPES[@]}"; do
     echo ""
 done
 
-# ── Prune old backups (daily/weekly/monthly only — never quarterly) ──────────
+# ── Prune old backups (daily/weekly/monthly only — never yearly) ─────────────
 
 prune_type() {
     local type_name="$1"
