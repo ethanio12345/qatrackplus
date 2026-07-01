@@ -41,6 +41,45 @@ def default_out_dir():
     return path
 
 
+def mirror_out_dir():
+    """Return the off-site mirror folder archives are also copied into.
+
+    Defaults to the network drive ``/mnt/oncology_d/Physics Data/4. Software/QATrackPlus``
+    (Windows path ``P:\\4. Software\\QATrackPlus``) so physicists can retrieve
+    PDFs without logging into the server. Override or disable (set to ``None``)
+    via the ``QA_REPORTS_MIRROR_DIR`` setting.
+    """
+    return getattr(
+        settings,
+        "QA_REPORTS_MIRROR_DIR",
+        "/mnt/oncology_d/Physics Data/4. Software/QATrackPlus",
+    )
+
+
+def copy_to_mirror(zip_path, mirror_dir=None):
+    """Best-effort copy of a produced zip to the mirror (network) folder.
+
+    Creates the folder if missing. Returns the destination path on success, or
+    ``None`` if the copy failed (e.g. the network drive is unmounted). A failure
+    is non-fatal: the local ``pdf`` copy is the source of truth and the run is
+    still considered successful.
+    """
+    import shutil
+
+    mirror_dir = mirror_dir if mirror_dir is not None else mirror_out_dir()
+    if not mirror_dir:
+        return None
+    try:
+        os.makedirs(mirror_dir, exist_ok=True)
+        dest = os.path.join(mirror_dir, os.path.basename(zip_path))
+        shutil.copy2(zip_path, dest)
+        logger.info("Mirrored %s -> %s", os.path.basename(zip_path), dest)
+        return dest
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Could not mirror %s to %s: %s", zip_path, mirror_dir, e)
+        return None
+
+
 def _work_completed_range(window_start, window_end):
     """Format a window as the date-range string the report filter expects."""
     return "%s - %s" % (

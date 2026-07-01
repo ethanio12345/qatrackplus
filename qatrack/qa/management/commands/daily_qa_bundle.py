@@ -1,18 +1,20 @@
-"""Generate and/or email the linac QA archive PDF bundle.
+"""Generate and/or email the per-linac Daily Constancy QA bundle.
 
-Mirrors the myQA command pattern (qatrack/qa/management/commands/import_myqa.py).
+Companion to ``archive_linac_qa``; runs the daily-bundle generation synchronously
+(reused by the django-q entry point which spawns this command detached).
 """
 
 from django.core.management.base import BaseCommand
 
 from qatrack.reports import qa_archive, qa_selection
+from qatrack.reports.qc import daily_bundle
 
 
 class Command(BaseCommand):
     help = (
-        "Generate the linac QA archive: one PDF per canonical UnitTestCollection "
-        "for the chosen window, packaged into a zip. Optionally email the zip "
-        "to a group or write it to a directory."
+        "Generate the per-linac Daily Constancy QA bundle PDFs for a window, "
+        "packaged into a zip. Writes to the pdf folder (and mirrors to the "
+        "network drive) by default; optionally email."
     )
 
     def add_arguments(self, parser):
@@ -32,13 +34,13 @@ class Command(BaseCommand):
             "--out-dir",
             type=str,
             default=None,
-            help="Write the resulting zip to this directory (created if missing).",
+            help="Write the resulting zip to this directory (default: <repo>/pdf).",
         )
         parser.add_argument(
             "--dry-run",
             action="store_true",
             default=False,
-            help="Print the selected UTC list without rendering any PDFs.",
+            help="Print the resolved daily-constancy UTC per linac without rendering.",
         )
 
     def handle(self, *args, **opts):
@@ -49,31 +51,25 @@ class Command(BaseCommand):
             return
 
         label = window_start.strftime("%Y-%m")
-        self.stdout.write(
-            "Window: %s (%s to %s)" % (label, window_start.date(), window_end.date())
-        )
+        self.stdout.write("Window: %s (%s to %s)" % (label, window_start.date(), window_end.date()))
 
-        utcs = qa_selection.select_archive_utcs(window_start, window_end)
-        if not utcs.exists():
-            self.stdout.write(self.style.WARNING("No UTCs selected for %s." % label))
-            return
-
-        self.stdout.write("Selected %d UTC(s):" % utcs.count())
-        for utc in utcs:
+        units = qa_selection.active_linac_units()
+        self.stdout.write("Active linacs: %d" % units.count())
+        for unit in units:
+            c = daily_bundle.resolve_current_daily_constancy_utc(unit)
             self.stdout.write(
-                "  %-20s %-45s %-12s TLI=%d"
-                % (utc.unit.name, utc.name, utc.frequency.name, utc.tli_in_window)
+                "  %-20s %s" % (unit.name, c.name if c else "SKIP (no Daily Constancy UTC)")
             )
 
         if opts["dry_run"]:
             return
 
         out_dir = opts["out_dir"] or qa_archive.default_out_dir()
-        zip_path, summary = qa_archive.generate_archive(window_start, window_end, out_dir)
+        zip_path, summary = daily_bundle.generate_daily_bundles(window_start, window_end, out_dir)
 
         self.stdout.write(
             self.style.SUCCESS(
-                "Rendered %d PDF(s) to %s (%d skipped)"
+                "Rendered %d daily bundle(s) to %s (%d skipped)"
                 % (summary["count"], zip_path, len(summary["skipped"]))
             )
         )
@@ -91,8 +87,7 @@ class Command(BaseCommand):
             if not recipients:
                 self.stderr.write(
                     self.style.ERROR(
-                        "No recipients found in group %r; email not sent."
-                        % opts["email"]
+                        "No recipients found in group %r; email not sent." % opts["email"]
                     )
                 )
             else:
@@ -100,14 +95,13 @@ class Command(BaseCommand):
                 if attached:
                     self.stdout.write(
                         self.style.SUCCESS(
-                            "Archive emailed (attached) to %d recipient(s)."
-                            % len(recipients)
+                            "Daily bundle emailed (attached) to %d recipient(s)." % len(recipients)
                         )
                     )
                 else:
                     self.stdout.write(
                         self.style.WARNING(
-                            "Archive too large to attach; emailed on-site link to %d recipient(s)."
+                            "Daily bundle too large to attach; emailed on-site link to %d recipient(s)."
                             % len(recipients)
                         )
                     )

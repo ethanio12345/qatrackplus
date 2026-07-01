@@ -109,3 +109,65 @@ class TestRecipientsAndEmail(TestCase):
         kwargs = send.call_args.kwargs
         assert kwargs["attachments"] == []
         assert kwargs["context"]["too_large"] is True
+
+
+class TestMirror(TestCase):
+    def test_copy_to_mirror_copies_zip(self):
+        import os
+        import shutil
+
+        mirror = "/tmp/qa_mirror_test_%d" % os.getpid()
+        try:
+            zip_path, summary = qa_archive.generate_archive(
+                timezone.now() - timezone.timedelta(days=1), timezone.now()
+            )
+            dest = qa_archive.copy_to_mirror(zip_path, mirror_dir=mirror)
+            assert dest is not None
+            assert os.path.exists(dest)
+            assert os.path.basename(dest) == os.path.basename(zip_path)
+        finally:
+            shutil.rmtree(mirror, ignore_errors=True)
+
+    def test_copy_to_mirror_failure_is_non_fatal(self):
+        # an unwritable/missing path should return None, not raise
+        dest = qa_archive.copy_to_mirror(
+            "/does/not/exist.zip", mirror_dir="/proc/cannot/write/here"
+        )
+        assert dest is None
+
+
+class TestDetachedSpawn(TestCase):
+    """The django-q entry points must spawn the management command detached
+    (so the long render isn't killed by the qcluster 60s task timeout)."""
+
+    def test_run_linac_qa_archive_spawns_detached(self):
+        from qatrack.reports import tasks
+
+        with mock.patch.object(
+            tasks, "_run_detached", return_value={"spawned": True}
+        ) as spawn:
+            res = tasks.run_linac_qa_archive(window="lastmonth")
+        assert res["spawned"] is True
+        spawn.assert_called_once()
+        assert spawn.call_args.args[0] == "archive_linac_qa"
+        assert "--window" in spawn.call_args.args[1]
+
+    def test_run_daily_qa_bundle_spawns_detached(self):
+        from qatrack.reports import tasks
+
+        with mock.patch.object(
+            tasks, "_run_detached", return_value={"spawned": True}
+        ) as spawn:
+            tasks.run_daily_qa_bundle(window="2026-06", email_group="physicists")
+        assert spawn.call_args.args[0] == "daily_qa_bundle"
+        args = spawn.call_args.args[1]
+        assert "--window" in args and "2026-06" in args
+        assert "--email" in args
+
+    def test_run_linac_qa_archive_rejects_bad_window(self):
+        from qatrack.reports import tasks
+
+        with mock.patch.object(tasks, "_run_detached") as spawn:
+            with self.assertRaises(ValueError):
+                tasks.run_linac_qa_archive(window="nonsense")
+        spawn.assert_not_called()

@@ -88,64 +88,85 @@ def send_report(schedule_id, task_name=""):
         s.save()
 
 
-def run_linac_qa_archive(META=None, window="lastmonth", email_group=None, out_dir=None):
-    """django-q entry point: render + zip the linac QA archive, then deliver.
+def _run_detached(command, args, log_name):
+    """Spawn ``manage.py <command>`` as a detached background process.
 
-    Delivery: if ``out_dir`` is given (or no ``email_group`` is set) the zip is
-    written to that folder (defaulting to the ``pdf`` folder); email is only
-    sent when ``email_group`` is set. Accepts either a single ``META`` dict
-    (``{"window": ..., "email_group": ..., "out_dir": ...}``, mirroring the myQA
-    Schedule #7 pattern) or explicit keyword args (for django-q ``kwargs``
-    scheduling).
+    Returns immediately (within the django-q task timeout). The command runs
+    independently of the qcluster worker so long renders (~45 min) are not
+    killed by ``Q_CLUSTER['timeout']``. Output is appended to
+    ``<pdf folder>/<log_name>``.
     """
-    from qatrack.reports import qa_archive
-    from qatrack.reports.qa_selection import resolve_window
+    import os
+    import subprocess
+    import sys
 
+    from django.conf import settings
+
+    from qatrack.reports import qa_archive
+
+    manage = os.path.join(settings.PROJECT_ROOT, "manage.py")
+    log_path = os.path.join(qa_archive.default_out_dir(), log_name)
+    cmd = [sys.executable, manage, command] + args
+    # start_new_session=True detaches the child from the qcluster worker so it
+    # survives worker recycling; the qcluster task itself returns at once.
+    log_f = open(log_path, "ab")
+    try:
+        subprocess.Popen(
+            cmd,
+            stdout=log_f,
+            stderr=subprocess.STDOUT,
+            stdin=subprocess.DEVNULL,
+            start_new_session=True,
+            close_fds=True,
+        )
+    finally:
+        log_f.close()
+    logger.info("Spawned detached: %s %s (log: %s)", command, args, log_path)
+    return {"spawned": True, "command": command, "args": args, "log": log_path}
+
+
+def _delivery_args(window, email_group, out_dir):
+    args = ["--window", str(window)]
+    if email_group:
+        args += ["--email", str(email_group)]
+    if out_dir:
+        args += ["--out-dir", str(out_dir)]
+    return args
+
+
+def run_linac_qa_archive(META=None, window="lastmonth", email_group=None, out_dir=None):
+    """django-q entry point for the linac QA archive.
+
+    Spawns ``manage.py archive_linac_qa`` as a detached process (the render
+    takes ~40 min, far longer than the qcluster task timeout). Accepts either a
+    single ``META`` dict or explicit keyword args (for django-q ``kwargs``
+    scheduling). Returns immediately with the spawn status.
+    """
     if isinstance(META, dict):
         window = META.get("window", window)
         email_group = META.get("email_group", email_group)
         out_dir = META.get("out_dir", out_dir)
 
-    window_start, window_end = resolve_window(window)
-    if not email_group and not out_dir:
-        out_dir = qa_archive.default_out_dir()
-    zip_path, summary = qa_archive.generate_archive(window_start, window_end, out_dir)
-    logger.info("Linac QA archive for %s produced: %s", summary["label"], zip_path)
+    from qatrack.reports.qa_selection import resolve_window
 
-    if email_group:
-        recipients = qa_archive.recipients_for_group(email_group)
-        if recipients:
-            qa_archive.email_archive(zip_path, recipients, summary)
-        else:
-            logger.warning("run_linac_qa_archive: group %r has no recipients", email_group)
-    return summary
+    resolve_window(window)  # validate eagerly so a bad window surfaces in the task log
+    args = _delivery_args(window, email_group, out_dir)
+    return _run_detached("archive_linac_qa", args, "linac_qa_archive.log")
 
 
 def run_daily_qa_bundle(META=None, window="lastmonth", email_group=None, out_dir=None):
-    """django-q entry point: render + zip the daily constancy bundle, then deliver.
+    """django-q entry point for the daily constancy bundle.
 
-    Same delivery semantics as :func:`run_linac_qa_archive`: writes to
-    ``out_dir`` (default ``pdf`` folder) unless ``email_group`` triggers email.
+    Spawns ``manage.py daily_qa_bundle`` as a detached process (the render takes
+    ~45 min). Same META/kwargs contract as :func:`run_linac_qa_archive`.
     """
-    from qatrack.reports import qa_archive
-    from qatrack.reports.qa_selection import resolve_window
-    from qatrack.reports.qc import daily_bundle
-
     if isinstance(META, dict):
         window = META.get("window", window)
         email_group = META.get("email_group", email_group)
         out_dir = META.get("out_dir", out_dir)
 
-    window_start, window_end = resolve_window(window)
-    if not email_group and not out_dir:
-        out_dir = qa_archive.default_out_dir()
-    zip_path, summary = daily_bundle.generate_daily_bundles(window_start, window_end, out_dir)
-    logger.info("Daily QA bundle for %s produced: %s", summary["label"], zip_path)
+    from qatrack.reports.qa_selection import resolve_window
 
-    if email_group:
-        recipients = qa_archive.recipients_for_group(email_group)
-        if recipients:
-            daily_bundle.email_daily_bundles(zip_path, recipients, summary)
-        else:
-            logger.warning("run_daily_qa_bundle: group %r has no recipients", email_group)
-    return summary
+    resolve_window(window)
+    args = _delivery_args(window, email_group, out_dir)
+    return _run_detached("daily_qa_bundle", args, "daily_qa_bundle.log")
