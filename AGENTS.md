@@ -124,10 +124,10 @@ Periodic PDF record-keeping for linac QA (see `openspec/changes/linac-qa-report-
 | What | Where |
 |------|-------|
 | UTC selection rule | `qatrack/reports/qa_selection.py` (`select_archive_utcs`, `previous_month_window`, `LINAC_UNIT_TYPE_NAMES`) |
-| Archive (per-UTC PDF → zip → email) | `qatrack/reports/qa_archive.py` (`generate_archive`, `render_utc_pdf`, `email_archive`) |
+| Archive (per-UTC PDF → zip → email) | `qatrack/reports/qa_archive.py` (`generate_archive`, `render_utc_pdf`, `email_archive`, `copy_to_mirror`) |
 | Daily QA bundle (constancy + RT/MPC) | `qatrack/reports/qc/daily_bundle.py` (`generate_daily_bundles`, `resolve_current_daily_constancy_utc`) |
 | Chart-link helper + templatetag | `qatrack/reports/chart_links.py`, `qatrack/reports/templatetags/chart_links.py` |
-| Management commands | `archive_linac_qa` (render/email/dry-run), `setup_qa_report_schedules` (register django-q Schedules) |
+| Management commands | `archive_linac_qa` (render/email/dry-run), `daily_qa_bundle` (render/email/dry-run), `setup_qa_report_schedules` (register django-q Schedules) |
 | django-q entry points | `qatrack/reports/tasks.py` (`run_linac_qa_archive`, `run_daily_qa_bundle`) |
 | Daily-constancy UTC override | `qatrack/reports/daily_constancy_override.yaml` (optional, `{unit_name: utc_pk}`) |
 
@@ -139,18 +139,32 @@ uv run python manage.py archive_linac_qa --window lastmonth --out-dir /tmp/qa  #
 uv run python manage.py setup_qa_report_schedules --email-group physicists    # register monthly Schedules
 ```
 
+### Output + mirror
+
+By default zips are written to the `pdf` folder (`<repo>/pdf`, overridable via
+`QA_REPORTS_OUT_DIR`) and **also copied** to the network drive
+`/mnt/oncology_d/Physics Data/4. Software/QATrackPlus` (Windows
+`P:\4. Software\QATrackPlus`) so physicists can retrieve them without logging
+into the server. The mirror copy is best-effort (non-fatal if the drive is
+unmounted); override or disable via the `QA_REPORTS_MIRROR_DIR` setting.
+
 ### Scheduling
 
 Two django-q `Schedule` rows (cron `0 7 1 * *`, 1st of month 07:00) drive the
 monthly cadence covering the previous calendar month, mirroring the myQA
 Schedule #7 pattern. Register them with `setup_qa_report_schedules`. By default
-the rendered zips are written to the `pdf` folder (`<repo>/pdf`, overridable via
-the `QA_REPORTS_OUT_DIR` setting) and **no email is sent**; pass
-`--email-group <group>` to the setup command to also email. Both entry points
+no email is sent; pass `--email-group <group>` to also email. Both entry points
 accept `META` (`{"window": ..., "email_group": ..., "out_dir": ...}`) or direct
-kwargs (`window`, `email_group`, `out_dir`); when neither `email_group` nor
-`out_dir` is given, `out_dir` defaults to the `pdf` folder. Requires the
-`croniter` dependency for cron schedules.
+kwargs (`window`, `email_group`, `out_dir`).
+
+**Long renders run detached.** The render takes ~40-45 min (WeasyPrint on the
+daily-constancy suites), far exceeding `Q_CLUSTER['timeout']` (60 s). The
+django-q entry points therefore `spawn manage.py archive_linac_qa /
+daily_qa_bundle as a detached background process` and return immediately;
+the command does the render + mirror + (optional) email and logs to
+`<repo>/pdf/{linac_qa_archive,daily_qa_bundle}.log`. No qcluster restart is
+needed for code changes (workers import the entry point fresh per task).
+Requires the `croniter` dependency for cron schedules.
 
 
 ## Ruff config
