@@ -32,12 +32,17 @@ def default_out_dir():
 
     Defaults to ``<repo_root>/pdf`` (i.e. ``settings.PROJECT_ROOT/..``/pdf). May
     be overridden via the ``QA_REPORTS_OUT_DIR`` setting. The directory is
-    created if missing.
+    created world-writable (0o777) so both the qcluster user (www-data) and
+    admins can write to it regardless of who created it first.
     """
     path = getattr(settings, "QA_REPORTS_OUT_DIR", None) or os.path.join(
         settings.PROJECT_ROOT, "..", "pdf"
     )
     os.makedirs(path, exist_ok=True)
+    try:
+        os.chmod(path, 0o777)
+    except OSError:
+        pass  # not owner; existing perms must already permit writes
     return path
 
 

@@ -104,7 +104,7 @@ def _run_detached(command, args, log_name):
 
     from qatrack.reports import qa_archive
 
-    manage = os.path.join(settings.PROJECT_ROOT, "manage.py")
+    manage = os.path.join(settings.PROJECT_ROOT, "..", "manage.py")
     log_path = os.path.join(qa_archive.default_out_dir(), log_name)
     cmd = [sys.executable, manage, command] + args
     # start_new_session=True detaches the child from the qcluster worker so it
