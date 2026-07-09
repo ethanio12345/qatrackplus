@@ -42,12 +42,17 @@ from qatrack.qa.models import (
     UnitTestInfo,
 )
 
-MYQA_DB_SETTINGS = {
-    "server": settings.MYQA_DB_SERVER,
-    "database": settings.MYQA_DB_NAME,
-    "username": settings.MYQA_DB_USERNAME,
-    "password": settings.MYQA_DB_PASSWORD,
-}
+
+# myQA connection settings are read lazily inside get_connection() so the module
+# can be imported in environments that don't configure MYQA_* (e.g. the test
+# suite, which mocks the connection).
+def _myqa_db_settings():
+    return {
+        "server": settings.MYQA_DB_SERVER,
+        "database": settings.MYQA_DB_NAME,
+        "username": settings.MYQA_DB_USERNAME,
+        "password": settings.MYQA_DB_PASSWORD,
+    }
 
 # Maps QATrack+ unit numbers to myQA RadiationDeviceName strings. Values are
 # verified against the production myQA database. Devices renamed over time use
@@ -77,11 +82,12 @@ LINAC_MAP = _load_device_map()
 
 def get_connection():
     """Open a pymssql connection to the myQA database."""
+    cfg = _myqa_db_settings()
     return pymssql.connect(
-        server=MYQA_DB_SETTINGS["server"],
-        database=MYQA_DB_SETTINGS["database"],
-        user=MYQA_DB_SETTINGS["username"],
-        password=MYQA_DB_SETTINGS["password"],
+        server=cfg["server"],
+        database=cfg["database"],
+        user=cfg["username"],
+        password=cfg["password"],
     )
 
 
@@ -1794,8 +1800,12 @@ def import_session(
         }
 
     results = extract_all_types(conn, execution_id, multi_flags=multi_flags)
-    if not results:
-        return {"status": "skipped_empty", "reason": "no data for this session"}
+    if not results or not any(r.get("value") is not None for r in results.values()):
+        # No rows at all, OR every condition came back with a NULL value
+        # (session was started/finished in myQA without entering readings —
+        # abandoned or valueless). QATrack+ is a read-only duplicate of
+        # results, so valueless sessions are skipped.
+        return {"status": "skipped_empty", "reason": "session has no values (all conditions null)"}
 
     try:
         test_list = TestList.objects.get(slug=list_slug)
