@@ -18,7 +18,7 @@ ARCHIVE_SCHEDULE = {
 }
 
 DAILY_SCHEDULE = {
-    "name": "Daily QA Bundle Monthly",
+    "name": "Daily Constancy PDF Bundle (Monthly)",
     "func": "qatrack.reports.tasks.run_daily_qa_bundle",
 }
 
