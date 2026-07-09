@@ -2506,6 +2506,42 @@ class TestListInstance(models.Model):
 
         return self.update_service_event_statuses()
 
+    def auto_approve(self, review_user=None):
+        """Apply AutoReviewRuleSet rules and mark this TLI reviewed if all tests pass.
+
+        For each TestInstance, ``auto_review()`` maps its pass_fail state to a
+        status via the Test's AutoReviewRuleSet (the Default set maps
+        ok/tolerance/no_tol/not_done -> Approved, which does not require review).
+        If every TestInstance ends up in a non-review-required status (i.e. all
+        tests are within tolerance), the TLI is marked reviewed
+        (``reviewed``/``reviewed_by``/``all_reviewed``). Any failing (action) or
+        commented TestInstance keeps requiring manual review, so the TLI stays
+        unreviewed in that case.
+
+        Returns True if the TLI was fully auto-approved.
+        """
+        changed = []
+        for ti in self.testinstance_set.all():
+            previous_status = ti.status_id
+            ti.auto_review()
+            if ti.status_id != previous_status:
+                changed.append(ti)
+        if changed:
+            TestInstance.objects.bulk_update(changed, ["status", "review_date"])
+
+        self.update_all_reviewed()
+        if self.all_reviewed:
+            now = timezone.now()
+            TestListInstance.objects.filter(pk=self.pk).update(
+                all_reviewed=True,
+                reviewed=now,
+                reviewed_by=review_user,
+            )
+            self.reviewed = now
+            self.reviewed_by = review_user
+            return True
+        return False
+
     def update_service_event_statuses(self):
         # set linked service events to default status if not all reviewed.
         changed_se = []

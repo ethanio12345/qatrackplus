@@ -1952,6 +1952,13 @@ def import_session(
             if tis:
                 TestInstance.objects.bulk_create(tis)
 
+            # Auto-approve the TLI if every test is within tolerance. The
+            # Default AutoReviewRuleSet maps ok/tolerance/no_tol/not_done ->
+            # Approved (requires_review=False); if all TestInstances end up
+            # approved, the TLI is marked reviewed so it doesn't sit in the
+            # unreviewed queue. Failing/commented tests keep it unreviewed.
+            tli.auto_approve(review_user=internal_user)
+
         return {"status": "imported", "count": len(tis)}
     except Exception as e:
         return {"status": "error", "reason": str(e)}
