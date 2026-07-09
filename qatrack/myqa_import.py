@@ -1925,7 +1925,8 @@ def import_session(
                     )
                 )
 
-            # taskid TestInstance for dedup
+            # taskid TestInstance for dedup. Auto-approved (Approved status,
+            # requires_review=False) since it is metadata, not clinical data.
             taskid_test = tests_by_slug.get(taskid_slug)
             taskid_uti = utis_by_slug.get(taskid_slug)
             if taskid_test is not None and taskid_uti is not None:
@@ -1938,7 +1939,7 @@ def import_session(
                         work_completed=fin_date or timezone.now(),
                         created_by=internal_user,
                         modified_by=internal_user,
-                        status=default_status,
+                        status=status_map.get("approved", default_status),
                         pass_fail="no_tol",
                         order=0,
                     )
