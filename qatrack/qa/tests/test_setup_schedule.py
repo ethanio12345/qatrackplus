@@ -30,7 +30,7 @@ class TestSetupMyqaSchedule(TestCase):
         s = Schedule.objects.get(name="myQA Weekly Setup")
         assert s.func == "qatrack.qa.tasks.run_setup_myqa_tests"
         assert s.schedule_type == Schedule.CRON
-        assert s.cron == "0 2 * * 0"  # Sunday 02:00 UTC
+        assert s.cron == "0 2 * * 0"  # Sunday 02:00 local time
         assert s.repeats == -1
 
     def test_setup_myqa_setup_schedule_is_idempotent(self):

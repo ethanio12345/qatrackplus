@@ -87,7 +87,7 @@ Everything is driven by what's in the myQA database (SQL Server, accessed via `p
 | `delete_empty_tlis` | Delete valueless TLIs (real tests but all values NULL); cascades TIs; recomputes `last_instance`. Idempotent. |
 | `clear_stale_due_dates` | Frequency-aware (`max(180d, 3× nominal_interval)`) → `due_date=None` + `auto_schedule=False` on stale UTCs. `--linacs-only`, `--apply`. Idempotent. |
 | `set_angular_wraparound` | Set angular tests (gantry/collimator/couch/etc.) to `type=wraparound` [0,360] + re-evaluate `pass_fail`. Idempotent. |
-| `setup_myqa_setup_schedule` | Register a weekly django-q Schedule that runs `setup_myqa_tests` (Sunday 02:00 UTC) so new unit↔TaskName combos are picked up automatically. Idempotent. |
+| `setup_myqa_setup_schedule` | Register a weekly django-q Schedule that runs `setup_myqa_tests` (Sunday 02:00 local time, cron `0 2 * * 0`) so new unit↔TaskName combos are picked up automatically. Idempotent. |
 
 ### Operational workflow
 
@@ -109,7 +109,8 @@ uv run python manage.py import_myqa --days 3650
 weekly **setup** (creates TestLists/UTCs/UTIs for new unit↔TaskName
 combinations). It spawns `manage.py setup_myqa_tests` as a detached process
 because setup takes minutes and would otherwise exceed qcluster's 60 s
-timeout. Register its Schedule (cron `0 2 * * 0`, Sunday 02:00 UTC) with
+timeout. Register its Schedule (cron `0 2 * * 0`, Sunday 02:00 **local
+time** — django-q2 croniter uses `settings.TIME_ZONE`, not UTC) with
 `setup_myqa_setup_schedule`. Without this, a newly-commissioned unit (e.g.
 RFT26) accumulates myQA data that the daily import can't ingest because no
 UTCs exist yet — `import_session` rejects every session with
