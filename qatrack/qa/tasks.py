@@ -1,5 +1,10 @@
 """Scheduled tasks for django-q (myQA import, autosave cleanup)."""
 
+import logging
+import os
+import subprocess
+import sys
+
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -12,6 +17,8 @@ from qatrack.myqa_import import (
     query_sessions,
 )
 from qatrack.qa.models import AutoSave, TestInstanceStatus
+
+logger = logging.getLogger("django-q2")
 
 
 def clean_autosaves():
@@ -149,3 +156,55 @@ def import_matrix_monthly(dry_run=False, unit=None, days=30):
         "with the relevant TaskName (e.g. '5.Tmt.Linac.M.Dosimetry - Monthly QA')."
     )
     return import_myqa_all(dry_run=dry_run, unit=unit, days=days)
+
+
+def _run_setup_detached(log_name="setup_myqa_tasks.log"):
+    """Spawn ``manage.py setup_myqa_tests`` as a detached background process.
+
+    ``setup_myqa_tests`` iterates all TaskNames in myQA and runs several
+    queries per TaskName — it takes several minutes, far exceeding
+    ``Q_CLUSTER['timeout']`` (60 s). The django-q entry point therefore
+    spawns the management command detached and returns immediately; the
+    command itself does the discovery + UTC/UTI creation and writes output
+    to ``<repo>/pdf/<log_name>``.
+
+    Mirrors :func:`qatrack.reports.tasks._run_detached` — duplicated rather
+    than shared to avoid a cross-app import dependency for a 20-line helper.
+    """
+    from qatrack.reports import qa_archive
+
+    manage = os.path.join(settings.PROJECT_ROOT, "..", "manage.py")
+    log_path = os.path.join(qa_archive.default_out_dir(), log_name)
+    cmd = [sys.executable, manage, "setup_myqa_tests"]
+    # start_new_session=True detaches the child from the qcluster worker so
+    # it survives worker recycling; the qcluster task returns at once.
+    log_f = open(log_path, "ab")
+    try:
+        subprocess.Popen(
+            cmd,
+            stdout=log_f,
+            stderr=subprocess.STDOUT,
+            stdin=subprocess.DEVNULL,
+            start_new_session=True,
+            close_fds=True,
+        )
+    finally:
+        log_f.close()
+    logger.info("Spawned detached: setup_myqa_tests (log: %s)", log_path)
+    return {"spawned": True, "command": "setup_myqa_tests", "log": log_path}
+
+
+def run_setup_myqa_tests(META=None):
+    """django-q entry point for weekly ``setup_myqa_tests``.
+
+    Spawns ``manage.py setup_myqa_tests`` as a detached process and returns
+    immediately. Use this so newly-commissioned units (e.g. RFT26) and new
+    myQA TaskNames get their UTCs/UTIs created without requiring a manual
+    setup run after every change in myQA. ``setup_myqa_tests`` is idempotent
+    so weekly runs are safe (existing TestLists/UTCs/UTIs are no-ops via
+    ``get_or_create``).
+
+    The ``META`` arg is accepted for symmetry with
+    :func:`qatrack.myqa_import.import_myqa_results` and is currently unused.
+    """
+    return _run_setup_detached()
