@@ -27,7 +27,7 @@ import pymssql
 import yaml
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from qatrack.qa.models import (
@@ -53,6 +53,7 @@ def _myqa_db_settings():
         "username": settings.MYQA_DB_USERNAME,
         "password": settings.MYQA_DB_PASSWORD,
     }
+
 
 # Maps QATrack+ unit numbers to myQA RadiationDeviceName strings. Values are
 # verified against the production myQA database. Devices renamed over time use
@@ -1617,6 +1618,18 @@ def _get_or_create_tolerance(
 
     myQA stores relative tolerances as fractions (0.015 = 1.5%); QATrack+
     percent tolerances are in percent (1.5 = 1.5%). Limits are symmetric.
+
+    ``Tolerance.save`` overwrites the ``name`` field via
+    :func:`qatrack.qa.models.get_tolerance_name` using ``%.3f`` (absolute)
+    or ``%.2f%%`` (percent) — a hardcoded format. Distinct small numeric
+    values (e.g. ``warn=3e-06`` vs ``warn=5e-06``) can therefore truncate
+    to the same name, and the second create attempt hits the
+    ``Tolerance.name`` UNIQUE constraint. We handle this by:
+
+    1. Looking up by exact numeric match first (returns existing row).
+    2. Falling back to a name-based lookup on ``IntegrityError`` — using
+       the same ``get_tolerance_name`` format the model uses so the
+       pre-existing row is found.
     """
     if warn is None or fail is None:
         return None
@@ -1630,24 +1643,43 @@ def _get_or_create_tolerance(
         tol_high = round(warn, 6)
         act_high = round(fail, 6)
 
-    name = (
-        f"{'Percent' if relative else 'Absolute'}"
-        f"(-{act_high:.3f}, -{tol_high:.3f}, {tol_high:.3f}, {act_high:.3f})"
-    )
-
-    tol, _ = Tolerance.objects.get_or_create(
+    # Fast path: exact numeric match.
+    existing = Tolerance.objects.filter(
         type=tol_type,
         act_low=-act_high,
         tol_low=-tol_high,
         tol_high=tol_high,
         act_high=act_high,
-        defaults={
-            "name": name,
-            "created_by": internal_user,
-            "modified_by": internal_user,
-        },
+    ).first()
+    if existing is not None:
+        return existing
+
+    # Compute the name the model will assign (so we can fall back to it).
+    from qatrack.qa.models import get_tolerance_name
+
+    candidate = Tolerance(
+        type=tol_type,
+        act_low=-act_high,
+        tol_low=-tol_high,
+        tol_high=tol_high,
+        act_high=act_high,
     )
-    return tol
+    fallback_name = get_tolerance_name(candidate)
+
+    try:
+        # Wrap in a savepoint so an IntegrityError doesn't poison the
+        # caller's transaction (the surrounding import_session runs inside
+        # transaction.atomic() — without this inner atomic, the whole
+        # session import would roll back on the first name collision).
+        with transaction.atomic():
+            candidate.created_by = internal_user
+            candidate.modified_by = internal_user
+            candidate.save()
+        return candidate
+    except IntegrityError:
+        # Name collision from the model's %.3f / %.2f%% truncation.
+        # Return the pre-existing row with that name.
+        return Tolerance.objects.filter(name=fallback_name).first()
 
 
 def _get_or_create_reference(
@@ -1805,7 +1837,10 @@ def import_session(
         # (session was started/finished in myQA without entering readings —
         # abandoned or valueless). QATrack+ is a read-only duplicate of
         # results, so valueless sessions are skipped.
-        return {"status": "skipped_empty", "reason": "session has no values (all conditions null)"}
+        return {
+            "status": "skipped_empty",
+            "reason": "session has no values (all conditions null)",
+        }
 
     try:
         test_list = TestList.objects.get(slug=list_slug)
