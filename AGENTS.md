@@ -69,6 +69,10 @@ Everything is driven by what's in the myQA database (SQL Server, accessed via `p
 - `compute_multi_flags(conn, taskname)` must be computed at **TaskName level** and passed to extractors via `multi_override`. Computing per-session causes silent data loss.
 - One TestList per TaskName (D1). One TestListInstance per session, aggregating all execution types (D4). Tests shared by condition name (D2). No tolerances set during setup (D3).
 - `import_session()` creates a `{list_slug}_taskid` TestInstance storing the myQA TaskExecutionId for dedup.
+- **Valueless sessions are skipped.** A session where `extract_all_types` returns rows but every condition's value is NULL (started/finished in myQA without entering readings) is skipped as `skipped_empty` — QATrack+ is a read-only duplicate, so no value = no TLI. (The guard checks for any non-null value across all extractors, not just non-zero rows.)
+- **`*_taskid` TestInstances are auto-approved** (Approved status, `requires_review=False`) — they are dedup metadata, not clinical data.
+- **TLIs auto-approve when all tests pass.** After `bulk_create`, `import_session()` calls `tli.auto_approve(internal_user)`, which applies the Default AutoReviewRuleSet (`ok`/`tolerance`/`no_tol`/`not_done` → Approved) and marks the TLI reviewed iff every test is within tolerance. Any `action` (out-of-tolerance) or commented test leaves it unreviewed.
+- `MYQA_DB_SETTINGS` is read lazily inside `get_connection()` (`_myqa_db_settings()`), so `myqa_import` imports cleanly in environments that don't configure `MYQA_*` (e.g. the test suite, which mocks the connection).
 
 ### Management commands
 
@@ -78,6 +82,11 @@ Everything is driven by what's in the myQA database (SQL Server, accessed via `p
 | `import_myqa --days N` | Import sessions. `--task-name` for single TaskName. |
 | `clear_myqa_data --yes` | Delete all myQA-sourced data in FK-safe order. |
 | `import_old_qatrack --file` | Restore old QATrack+ backup (Solid Water, MPC, CatPhan). |
+| `approve_myqa_taskids` | Set all `*_taskid` TestInstances to Approved (dedup metadata). Idempotent. |
+| `auto_approve_tlis` | Bulk auto-approve TLIs where all tests pass (Default AutoReviewRuleSet). Idempotent. |
+| `delete_empty_tlis` | Delete valueless TLIs (real tests but all values NULL); cascades TIs; recomputes `last_instance`. Idempotent. |
+| `clear_stale_due_dates` | Frequency-aware (`max(180d, 3× nominal_interval)`) → `due_date=None` + `auto_schedule=False` on stale UTCs. `--linacs-only`, `--apply`. Idempotent. |
+| `set_angular_wraparound` | Set angular tests (gantry/collimator/couch/etc.) to `type=wraparound` [0,360] + re-evaluate `pass_fail`. Idempotent. |
 
 ### Operational workflow
 
@@ -95,6 +104,15 @@ uv run python manage.py import_myqa --days 3650
 `META` accepts `task_name` (str|None) and `days` (int).
 `qatrack.qa.tasks.import_myqa_all()` is the higher-level wrapper called from management commands.
 
+### Current data state
+
+The production DB has already been cleaned up via the one-off commands above, so
+re-running them is a no-op: valueless TLIs have been purged (`delete_empty_tlis`),
+all `*_taskid` TIs are Approved, passing TLIs are auto-reviewed, stale UTCs have
+no due date (`clear_stale_due_dates`), and angular tests use wraparound
+(`set_angular_wraparound`). TLIs remaining unreviewed are ones with genuine
+out-of-tolerance (`action`) or commented tests.
+
 ### Gotchas (prevent regressions)
 
 1. **`multi` flag must be TaskName-level, not per-session.** `compute_multi_flags()` computes once per batch; passed to all extractors via `multi_override`. Extractors that use it: `extract_numeric`, `extract_profile`, `_extract_pattern_b`, `extract_vmat`, `extract_winston_lutz`.
@@ -107,6 +125,16 @@ uv run python manage.py import_myqa --days 3650
 
 5. **Naive datetime RuntimeWarnings** from myQA are harmless (Django auto-converts with `USE_TZ=True`).
 
+6. **Wraparound (angular) values are per-Test DATA config, not auto-detected.** Circular angles (gantry/collimator/couch/table) use `Test.type='wraparound'` + `wrap_low`/`wrap_high`, evaluated by `difference_wraparound()` in `qatrack/qa/models.py`. Until `set_angular_wraparound` was run, every angular test here was `type=simple` (0 used wraparound), so 0.1° vs 359.9° showed as 359.8° apart. **New angular tests must be set to wraparound manually** (or re-run `set_angular_wraparound`, which matches by name and is idempotent).
+
+7. **qcluster runs as `www-data` with `Q_CLUSTER['timeout'] = 60`.** Never do long work inline in a django-q task — it's killed at 60 s. Long jobs (e.g. the QA PDF renders) must `spawn manage.py …` as a detached background process and return immediately (see "Linac QA report archive"). django-q workers import task code fresh per run, so code changes need **no qcluster restart** (a restart is only needed for `Q_CLUSTER` setting changes).
+
+8. **`pdf/` folder is chmod 0o777** by `default_out_dir()` so both `www-data` (qcluster) and admins can write to it regardless of who created it first.
+
+9. **Running pytest requires SQLite.** The dev `local_settings.py` points at the shared production PostgreSQL cluster (no `CREATE DATABASE` permission). Before running tests: `cp deploy/sqlite/local_settings.py qatrack/local_settings.py`, run pytest, then restore the production `local_settings.py`.
+
+10. **`uv.lock` is gitignored but still tracked** (it was tracked before the ignore line was added). `pyproject.toml` is the source of truth for dependencies; production runs `uv sync` on deploy, which regenerates `uv.lock` locally.
+
 ## OpenSpec
 
 ```bash
@@ -115,7 +143,20 @@ openspec status --change "<name>" --json
 openspec instructions apply --change "<name>" --json
 ```
 
-Active and archived changes under `openspec/changes/`. Design docs for the myQA redesign at `openspec/changes/myqa-dynamic-taskname-import/`.
+Active and archived changes under `openspec/changes/`. **There are currently no
+active changes.** Design docs for the myQA redesign live in the archive at
+`openspec/changes/archive/2026-07-09-myqa-dynamic-taskname-import/`; the linac
+QA archive design is at `openspec/changes/archive/2026-07-09-linac-qa-report-archive/`.
+
+Two older changes (`myqa-complete-coverage`, `fix-myqa-importers`) were
+**archived without syncing their delta specs** — they describe the superseded
+hardcoded importer-class architecture (pre-dynamic-redesign) and must not be
+re-synced. The four completed current-architecture changes were synced, so
+`openspec/specs/` holds the authoritative capability specs (dynamic-taskname
+discovery, multi-type-session-import, myqa-device-expansion,
+myqa-dosimetry-tolerances, old-db-restore, myqa-state-aware-import,
+daily-qa-bundle-report, linac-qa-archive, qa-suite-selection, qc-pdf-reports)
+alongside the historical `myqa-sync` and `descriptive-test-names` specs.
 
 ## Linac QA report archive
 
@@ -125,7 +166,7 @@ Periodic PDF record-keeping for linac QA (see `openspec/changes/linac-qa-report-
 |------|-------|
 | UTC selection rule | `qatrack/reports/qa_selection.py` (`select_archive_utcs`, `previous_month_window`, `LINAC_UNIT_TYPE_NAMES`) |
 | Archive (per-UTC PDF → zip → email) | `qatrack/reports/qa_archive.py` (`generate_archive`, `render_utc_pdf`, `email_archive`, `copy_to_mirror`) |
-| Daily QA bundle (constancy + RT/MPC) | `qatrack/reports/qc/daily_bundle.py` (`generate_daily_bundles`, `resolve_current_daily_constancy_utc`) |
+| Daily QA bundle (constancy physics tests) | `qatrack/reports/qc/daily_bundle.py` (`generate_daily_bundles`, `resolve_current_daily_constancy_utc`) |
 | Chart-link helper + templatetag | `qatrack/reports/chart_links.py`, `qatrack/reports/templatetags/chart_links.py` |
 | Management commands | `archive_linac_qa` (render/email/dry-run), `daily_qa_bundle` (render/email/dry-run), `setup_qa_report_schedules` (register django-q Schedules) |
 | django-q entry points | `qatrack/reports/tasks.py` (`run_linac_qa_archive`, `run_daily_qa_bundle`) |
@@ -185,7 +226,11 @@ Requires the `croniter` dependency for cron schedules.
   - `--first` for initial setup (recreates venv if root-owned).
   - `--code` for code-only deploys (skip deps/restart).
 - **Scheduled task**: django-q Schedule #7 ("myQA Daily Import") runs
-  `import_myqa_results({"days": 2})` daily at ~03:37 UTC.
+  `import_myqa_results({"days": 2})` daily at ~03:37 UTC. This is the **bulk
+  data ingestion** from myQA (the data source for everything else) — not to be
+  confused with the two monthly **PDF report** schedules ("Linac QA Archive
+  Monthly" and "Daily Constancy PDF Bundle (Monthly)", cron `0 7 1 * *`), which
+  render reports from already-imported data.
 - **Pipeline command**: Run `/myqa-pipeline` in opencode for the full
   clear -> setup -> import -> deploy workflow.
 - **Restart script**: `bash restart_qcluster.sh` — kills all stale qcluster
