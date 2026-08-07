@@ -2,6 +2,8 @@
 
 This guide walks you through deploying the myQA auto-detection import system at a new hospital, from `git clone` to confident clinical use. No Python or YAML knowledge is assumed.
 
+For a visual overview of how the system fits together (data flow, config files, scheduling), see [myQA Architecture](myqa_architecture.md).
+
 ## At a glance
 
 ```
@@ -136,7 +138,10 @@ The import auto-configures **tolerances** on every `UnitTestInfo` based on your 
 
 Before relying on any pass/fail status from QATrack+:
 
-1. **Review tolerances** for every UTI in the admin: `/admin/qa/unittestinfo/`
+1. **Review tolerances** for every UTI via the admin **Set References and Tolerances** page. The QATrack+ admin documentation covers this in detail:
+   - [Setting Reference & Tolerance Values](admin/qa/setting_refs_and_tols.rst) — step-by-step with screenshots
+   - [Tolerance Types](admin/qa/tolerances.rst) — absolute vs percent, how pass/fail is computed
+   - [Auto Review Rules](admin/qa/auto_review.rst) — how TLIs auto-approve when all tests pass
 2. **Adjust** any that don't match your protocols — the admin UI lets you set per-UTI tolerances independently.
 3. **Run `myqa_validate`** (next step) to see a diff between QATrack+ tolerances and myQA's source-of-truth.
 
@@ -229,6 +234,20 @@ Maps myQA condition names to descriptive display names. Useful when myQA's raw c
 If your centre's myQA condition names for angular quantities (gantry/collimator/couch angles) don't match the curated patterns in `set_angular_wraparound.py`, edit that command's `INCLUDE` regex. Run `--dry-run` to preview, `--apply` to convert. Idempotent.
 
 ## 11. Troubleshoot
+
+### Diagnostic commands quick reference
+
+| Symptom | First command to run | What it tells you |
+|---|---|---|
+| Sessions not importing | `myqa_doctor` | Which preconditions are broken (settings, connection, fixtures) |
+| Suspicious or missing data | `myqa_validate --days 30` | Session-count mismatches, valueless_skip vs genuine_drop, tolerance drift |
+| New unit not picked up | `bootstrap_myqa_centre --scan` | Whether the device exists in myQA and how it would be classified |
+| Stale due dates cluttering schedule | `clear_stale_due_dates --linacs-only` | Which UTCs haven't run in `max(180d, 3× nominal_interval)` |
+| Angular tests showing huge differences | `set_angular_wraparound --dry-run` | Which angular tests are still `type=simple` (not wraparound) |
+| TLI stuck in unreviewed queue | `auto_approve_tlis` | How many TLIs would be auto-approved by the Default AutoReviewRuleSet |
+| Import errors with "unique constraint" | Check the error detail | Likely a Tolerance name collision — see Tolerance name collisions below |
+
+### Detailed troubleshooting
 
 ### "No UTC for unit X / list Y" errors during import
 

@@ -18,6 +18,23 @@ Developers Guide
    myqa_commands
 
 
+Centre Portability Programme
+----------------------------
+
+The myQA import system is portable across centres. Three archived OpenSpec
+changes document the design:
+
+- ``myqa-centre-config-externalisation`` — externalised all centre-specifics
+  to YAML (``myqa_centre_config.yaml``).
+- ``myqa-centre-onboarding`` — interactive ``bootstrap_myqa_centre`` command
+  and ``myqa_doctor`` precondition validator.
+- ``myqa-centre-trust-and-ops`` — ``myqa_validate`` diff command and the
+  deployment guide (see :doc:`../myqa_deployment_guide`).
+
+See ``openspec/changes/archive/2026-08-07-myqa-centre-*/`` for full design
+docs. The :doc:`../myqa_architecture` page has a visual overview.
+
+
 Installing QATrack+ For Development
 -----------------------------------
 

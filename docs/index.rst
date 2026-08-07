@@ -150,6 +150,9 @@ email directly:
    user/guide
    api/guide
    developer/guide
+   myqa_architecture
+   myqa_deployment_guide
+   myqa_operational_scripts
    sql/myqa_schema
    sql/queries
    sql/mapping
