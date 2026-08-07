@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Three centre-config files, distinct purposes
 The centre-specific configuration surface area SHALL be split across three YAML files in `qatrack/qa/management/commands/`, each with a distinct change cadence:

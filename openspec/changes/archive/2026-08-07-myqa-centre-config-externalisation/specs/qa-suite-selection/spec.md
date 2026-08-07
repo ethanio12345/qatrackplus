@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Linac unit-type allowlist is config-driven
 The set of `UnitType.name` strings treated as "linacs" by `select_archive_utcs` (and `clear_stale_due_dates --linacs-only`) SHALL be read from `centre_config["linac_unit_type_names"]` via a `get_linac_unit_type_names()` function, rather than being hardcoded at module level.

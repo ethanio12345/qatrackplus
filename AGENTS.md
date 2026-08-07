@@ -203,16 +203,25 @@ openspec instructions apply --change "<name>" --json
 Active and archived changes under `openspec/changes/`. **There are currently no
 active changes.** Design docs for the myQA redesign live in the archive at
 `openspec/changes/archive/2026-07-09-myqa-dynamic-taskname-import/`; the linac
-QA archive design is at `openspec/changes/archive/2026-07-09-linac-qa-report-archive/`.
+QA archive design is at `openspec/changes/archive/2026-07-09-linac-qa-report-archive/`;
+the centre-portability programme (3 changes) lives at
+`openspec/changes/archive/2026-08-07-myqa-centre-{config-externalisation,onboarding,trust-and-ops}/`.
 
 Two older changes (`myqa-complete-coverage`, `fix-myqa-importers`) were
 **archived without syncing their delta specs** — they describe the superseded
 hardcoded importer-class architecture (pre-dynamic-redesign) and must not be
-re-synced. The four completed current-architecture changes were synced, so
-`openspec/specs/` holds the authoritative capability specs (dynamic-taskname
-discovery, multi-type-session-import, myqa-device-expansion,
-myqa-dosimetry-tolerances, old-db-restore, myqa-state-aware-import,
-daily-qa-bundle-report, linac-qa-archive, qa-suite-selection, qc-pdf-reports)
+re-synced. The completed current-architecture changes were synced, so
+`openspec/specs/` holds the authoritative capability specs:
+
+| Original (dynamic redesign) | Linac QA archive | Centre portability programme |
+|---|---|---|
+| `dynamic-taskname-discovery` | `linac-qa-archive` | `myqa-centre-config` |
+| `multi-type-session-import` | `daily-qa-bundle-report` | `myqa-bootstrap-command` |
+| `myqa-device-expansion` | `qa-suite-selection` | `myqa-doctor-validation` |
+| `myqa-dosimetry-tolerances` | `qc-pdf-reports` | `myqa-validation-diff` |
+| `old-db-restore` |  | `myqa-deployment-documentation` |
+| `myqa-state-aware-import` |  |  |
+
 alongside the historical `myqa-sync` and `descriptive-test-names` specs.
 
 ## Linac QA report archive

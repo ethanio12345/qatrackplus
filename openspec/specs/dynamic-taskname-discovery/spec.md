@@ -4,9 +4,7 @@
 
 Capability promoted from the `myqa-dynamic-taskname-import` OpenSpec change (see
 `openspec/changes/archive/...` for design context).
-
 ## Requirements
-
 ### Requirement: Discover all myQA TaskNames
 The setup command SHALL query myQA for all distinct TaskName values from `MQA_TestExecutions` where TaskName is not NULL. Each discovered TaskName SHALL become a TestList in QATrack+.
 
@@ -44,19 +42,24 @@ When a single TaskName has multiple conditions with the same name but different 
 - **THEN** two Tests are created: "Center (crossline)" (slug `center_crossline`) and "Center (crossline) 2" (slug `center_crossline_2`), both linked to the same TestList
 
 ### Requirement: Frequency inferred from TaskName
-The system SHALL infer the QATrack+ Frequency from the TaskName naming convention. The frequency SHALL be assigned to the UnitTestCollection.
+The `infer_frequency(taskname)` function SHALL parse the TaskName for frequency patterns and return one of: `daily`, `weekly`, `monthly`, `quarterly`, `semi-annual`, `annual`, `once_off`, or `other`.
 
-#### Scenario: Daily task
-- **WHEN** TaskName contains `.D` or "Daily"
-- **THEN** frequency is set to "daily"
+The seven regex patterns SHALL be read from `centre_config["frequency_inference"]` if present (with sensible defaults matching the IBA-template-path conventions `\.d`, `\.w`, `\.m`, `\.q`, `\.y`, `\.6m`, `\.c`). A centre with non-IBA TaskName conventions (e.g. plain `"Monthly QA"` without the dotted path) can override the patterns via YAML without code changes.
 
-#### Scenario: Monthly task
-- **WHEN** TaskName contains `.M` or "Monthly"
-- **THEN** frequency is set to "monthly"
+The compiled regexes SHALL be cached at module level after first call (memoised) so there is no per-call performance impact.
 
-#### Scenario: Annual task
-- **WHEN** TaskName contains `.Y`, "Annual", or "Yearly"
-- **THEN** frequency is set to "annual"
+#### Scenario: Default behaviour unchanged
+- **WHEN** `infer_frequency("5.Tmt.Linac.D")` is called with no override config
+- **THEN** it returns `"daily"` (matching pre-refactor behaviour)
+
+#### Scenario: Override via config
+- **WHEN** `centre_config["frequency_inference"]["monthly"]` includes `"^Monthly\\s"`
+- **AND** `infer_frequency("Monthly QA - Mech")` is called
+- **THEN** it returns `"monthly"`
+
+#### Scenario: Unrecognised TaskName
+- **WHEN** no pattern matches
+- **THEN** `infer_frequency` returns `"other"` (unchanged)
 
 ### Requirement: No tolerances during setup
 The system SHALL NOT assign tolerances during setup. UnitTestInfo.tolerance SHALL remain NULL for all created tests. Users configure tolerances manually through QATrack+ admin after setup.
@@ -75,3 +78,12 @@ For each TaskName, the system SHALL create UnitTestCollections and UnitTestInfos
 #### Scenario: Unit without data gets nothing
 - **WHEN** unit 50 (DXR) has no sessions for a linac daily task
 - **THEN** no UTC or UTIs are created for unit 50 under that TestList
+
+### Requirement: Test category resolution
+`setup_myqa_tests` SHALL resolve the default Test category via the `_default_category()` helper (slug `"uncategorised"` → `Category.objects.first()` → `Category.objects.get(pk=1)`) rather than hardcoding `category_id=1`.
+
+#### Scenario: Centre has re-seeded categories
+- **WHEN** a centre's `qa_category` table has different primary keys
+- **THEN** `_default_category()` still returns a valid Category
+- **AND** no `IntegrityError` is raised during setup
+

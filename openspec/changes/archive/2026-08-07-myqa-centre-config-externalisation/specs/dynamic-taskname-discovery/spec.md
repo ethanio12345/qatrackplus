@@ -1,6 +1,6 @@
 ## MODIFIED Requirements
 
-### Requirement: Frequency inference from TaskName
+### Requirement: Frequency inferred from TaskName
 The `infer_frequency(taskname)` function SHALL parse the TaskName for frequency patterns and return one of: `daily`, `weekly`, `monthly`, `quarterly`, `semi-annual`, `annual`, `once_off`, or `other`.
 
 The seven regex patterns SHALL be read from `centre_config["frequency_inference"]` if present (with sensible defaults matching the IBA-template-path conventions `\.d`, `\.w`, `\.m`, `\.q`, `\.y`, `\.6m`, `\.c`). A centre with non-IBA TaskName conventions (e.g. plain `"Monthly QA"` without the dotted path) can override the patterns via YAML without code changes.
@@ -19,6 +19,8 @@ The compiled regexes SHALL be cached at module level after first call (memoised)
 #### Scenario: Unrecognised TaskName
 - **WHEN** no pattern matches
 - **THEN** `infer_frequency` returns `"other"` (unchanged)
+
+## ADDED Requirements
 
 ### Requirement: Test category resolution
 `setup_myqa_tests` SHALL resolve the default Test category via the `_default_category()` helper (slug `"uncategorised"` → `Category.objects.first()` → `Category.objects.get(pk=1)`) rather than hardcoding `category_id=1`.
