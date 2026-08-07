@@ -27,9 +27,9 @@ discovery (specs/dynamic-taskname-discovery). For each myQA TaskName we:
 
 import csv
 import os
+from functools import lru_cache
 from itertools import groupby
 
-from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -49,6 +49,7 @@ from qatrack.myqa_import import (
     slugify_name,
 )
 from qatrack.qa.models import (
+    Category,
     Frequency,
     Test,
     TestList,
@@ -56,7 +57,37 @@ from qatrack.qa.models import (
     UnitTestCollection,
     UnitTestInfo,
 )
+from qatrack.qa.utils import get_internal_user
 from qatrack.units.models import Unit
+
+
+def _default_category() -> Category:
+    """Resolve the default Category for new Tests.
+
+    Tries slug ``"uncategorised"`` (QATrack+ default catch-all), then the
+    first Category by PK, then PK 1 (legacy fallback). Robust against
+    centres that have re-seeded ``qa_category`` with different PKs.
+
+    Cached via :func:`functools.lru_cache` so the DB lookup happens at most
+    once per process — ``setup_myqa_tests`` creates thousands of Tests and
+    would otherwise re-query for each.
+    """
+    return _default_category_cached()
+
+
+@lru_cache(maxsize=1)
+def _default_category_cached() -> Category:
+    try:
+        return Category.objects.get(slug="uncategorised")
+    except Category.DoesNotExist:
+        pass
+    first = Category.objects.order_by("id").first()
+    if first is not None:
+        return first
+    # Catastrophic case: no Categories at all. Legacy behaviour is to use
+    # PK 1; let that raise DoesNotExist naturally so the operator notices.
+    return Category.objects.get(pk=1)
+
 
 _MAPPING_COLUMNS = [
     "testlist_name",
@@ -150,7 +181,7 @@ class Command(BaseCommand):
         dry_run = options.get("dry_run", False)
         only_taskname = options.get("task_name")
 
-        internal_user = User.objects.get(username="QATrack+ Internal")
+        internal_user = get_internal_user()
 
         # Create the once_off / other Frequencies that infer_frequency can
         # return for commissioning / unrecognised TaskNames (they're not part
@@ -314,7 +345,7 @@ class Command(BaseCommand):
                 defaults={
                     "name": f"{taskname} Task ID",
                     "type": "string",
-                    "category_id": 1,
+                    "category": _default_category(),
                     "created_by": internal_user,
                     "modified_by": internal_user,
                 },
@@ -341,7 +372,7 @@ class Command(BaseCommand):
                             defaults={
                                 "name": spec["name"],
                                 "type": spec.get("type", "simple"),
-                                "category_id": 1,
+                                "category": _default_category(),
                                 "created_by": internal_user,
                                 "modified_by": internal_user,
                             },
@@ -435,6 +466,21 @@ class Command(BaseCommand):
 
             utis_to_create: list[UnitTestInfo] = []
             for unit in units_for_list:
+                # Surface device-classification misses so the centre knows to
+                # extend myqa_centre_config.yaml. Per Change B design D7:
+                # print to stderr so it's visible without disrupting stdout
+                # parsing. Only "Unknown Device" (the YAML's fallback
+                # unit_type) is checked — "Other" is a UnitClass name, not
+                # a UnitType name, so it would never appear here.
+                if unit.type and unit.type.name == "Unknown Device":
+                    self.stderr.write(
+                        self.style.WARNING(
+                            f"  NOTICE: unit {unit.number} ({unit.name!r}) has "
+                            f"type={unit.type.name!r} — fell through to "
+                            f"device_classes fallback. Consider extending "
+                            f"myqa_centre_config.yaml."
+                        )
+                    )
                 utc, utc_created = UnitTestCollection.objects.get_or_create(
                     unit=unit,
                     frequency=freq,

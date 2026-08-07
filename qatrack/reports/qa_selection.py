@@ -15,7 +15,21 @@ from qatrack.qa import models
 # UnitType names that represent linacs / treatment units (design D2). Used to
 # scope the selection to real treatment machines (excludes chambers,
 # thermometers, test phantoms registered as units, etc.).
+#
+# This module-level tuple is the historical default and stays a tuple so
+# existing imports (`from qatrack.reports.qa_selection import
+# LINAC_UNIT_TYPE_NAMES`) keep working. New call sites should prefer
+# :func:`get_linac_unit_type_names`, which reads the centre-config override
+# (``myqa_centre_config.yaml: linac_unit_type_names``) and falls back to
+# this default.
+#
+# The default now includes ``"Treatment LINAC"`` (the UnitType emitted by
+# ``create_myqa_units`` for myQA-discovered linacs). Pre-fix, myQA-created
+# linacs (including RFT26 / unit 437) were silently invisible to
+# ``select_archive_utcs`` and ``clear_stale_due_dates --linacs-only``. See
+# openspec change myqa-centre-config-externalisation (qa-suite-selection delta).
 LINAC_UNIT_TYPE_NAMES = (
+    "Treatment LINAC",
     "Cyberknife",
     "Tomotherapy",
     "Agility",
@@ -30,6 +44,23 @@ LINAC_UNIT_TYPE_NAMES = (
     "Oncor",
     "Primus",
 )
+
+
+def get_linac_unit_type_names() -> tuple[str, ...]:
+    """Return the tuple of UnitType names treated as linacs.
+
+    Reads ``centre_config["linac_unit_type_names"]`` if the centre has
+    overridden it; otherwise returns :data:`LINAC_UNIT_TYPE_NAMES` (the
+    historical default above, which now includes ``"Treatment LINAC"``).
+    """
+    from qatrack.myqa_import import _load_centre_config
+
+    cfg = _load_centre_config()
+    override = cfg.get("linac_unit_type_names")
+    if override:
+        return tuple(override)
+    return LINAC_UNIT_TYPE_NAMES
+
 
 # Canonical QA frequencies included by default (design D2). "Other" and
 # "Once Off" are deliberately excluded so junk / commissioning suites are
@@ -137,7 +168,7 @@ def select_archive_utcs(window_start, window_end, freqs=None, units=None):
     qs = models.UnitTestCollection.objects.filter(
         active=True,
         unit__active=True,
-        unit__type__name__in=LINAC_UNIT_TYPE_NAMES,
+        unit__type__name__in=get_linac_unit_type_names(),
         frequency__name__in=freq_names,
     )
     if units:
@@ -159,9 +190,9 @@ def select_archive_utcs(window_start, window_end, freqs=None, units=None):
 
 
 def active_linac_units():
-    """Return a queryset of active linac Units (type name in LINAC_UNIT_TYPE_NAMES)."""
+    """Return a queryset of active linac Units (type name in get_linac_unit_type_names())."""
     from qatrack.units.models import Unit
 
     return Unit.objects.filter(
-        active=True, type__name__in=LINAC_UNIT_TYPE_NAMES
+        active=True, type__name__in=get_linac_unit_type_names()
     ).order_by("name")

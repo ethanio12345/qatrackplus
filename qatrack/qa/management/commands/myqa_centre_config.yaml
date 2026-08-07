@@ -1,0 +1,157 @@
+# Centre-specific configuration for the myQA import system.
+#
+# Edit this file (not the Python code) when deploying to a new centre. The
+# loader (`qatrack.myqa_import._load_centre_config`) reads this file lazily
+# on first access and caches the result. If the file is absent the engine
+# falls back to `_BCHC_DEFAULT_CENTRE_CONFIG` in myqa_import.py (with a
+# DeprecationWarning), so BCHC continues to work unchanged.
+#
+# Schema:
+#   network_name           Human-readable name for logs and reports.
+#   sites                  Ordered list — first matching `device_prefixes` wins.
+#                          Used by create_myqa_units to assign Unit.site.
+#   device_classes         Ordered list — first matching `pattern` (Python
+#                          re.search, case-sensitive) wins. Provides the
+#                          UnitClass name and UnitType name for new Units.
+#                          Patterns are checked against the myQA
+#                          RadiationDeviceName (or its first list entry when
+#                          the device map value is a list of variants).
+#   linac_unit_type_names  UnitType.name strings treated as "linacs" by
+#                          `select_archive_utcs` and `clear_stale_due_dates
+#                          --linacs-only`. Read by reports.qa_selection.
+#   frequency_inference    Optional. Maps frequency slug → list of regex
+#                          patterns. When absent, the engine uses the
+#                          default IBA-template-path regexes (\.d, \.m, etc.).
+#
+# Default values below are extracted from create_myqa_units.py (pre-refactor)
+# and reproduce BCHC's behaviour. The only intentional change is for unit
+# 437 (RFT26) which is now correctly classified as Treatment LINAC; the
+# pre-refactor number-range rule (435-441 → Safety) wrongly classified it
+# as Audit/Safety/Security. See openspec change
+# myqa-centre-config-externalisation (qa-suite-selection delta).
+
+network_name: "BCHC/CPMCC"
+
+sites:
+  - slug: westmead-equipment
+    name: Westmead Equipment
+    device_prefixes: ["CPMCC"]
+  - slug: blacktown-equipment
+    name: Blacktown Equipment
+    device_prefixes: ["BCHC"]
+  - slug: westmead
+    name: Westmead
+    device_prefixes: ["Flexitron", "HDR", "WSLHD", "RFT", "Source Security", "Radiation Safety", "Dosimetry Audit", "CPMCC - IAEA Audit"]
+
+device_classes:
+
+  # ── Most-specific patterns first (order matters) ───────────────────────
+
+  # Well Chambers — must be checked before "(F)" field-chamber rule below,
+  # because their names start with "CPMCC (F) Well Chamber".
+  - pattern: 'Well Chamber'
+    unit_class: Well Chamber
+    unit_type: Well Chamber
+
+  # Brachytherapy afterloaders (Flexitron / HDR). Note: device 206 sits in
+  # the 200-212 "BCHC chamber" range but is an afterloader — caught here
+  # before the BCHC (F) / BCHC (Sec. Std.) rules.
+  - pattern: '^(Flexitron|HDR)'
+    unit_class: Brachytherapy
+    unit_type: Brachytherapy Afterloader
+
+  # Environmental instruments
+  - pattern: 'Thermometer'
+    unit_class: Thermometer
+    unit_type: Thermometer
+  - pattern: 'Barometer'
+    unit_class: Barometer
+    unit_type: Barometer
+
+  # Electrometers (D4 / D4+)
+  - pattern: '\bD4\+?\b'
+    unit_class: Electrometer
+    unit_type: Electrometer
+
+  # Detectors / phantoms
+  - pattern: '(MatrixX|IBA SRS|myQA Daily|WP1D)'
+    unit_class: Detector
+    unit_type: Detector / Phantom
+
+  # Survey meters / OSLD / neutron detectors
+  - pattern: '(Austral Rad|Ranger|Mirion|Neutron Detector|Survey Meter)'
+    unit_class: Survey Meter
+    unit_type: Survey Meter / OSLD / Neutron Detector
+
+  # Audit / safety / security devices. NOTE: RFT26 is matched here ONLY
+  # for actual audit/safety devices; the LINAC rule below catches RFT26
+  # first because of pattern ordering.
+  - pattern: '(IAEA Audit|Dosimetry Audit|Radiation Safety|Source Security|WSLHD)'
+    unit_class: Safety
+    unit_type: Audit / Safety / Security
+
+  # Ionisation chambers — split by site + role
+  - pattern: '^BCHC \((F|Sec\.?\s*Std)'
+    unit_class: Ion Chamber
+    unit_type: BCHC Chamber / Electrometer
+  - pattern: '^CPMCC \(Sec\.?\s*Std'
+    unit_class: Ion Chamber
+    unit_type: Secondary Standard Chamber
+  - pattern: '^CPMCC \(F\)'
+    unit_class: Ion Chamber
+    unit_type: CPMCC Field Ion Chamber
+  - pattern: '^CPMCC \(R\)'
+    unit_class: Ion Chamber
+    unit_type: Reference / Scanning Chamber
+
+  # Imaging devices
+  - pattern: '\bCT\d'
+    unit_class: Imaging
+    unit_type: Imaging Device
+  - pattern: 'MRI'
+    unit_class: Imaging
+    unit_type: Imaging Device
+
+  # Orthovoltage DXR (class name 'DXR' matches QATrack+'s existing UnitClass)
+  - pattern: '^DXR\b'
+    unit_class: DXR
+    unit_type: Orthovoltage DXR
+
+  # Treatment linacs — CST/OBK/LA/RFT prefix with a number. Catches RFT26
+  # (BCHC's newest linac) which the pre-refactor number-range rule (435-441
+  # → Safety) was misclassifying as Audit/Safety/Security.
+  - pattern: '^(CST|OBK|LA|RFT)\d'
+    unit_class: Linac
+    unit_type: Treatment LINAC
+
+  # CPMCC chambers without a parenthetical role prefix (e.g. "CPMCC Fluke
+  # Ion Chamber"). Must come before the fallback and after the explicit
+  # (F) / (Sec. Std) / (R) rules above so the more-specific roles win.
+  - pattern: '^CPMCC.*Ion Chamber'
+    unit_class: Ion Chamber
+    unit_type: CPMCC Field Ion Chamber
+
+  # Fallback
+  - pattern: '.*'
+    unit_class: Other
+    unit_type: Unknown Device
+
+# UnitType.name strings treated as "linacs" by linac-scoped operations.
+# Default includes "Treatment LINAC" (what the rule above emits for new
+# linacs) plus the vendor names QATrack+ ships with. Centres can extend
+# this list to include their site-specific UnitType names.
+linac_unit_type_names:
+  - Treatment LINAC
+  - Cyberknife
+  - Tomotherapy
+  - Agility
+  - Axesse
+  - Precise
+  - Synergy
+  - Clinac
+  - EDGE
+  - Novalis
+  - Trilogy
+  - TrueBeam
+  - Oncor
+  - Primus

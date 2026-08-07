@@ -1,64 +1,48 @@
-"""Create QATrack+ Unit rows from the myQA device map (myqa_device_map.yaml)."""
+"""Create QATrack+ Unit rows from the myQA device map (myqa_device_map.yaml).
+
+UnitClass / UnitType / Site assignment is driven by myqa_centre_config.yaml
+(loaded by qatrack.myqa_import._load_centre_config). Edit that YAML — not
+this file — when deploying at a new centre.
+"""
+
+import re
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from qatrack.myqa_import import LINAC_MAP
+from qatrack.myqa_import import LINAC_MAP, _load_centre_config
 from qatrack.units.models import Site, Unit, UnitClass, UnitType
 
-# Maps a unit-number range to (UnitClass name, UnitType name). Drives
-# UnitType creation + assignment so each device category is grouped correctly.
-# Keys are (low, high) inclusive bounds; first match wins. Ranges adjusted to
-# match the corrected LINAC_MAP numbering (avoids existing unit collisions).
-UNIT_CATEGORIES = [
-    ((1, 9), "Linac", "Treatment LINAC"),
-    ((50, 50), "DXR", "Orthovoltage DXR"),
-    ((100, 109), "Imaging", "Imaging Device"),
-    # 206 must be checked before the 200-212 BCHC range (first match wins)
-    ((206, 206), "Brachytherapy", "Brachytherapy Afterloader"),
-    ((200, 212), "Ion Chamber", "BCHC Chamber / Electrometer"),
-    ((305, 327), "Ion Chamber", "CPMCC Field Ion Chamber"),
-    ((340, 344), "Ion Chamber", "Secondary Standard Chamber"),
-    ((350, 357), "Ion Chamber", "Reference / Scanning Chamber"),
-    ((365, 366), "Well Chamber", "Well Chamber"),
-    ((375, 388), "Thermometer", "Thermometer"),
-    ((395, 396), "Barometer", "Barometer"),
-    ((400, 402), "Electrometer", "Electrometer"),
-    ((410, 417), "Survey Meter", "Survey Meter / OSLD / Neutron Detector"),
-    ((425, 429), "Detector", "Detector / Phantom"),
-    ((435, 441), "Safety", "Audit / Safety / Security"),
-]
 
+def _classify_device(device_name: str) -> tuple[str, str]:
+    """Return ``(unit_class_name, unit_type_name)`` for a myQA device name.
 
-def _category_for(number: int) -> tuple[str, str]:
-    """Return (unit_class_name, unit_type_name) for a unit number."""
-    for (low, high), cls_name, type_name in UNIT_CATEGORIES:
-        if low <= number <= high:
-            return cls_name, type_name
+    Iterates ``centre_config["device_classes"]`` in order; first matching
+    ``pattern`` (Python re.search) wins. Falls back to ``("Other",
+    "Unknown Device")``.
+    """
+    primary = device_name[0] if isinstance(device_name, list) else device_name
+    cfg = _load_centre_config()
+    for rule in cfg.get("device_classes", []):
+        if re.search(rule["pattern"], primary):
+            return rule["unit_class"], rule["unit_type"]
     return "Other", "Unknown Device"
 
 
 def _site_for(device_name: str) -> tuple[str, str] | None:
-    """Derive the (site_slug, site_name) from the device-name prefix.
+    """Derive ``(site_slug, site_name)`` from the device-name prefix.
 
-    Returns None for devices without a known site prefix (LINACs etc.) — the
-    command leaves site unset for those so the caller can review.
-
-    Site mapping (verified against existing QATrack+ deployment):
-      CPMCC → westmead-equipment, BCHC → blacktown-equipment.
-    Non-equipment CPMCC/BCHC items (audits etc.) use the base site.
+    Iterates ``centre_config["sites"]`` in order; first site whose
+    ``device_prefixes`` matches (case-sensitive ``str.startswith``) wins.
+    Returns None if no site matches — the caller leaves Unit.site unset so
+    the assignment can be reviewed manually.
     """
     primary = device_name[0] if isinstance(device_name, list) else device_name
-    if primary.startswith("CPMCC"):
-        return "westmead-equipment", "Westmead Equipment"
-    if primary.startswith("BCHC"):
-        return "blacktown-equipment", "Blacktown Equipment"
-    if primary.startswith(("Flexitron", "HDR")):
-        return "westmead", "Westmead"
-    if primary.startswith(("WSLHD", "RFT", "Source Security", "Radiation Safety")):
-        return "westmead", "Westmead"
-    if primary in ("Dosimetry Audits", "CPMCC - IAEA Audit"):
-        return "westmead", "Westmead"
+    cfg = _load_centre_config()
+    for site in cfg.get("sites", []):
+        for prefix in site.get("device_prefixes", []):
+            if primary.startswith(prefix):
+                return site["slug"], site["name"]
     return None
 
 
@@ -73,8 +57,9 @@ class Command(BaseCommand):
     help = (
         "Create QATrack+ Unit records for every device in LINAC_MAP that does "
         "not already exist. Creates missing Site / UnitClass / UnitType records "
-        "as needed. Existing units are left unchanged (spec: 'Existing unit not "
-        "modified')."
+        "as needed. Classification rules come from myqa_centre_config.yaml "
+        "(edit that file, not this command, when deploying at a new centre). "
+        "Existing units are left unchanged."
     )
 
     def add_arguments(self, parser):
@@ -99,17 +84,17 @@ class Command(BaseCommand):
 
             device_name = LINAC_MAP[number]
             name = _primary_name(device_name)
-            cls_name, type_name = _category_for(number)
+            cls_name, type_name = _classify_device(device_name)
             site_info = _site_for(device_name)
 
-            # Resolve UnitClass + UnitType (get_or_create; tasks 5.3)
+            # Resolve UnitClass + UnitType (get_or_create)
             unit_class, _ = UnitClass.objects.get_or_create(name=cls_name)
             unit_type, _ = UnitType.objects.get_or_create(
                 name=type_name,
                 defaults={"unit_class": unit_class},
             )
 
-            # Resolve Site (get_or_create; task 5.3)
+            # Resolve Site (get_or_create)
             site = None
             site_label = "None"
             if site_info is not None:

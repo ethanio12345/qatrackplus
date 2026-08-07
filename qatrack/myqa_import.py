@@ -77,6 +77,193 @@ LINAC_MAP = _load_device_map()
 
 
 # ---------------------------------------------------------------------------
+# Centre configuration (multi-site network, device classification, linac
+# unit-type allowlist, optional frequency-inference overrides).
+# ---------------------------------------------------------------------------
+
+_CENTRE_CONFIG_PATH = os.path.join(
+    os.path.dirname(__file__), "qa", "management", "commands", "myqa_centre_config.yaml"
+)
+
+# In-code BCHC default — used when the YAML is absent. Reproduces today's
+# behaviour (DeprecationWarning emitted on fallback). Kept in code so a
+# bare `git clone` with no YAML still works for BCHC.
+_BCHC_DEFAULT_CENTRE_CONFIG: dict[str, Any] = {
+    "network_name": "BCHC/CPMCC",
+    "sites": [
+        {
+            "slug": "westmead-equipment",
+            "name": "Westmead Equipment",
+            "device_prefixes": ["CPMCC"],
+        },
+        {
+            "slug": "blacktown-equipment",
+            "name": "Blacktown Equipment",
+            "device_prefixes": ["BCHC"],
+        },
+        {
+            "slug": "westmead",
+            "name": "Westmead",
+            "device_prefixes": [
+                "Flexitron",
+                "HDR",
+                "WSLHD",
+                "RFT",
+                "Source Security",
+                "Radiation Safety",
+                "Dosimetry Audit",
+                "CPMCC - IAEA Audit",
+            ],
+        },
+    ],
+    "device_classes": [
+        # Order matters — first match wins. See myqa_centre_config.yaml for
+        # the rationale on each entry.
+        {
+            "pattern": "Well Chamber",
+            "unit_class": "Well Chamber",
+            "unit_type": "Well Chamber",
+        },
+        {
+            "pattern": r"^(Flexitron|HDR)",
+            "unit_class": "Brachytherapy",
+            "unit_type": "Brachytherapy Afterloader",
+        },
+        {
+            "pattern": "Thermometer",
+            "unit_class": "Thermometer",
+            "unit_type": "Thermometer",
+        },
+        {"pattern": "Barometer", "unit_class": "Barometer", "unit_type": "Barometer"},
+        {
+            "pattern": r"\bD4\+?\b",
+            "unit_class": "Electrometer",
+            "unit_type": "Electrometer",
+        },
+        {
+            "pattern": r"(MatrixX|IBA SRS|myQA Daily|WP1D)",
+            "unit_class": "Detector",
+            "unit_type": "Detector / Phantom",
+        },
+        {
+            "pattern": r"(Austral Rad|Ranger|Mirion|Neutron Detector|Survey Meter)",
+            "unit_class": "Survey Meter",
+            "unit_type": "Survey Meter / OSLD / Neutron Detector",
+        },
+        {
+            "pattern": r"(IAEA Audit|Dosimetry Audit|Radiation Safety|Source Security|WSLHD)",
+            "unit_class": "Safety",
+            "unit_type": "Audit / Safety / Security",
+        },
+        {
+            "pattern": r"^BCHC \((F|Sec\.?\s*Std)",
+            "unit_class": "Ion Chamber",
+            "unit_type": "BCHC Chamber / Electrometer",
+        },
+        {
+            "pattern": r"^CPMCC \(Sec\.?\s*Std",
+            "unit_class": "Ion Chamber",
+            "unit_type": "Secondary Standard Chamber",
+        },
+        {
+            "pattern": r"^CPMCC \(F\)",
+            "unit_class": "Ion Chamber",
+            "unit_type": "CPMCC Field Ion Chamber",
+        },
+        {
+            "pattern": r"^CPMCC \(R\)",
+            "unit_class": "Ion Chamber",
+            "unit_type": "Reference / Scanning Chamber",
+        },
+        {"pattern": r"\bCT\d", "unit_class": "Imaging", "unit_type": "Imaging Device"},
+        {"pattern": "MRI", "unit_class": "Imaging", "unit_type": "Imaging Device"},
+        {
+            "pattern": r"^DXR\b",
+            "unit_class": "DXR",
+            "unit_type": "Orthovoltage DXR",
+        },
+        {
+            "pattern": r"^(CST|OBK|LA|RFT)\d",
+            "unit_class": "Linac",
+            "unit_type": "Treatment LINAC",
+        },
+        {
+            "pattern": r"^CPMCC.*Ion Chamber",
+            "unit_class": "Ion Chamber",
+            "unit_type": "CPMCC Field Ion Chamber",
+        },
+        {"pattern": ".*", "unit_class": "Other", "unit_type": "Unknown Device"},
+    ],
+    "linac_unit_type_names": [
+        "Treatment LINAC",
+        "Cyberknife",
+        "Tomotherapy",
+        "Agility",
+        "Axesse",
+        "Precise",
+        "Synergy",
+        "Clinac",
+        "EDGE",
+        "Novalis",
+        "Trilogy",
+        "TrueBeam",
+        "Oncor",
+        "Primus",
+    ],
+}
+
+_CENTRE_CONFIG_CACHE: dict[str, Any] | None = None
+_CENTRE_CONFIG_FALLBACK_WARNED = False
+
+
+def _load_centre_config() -> dict[str, Any]:
+    """Load centre configuration from ``myqa_centre_config.yaml``.
+
+    Returns a dict with the keys described in the YAML header. When the
+    file is absent, returns ``_BCHC_DEFAULT_CENTRE_CONFIG`` (in-code
+    fallback reproducing today's BCHC behaviour) and emits a
+    ``DeprecationWarning`` once per process pointing at the new file.
+
+    The result is cached in ``_CENTRE_CONFIG_CACHE`` so repeated calls are
+    free. Mirrors the pattern of :func:`_load_device_map`.
+    """
+    global _CENTRE_CONFIG_CACHE, _CENTRE_CONFIG_FALLBACK_WARNED
+    if _CENTRE_CONFIG_CACHE is not None:
+        return _CENTRE_CONFIG_CACHE
+
+    if os.path.exists(_CENTRE_CONFIG_PATH):
+        with open(_CENTRE_CONFIG_PATH) as f:
+            data = yaml.safe_load(f)
+        if not isinstance(data, dict):
+            # Empty file or YAML that parses to None/scalar. Treat the same
+            # as absent — fall through to the BCHC default + DeprecationWarning.
+            data = None
+        if data is not None:
+            # Normalise: sites/device_classes/linac_unit_type_names default
+            # to empty containers if the YAML omitted them.
+            data.setdefault("sites", [])
+            data.setdefault("device_classes", [])
+            data.setdefault("linac_unit_type_names", [])
+            _CENTRE_CONFIG_CACHE = data
+            return _CENTRE_CONFIG_CACHE
+
+    if not _CENTRE_CONFIG_FALLBACK_WARNED:
+        import warnings
+
+        warnings.warn(
+            "myqa_centre_config.yaml not found (or empty/invalid) at %s — "
+            "falling back to in-code BCHC defaults. Create the YAML to "
+            "customise for your centre. See openspec change "
+            "myqa-centre-config-externalisation." % _CENTRE_CONFIG_PATH,
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        _CENTRE_CONFIG_FALLBACK_WARNED = True
+    _CENTRE_CONFIG_CACHE = _BCHC_DEFAULT_CENTRE_CONFIG
+    return _CENTRE_CONFIG_CACHE
+
+
+# ---------------------------------------------------------------------------
 # Connection helpers
 # ---------------------------------------------------------------------------
 
@@ -296,13 +483,62 @@ def ensure_statuses_exist():
 # pattern "\.X(?:[^a-z]|$)" matches ".X" only when X is followed by a non-
 # lowercase-letter (digit, space, dot, dash) or end-of-string, so ".d" in
 # ".dosimetry" is correctly rejected.
-_FREQ_DAILY = re.compile(r"\.d(?:[^a-z]|$)")
-_FREQ_WEEKLY = re.compile(r"\.w(?:[^a-z]|$)")
-_FREQ_MONTHLY = re.compile(r"\.m(?:[^a-z]|$)")
-_FREQ_QUARTERLY = re.compile(r"\.q(?:[^a-z]|$)")
-_FREQ_ANNUAL = re.compile(r"\.y(?:[^a-z]|$)")
-_FREQ_6MONTHLY = re.compile(r"\.6m(?:[^a-z]|$)")
-_FREQ_COMMISSIONING = re.compile(r"\.c(?:[^a-z]|$)")
+#
+# Default patterns (used when ``myqa_centre_config.yaml`` does not provide a
+# ``frequency_inference`` override). A centre with a different TaskName
+# convention can override via YAML without code changes — see
+# :func:`_get_freq_patterns`.
+_DEFAULT_FREQ_PATTERNS: dict[str, list[str]] = {
+    # Order matters — the function checks in this order (most-specific first).
+    "once_off": [r"\.c(?:[^a-z]|$)", "commissioning"],
+    "semi-annual": [r"\.6m(?:[^a-z]|$)", "6 monthly", "6-monthly", "biannual"],
+    "daily": [r"\.d(?:[^a-z]|$)", "daily"],
+    "weekly": [r"\.w(?:[^a-z]|$)", "weekly"],
+    "quarterly": [r"\.q(?:[^a-z]|$)", "quarterly"],
+    "annual": [r"\.y(?:[^a-z]|$)", "annual", "yearly"],
+    # Monthly checked last so ".D2" etc. don't accidentally match first.
+    "monthly": [r"\.m(?:[^a-z]|$)", "monthly"],
+}
+
+_FREQ_PATTERNS_CACHE: dict[str, list[re.Pattern]] | None = None
+
+
+def _get_freq_patterns() -> dict[str, list[re.Pattern]]:
+    """Return the frequency-slug → compiled-regex-patterns map.
+
+    Reads ``centre_config["frequency_inference"]`` if the centre has
+    overridden it; otherwise uses :data:`_DEFAULT_FREQ_PATTERNS`. The
+    compiled patterns are cached at module level after first call so there
+    is no per-call performance impact.
+
+    All patterns (including plain words like ``"daily"``) are compiled as
+    regex — Python's ``re.search`` treats a plain string the same way
+    ``str.__contains__`` would for those characters, so the behaviour is
+    identical to the legacy ``"daily" in tn`` substring checks.
+
+    Returns a reference to :data:`_DEFAULT_FREQ_PATTERNS_COMPILED` when in
+    default mode (so :func:`infer_frequency` can detect this and preserve
+    the legacy priority order); returns a fresh dict when in override mode.
+    """
+    global _FREQ_PATTERNS_CACHE
+    if _FREQ_PATTERNS_CACHE is not None:
+        return _FREQ_PATTERNS_CACHE
+
+    cfg = _load_centre_config()
+    override = cfg.get("frequency_inference")
+    if override:
+        # Override mode: compile the centre's patterns in their YAML order.
+        # Centres can reorder slugs or add new ones (e.g. "bi-monthly").
+        compiled: dict[str, list[re.Pattern]] = {}
+        for slug, patterns in override.items():
+            compiled[slug] = [re.compile(p, re.IGNORECASE) for p in patterns]
+        _FREQ_PATTERNS_CACHE = compiled
+    else:
+        # Default mode: use the cached compiled defaults (identity preserved
+        # so infer_frequency can detect this branch).
+        _FREQ_PATTERNS_CACHE = _ensure_default_compiled()
+
+    return _FREQ_PATTERNS_CACHE
 
 
 def infer_frequency(taskname: str) -> str:
@@ -313,38 +549,63 @@ def infer_frequency(taskname: str) -> str:
     (commissioning), or ``other`` (unknown / unrecognised). The ``once_off``
     and ``other`` Frequencies are created on demand by
     :func:`ensure_frequencies_exist`.
-    """
-    tn = (taskname or "").lower()
 
-    # Commissioning -> once_off (one-time commissioning QA).
-    if _FREQ_COMMISSIONING.search(tn) or "commissioning" in tn:
-        return "once_off"
-    # 6-monthly -> semi-annual (biannual; the existing biannual frequency).
-    if (
-        _FREQ_6MONTHLY.search(tn)
-        or "6 monthly" in tn
-        or "6-monthly" in tn
-        or "biannual" in tn
-    ):
-        return "semi-annual"
-    # Daily (.D, .D2, .D%, or the word "Daily")
-    if _FREQ_DAILY.search(tn) or "daily" in tn:
-        return "daily"
-    # Weekly
-    if _FREQ_WEEKLY.search(tn) or "weekly" in tn:
-        return "weekly"
-    # Quarterly
-    if _FREQ_QUARTERLY.search(tn) or "quarterly" in tn:
-        return "quarterly"
-    # Annual / yearly
-    if _FREQ_ANNUAL.search(tn) or "annual" in tn or "yearly" in tn:
-        return "annual"
-    # Monthly (checked after the more-specific patterns above so that e.g.
-    # ".D2" doesn't accidentally match the daily branch and skip monthly)
-    if _FREQ_MONTHLY.search(tn) or "monthly" in tn:
-        return "monthly"
-    # Unrecognised TaskName -> "other" (catch-all; user reassigns in admin).
+    The frequency patterns are read from
+    ``centre_config["frequency_inference"]`` if the centre has overridden
+    them; otherwise the legacy IBA-template-path defaults (``.D``, ``.M``,
+    etc.) are used. See :func:`_get_freq_patterns`.
+
+    When the centre provides an override, slugs are checked in the
+    override's YAML ordering so a centre can both reorder existing slugs
+    and add new ones (e.g. ``"bi-monthly"``) without code changes. When
+    using the in-code default, the legacy fixed priority order is preserved
+    (``once_off`` → ``semi-annual`` → ``daily`` → ``weekly`` →
+    ``quarterly`` → ``annual`` → ``monthly``) so behaviour is byte-identical
+    to pre-refactor.
+    """
+    tn = taskname or ""
+    patterns = _get_freq_patterns()
+
+    if patterns is _DEFAULT_FREQ_PATTERNS_COMPILED:
+        # Default mode: preserve the legacy priority order exactly so
+        # behaviour is byte-identical to pre-refactor.
+        priority_order = (
+            "once_off",
+            "semi-annual",
+            "daily",
+            "weekly",
+            "quarterly",
+            "annual",
+            "monthly",
+        )
+    else:
+        # Override mode: honour the override's YAML ordering (dict insertion
+        # order in Python 3.7+). Centres can reorder slugs or add new ones
+        # (e.g. "bi-monthly") without code changes.
+        priority_order = list(patterns.keys())
+
+    for slug in priority_order:
+        for pat in patterns.get(slug, []):
+            if pat.search(tn):
+                return slug
     return "other"
+
+
+# Pre-computed reference to the compiled default patterns, used by
+# ``infer_frequency`` to detect whether we're in default mode (preserve
+# legacy order) or override mode (honour YAML order).
+_DEFAULT_FREQ_PATTERNS_COMPILED: dict[str, list[re.Pattern]] | None = None
+
+
+def _ensure_default_compiled():
+    """Compile the default patterns once and cache for identity check."""
+    global _DEFAULT_FREQ_PATTERNS_COMPILED
+    if _DEFAULT_FREQ_PATTERNS_COMPILED is None:
+        _DEFAULT_FREQ_PATTERNS_COMPILED = {
+            slug: [re.compile(p, re.IGNORECASE) for p in pats]
+            for slug, pats in _DEFAULT_FREQ_PATTERNS.items()
+        }
+    return _DEFAULT_FREQ_PATTERNS_COMPILED
 
 
 def ensure_frequencies_exist():

@@ -19,7 +19,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from qatrack.qa.models import UnitTestCollection
-from qatrack.reports.qa_selection import LINAC_UNIT_TYPE_NAMES
+from qatrack.reports.qa_selection import get_linac_unit_type_names
 
 FLOOR_DEFAULT = 180
 MULTIPLIER_DEFAULT = 3
@@ -78,7 +78,7 @@ class Command(BaseCommand):
             active=True, due_date__isnull=False
         ).select_related("unit__type", "frequency", "last_instance")
         if opts["linacs_only"]:
-            qs = qs.filter(unit__type__name__in=LINAC_UNIT_TYPE_NAMES)
+            qs = qs.filter(unit__type__name__in=get_linac_unit_type_names())
 
         stale = [u for u in qs if _is_stale(u, now, opts["multiplier"], opts["floor"])]
         if not stale:

@@ -6,7 +6,6 @@ import subprocess
 import sys
 
 from django.conf import settings
-from django.contrib.auth.models import User
 from django.utils import timezone
 
 from qatrack.myqa_import import (
@@ -17,6 +16,7 @@ from qatrack.myqa_import import (
     query_sessions,
 )
 from qatrack.qa.models import AutoSave, TestInstanceStatus
+from qatrack.qa.utils import get_internal_user
 
 logger = logging.getLogger("django-q2")
 
@@ -70,7 +70,7 @@ def import_myqa_all(dry_run=False, unit=None, days=30, task_name=None):
     finally:
         conn.close()
 
-    internal_user = User.objects.get(username="QATrack+ Internal")
+    internal_user = get_internal_user()
     default_status = TestInstanceStatus.objects.get(is_default=True)
     status_map = {
         "unreviewed": default_status,
