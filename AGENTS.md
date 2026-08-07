@@ -149,6 +149,49 @@ out-of-tolerance (`action`) or commented tests.
 
 11. **`Tolerance.save()` overwrites `name` with `%.3f` / `%.2f%%` formatting** via `qatrack/qa/models.py:get_tolerance_name`. Distinct small numeric values (e.g. `warn=3e-06` vs `warn=5e-06`) truncate to the same name and hit the `Tolerance.name` UNIQUE constraint, which previously crashed the entire session import. `_get_or_create_tolerance` in `qatrack/myqa_import.py` now wraps `save()` in a savepoint and falls back to a name-based lookup on `IntegrityError` so the import continues. Don't reintroduce the bare `get_or_create`.
 
+## Sharing with another centre
+
+The myQA import system is portable across centres. The three-change
+portability programme (`myqa-centre-config-externalisation`,
+`myqa-centre-onboarding`, `myqa-centre-trust-and-ops`) externalises every
+centre-specific value to YAML, adds an interactive bootstrap command, and
+ships a deployment guide.
+
+**New centre onboarding:** see [`docs/myqa_deployment_guide.md`](docs/myqa_deployment_guide.md) for the
+step-by-step from `git clone` to confident clinical use. The TL;DR:
+
+```bash
+git clone <repo> && cd qatrackplus
+cp qatrack/local_settings.example.py qatrack/local_settings.py   # fill in MYQA_*, TIME_ZONE, DATABASES
+uv sync && uv run python manage.py migrate
+uv run python manage.py myqa_doctor              # validate preconditions
+uv run python manage.py bootstrap_myqa_centre    # interactive two-phase onboarding
+uv run python manage.py import_myqa --days 90    # backfill
+uv run python manage.py myqa_validate --days 90  # diff vs myQA
+uv run python manage.py setup_myqa_setup_schedule  # weekly auto-setup
+```
+
+**Three centre-config files** (edit these, not the Python code):
+
+| File | Purpose |
+|---|---|
+| `qatrack/qa/management/commands/myqa_device_map.yaml` | `unit_number → myQA RadiationDeviceName` |
+| `qatrack/qa/management/commands/myqa_centre_config.yaml` | network name, multi-site list, device-class rules, linac unit-type allowlist, optional frequency overrides |
+| `qatrack/qa/management/commands/myqa_name_overrides.yaml` | myQA condition-name → descriptive display-name overrides |
+
+**Latent bug fixed by Change A:** the pre-refactor
+`create_myqa_units.py` classified linacs by unit-number range, which
+mis-classified RFT26 (unit 437) as `Audit / Safety / Security` because
+435-441 was a Safety range. The new name-pattern classification correctly
+identifies RFT26 as `Treatment LINAC`. `LINAC_UNIT_TYPE_NAMES` in
+`reports/qa_selection.py` now includes `"Treatment LINAC"` so
+myQA-created linacs are visible to `clear_stale_due_dates --linacs-only`
+and the linac QA PDF archive.
+
+For the operational scripts reference (clear_stale_due_dates,
+set_angular_wraparound, etc.), see
+[`docs/myqa_operational_scripts.md`](docs/myqa_operational_scripts.md).
+
 ## OpenSpec
 
 ```bash
