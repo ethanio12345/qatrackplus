@@ -1,0 +1,482 @@
+"""Interactive two-phase onboarding command for a new centre.
+
+``bootstrap_myqa_centre`` takes a fresh fork from ``git clone`` to a working
+myQA import system in two phases:
+
+1. ``--scan``: connect to myQA, list distinct ``RadiationDeviceName`` values,
+   filter obvious test fixtures, write a draft device map
+   (``myqa_device_map.draft.yaml``) with auto-suggested unit numbers / types
+   / sites based on ``centre_config``.
+
+2. ``--apply`` (after the centre reviews/edits the draft): create Unit rows
+   (idempotent on unit number), write production ``myqa_device_map.yaml``
+   atomically (temp file + ``os.rename``), run ``setup_myqa_tests``
+   automatically (unless ``--skip-setup``), and print a loud tolerance
+   warning.
+
+The draft file is reviewable, shareable with colleagues, version-
+controllable, and re-runnable. ``--apply`` is idempotent so it can be
+re-run any number of times.
+
+``--non-interactive`` mode (with ``--scan``) writes every discovered device
+as a commented-out line — for centres that prefer pure manual editing.
+"""
+
+import os
+import re
+import subprocess
+import sys
+from typing import Any
+
+import yaml
+from django.conf import settings
+from django.core.management.base import BaseCommand
+from django.utils import timezone
+
+from qatrack.myqa_import import _load_centre_config, get_connection
+from qatrack.units.models import Site, Unit, UnitClass, UnitType
+
+# Path resolution mirroring myqa_import._DEVICE_MAP_PATH
+_CONFIG_DIR = os.path.join(
+    os.path.dirname(__file__)  # .../qatrack/qa/management/commands
+)
+_DRAFT_PATH = os.path.join(_CONFIG_DIR, "myqa_device_map.draft.yaml")
+_PROD_PATH = os.path.join(_CONFIG_DIR, "myqa_device_map.yaml")
+
+# Default filter for obvious test fixtures. Overridable via --dummy-regex.
+_DEFAULT_DUMMY_REGEX = r"^(z*[Dd]ummy|test|tbd)\b"
+
+
+def _classify(name: str, cfg: dict[str, Any]) -> tuple[str, str]:
+    """Return ``(unit_class, unit_type)`` from the centre-config device_classes."""
+    primary = name[0] if isinstance(name, list) else name
+    for rule in cfg.get("device_classes", []):
+        if re.search(rule["pattern"], primary):
+            return rule["unit_class"], rule["unit_type"]
+    return "Other", "Unknown Device"
+
+
+def _site_for(name: str, cfg: dict[str, Any]) -> tuple[str, str] | None:
+    """Return ``(site_slug, site_name)`` from the centre-config sites."""
+    primary = name[0] if isinstance(name, list) else name
+    for site in cfg.get("sites", []):
+        for prefix in site.get("device_prefixes", []):
+            if primary.startswith(prefix):
+                return site["slug"], site["name"]
+    return None
+
+
+def _suggest_unit_number(
+    name: str, existing_units: dict[int, str], used_numbers: set[int]
+) -> int:
+    """Suggest a unit number for a device.
+
+    1. If a Unit with this exact name exists, reuse its number.
+    2. Else pick the lowest integer ≥ ``max(existing) + 1`` not already in
+       ``used_numbers`` (so each new device gets a unique suggestion within
+       one scan run).
+
+    ``used_numbers`` is mutated (the chosen number is added) so successive
+    calls within one scan don't collide.
+    """
+    primary = name[0] if isinstance(name, list) else name
+    # Reuse if a Unit already has this exact name
+    for num, unit_name in existing_units.items():
+        if unit_name == primary:
+            return num
+    # Pick the next available number not yet used in this scan
+    candidate = max(existing_units) + 1 if existing_units else 1
+    while candidate in used_numbers:
+        candidate += 1
+    used_numbers.add(candidate)
+    return candidate
+
+
+def _scan_myqa_devices(conn) -> list[str]:
+    """Query myQA for distinct RadiationDeviceNames."""
+    cursor = conn.cursor(as_dict=True)
+    cursor.execute("""
+        SELECT DISTINCT RadiationDeviceName
+        FROM MQA_TestExecutions
+        WHERE RadiationDeviceName IS NOT NULL
+        ORDER BY RadiationDeviceName
+        """)
+    return [row["RadiationDeviceName"] for row in cursor.fetchall()]
+
+
+def _filter_dummy(devices: list[str], regex: str) -> tuple[list[str], list[str]]:
+    """Split devices into (real, dummy) based on the regex pattern.
+
+    The regex is compiled case-insensitive so 'DUMMY LINAC', 'dummy linac',
+    and 'Dummy Linac' all match the default pattern.
+    """
+    pattern = re.compile(regex, re.IGNORECASE)
+    real = [d for d in devices if not pattern.search(d)]
+    dummy = [d for d in devices if pattern.search(d)]
+    return real, dummy
+
+
+def _write_draft_yaml(
+    suggestions: list[dict[str, Any]], path: str, non_interactive: bool
+) -> None:
+    """Write the draft YAML.
+
+    ``suggestions`` is a list of dicts with keys: ``device_name``,
+    ``suggested_number``, ``unit_type``, ``site_slug`` (may be None),
+    ``site_name`` (may be None).
+
+    In normal mode the draft is ready to apply as-is. In ``--non-interactive``
+    mode every entry is commented out so the centre uncomments what they want.
+    """
+    lines = [
+        "# myqa_device_map.draft.yaml — generated by bootstrap_myqa_centre --scan",
+        "#",
+        "# Review and edit this file, then run:",
+        "#   uv run python manage.py bootstrap_myqa_centre --apply",
+        "#",
+        "# Each entry maps a QATrack+ unit number to a myQA RadiationDeviceName.",
+        "# List form (one number → multiple names) is supported for device-name",
+        "# variants; the first list entry is used as the display name.",
+        "#",
+    ]
+
+    if non_interactive:
+        lines.append(
+            "# Non-interactive mode: every device is commented out. Uncomment the"
+        )
+        lines.append("# entries you want, fill in unit numbers, then run --apply.")
+        lines.append("")
+
+    for s in suggestions:
+        name = s["device_name"]
+        num = s["suggested_number"]
+        utype = s["unit_type"]
+        site = s.get("site_name") or "(no site)"
+        prefix = "#" if non_interactive else ""
+        # Use list form for consistency (handles the multi-name case)
+        lines.append(f"{prefix}{num}: {name}  # suggested: {utype}, site={site}")
+
+    with open(path, "w") as f:
+        f.write("\n".join(lines) + "\n")
+
+
+def _read_draft_yaml(path: str) -> dict[int, str | list[str]]:
+    """Parse the draft YAML. Returns ``{unit_number: device_name_or_list}``."""
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    if not isinstance(data, dict):
+        raise ValueError(
+            f"Draft YAML at {path} is empty or not a mapping. Re-run --scan."
+        )
+    return {int(k): v for k, v in data.items()}
+
+
+def _atomic_write_yaml(entries: dict[int, str | list[str]], path: str) -> None:
+    """Write the production YAML atomically (temp file + os.rename)."""
+    tmp_path = path + ".tmp"
+    with open(tmp_path, "w") as f:
+        yaml.safe_dump(entries, f, default_flow_style=False, sort_keys=True)
+    os.chmod(tmp_path, 0o644)
+    os.rename(tmp_path, path)
+
+
+def _print_tolerance_warning(n_utis: int) -> None:
+    """Loud at-action-time warning per design D5."""
+    try:
+        from django.urls import reverse
+
+        admin_url = reverse("admin:qa_unittestinfo_changelist")
+    except Exception:
+        admin_url = "/admin/qa/unittestinfo/"
+
+    # Box content (without borders) — pad each line to the same width so
+    # the right border stays aligned regardless of n_utis digit count.
+    INNER_W = 60
+    lines = [
+        "⚠  TOLERANCES WERE AUTO-CONFIGURED FROM MYQA",
+        "",
+        f"{n_utis} UTIs now have tolerances sourced from your",
+        "myQA WarnOn/FailOn defaults. THESE MAY NOT MATCH",
+        "YOUR CLINICAL PROTOCOLS.",
+        "",
+        "Before clinical use, review at:",
+        f"{admin_url}",
+        "",
+        "Tip: run 'manage.py myqa_validate --days 30' after your",
+        "first import to diff QATrack+ tolerances against myQA's",
+        "source-of-truth values.",
+    ]
+    padded = ["│  " + ln.ljust(INNER_W - 4)[: INNER_W - 4] + "  │" for ln in lines]
+    top = "┌" + "─" * (INNER_W - 2 + 4) + "┐"
+    bottom = "└" + "─" * (INNER_W - 2 + 4) + "┘"
+    BANNER = "\n" + top + "\n" + "\n".join(padded) + "\n" + bottom + "\n"
+    # Use sys.stderr so it's visible even if stdout is piped
+    sys.stderr.write(BANNER)
+
+
+class Command(BaseCommand):
+    help = (
+        "Interactive two-phase onboarding for a new centre. --scan introspects "
+        "myQA and writes a draft device map; --apply creates Units, writes the "
+        "production device map atomically, and runs setup_myqa_tests."
+    )
+
+    def add_arguments(self, parser):
+        mode = parser.add_mutually_exclusive_group(required=True)
+        mode.add_argument(
+            "--scan",
+            action="store_true",
+            help="Connect to myQA, list devices, write myqa_device_map.draft.yaml",
+        )
+        mode.add_argument(
+            "--apply",
+            action="store_true",
+            help="Read the draft, create Units, write production device map, run setup",
+        )
+        parser.add_argument(
+            "--skip-setup",
+            action="store_true",
+            default=False,
+            help="With --apply: skip running setup_myqa_tests after creating Units",
+        )
+        parser.add_argument(
+            "--non-interactive",
+            action="store_true",
+            default=False,
+            help="With --scan: write every device as a commented-out line for manual edit",
+        )
+        parser.add_argument(
+            "--dummy-regex",
+            default=_DEFAULT_DUMMY_REGEX,
+            help=(
+                f"Regex to filter test fixtures during --scan, case-insensitive "
+                f"(default: '{_DEFAULT_DUMMY_REGEX}')"
+            ),
+        )
+        parser.add_argument(
+            "--no-filter-dummy",
+            action="store_true",
+            default=False,
+            help="With --scan: do not filter test fixtures (include all devices)",
+        )
+
+    # ------------------------------------------------------------------
+    # --scan
+    # ------------------------------------------------------------------
+
+    def _scan(self, opts):
+        cfg = _load_centre_config()
+        server_label = getattr(settings, "MYQA_DB_SERVER", "(not configured)")
+        self.stdout.write(
+            self.style.MIGRATE_HEADING(
+                f"\nmyQA Centre Bootstrap — scanning myQA at {server_label}..."
+            )
+        )
+
+        conn = get_connection()
+        try:
+            all_devices = _scan_myqa_devices(conn)
+        finally:
+            conn.close()
+
+        self.stdout.write(f"Found {len(all_devices)} distinct device name(s) in myQA.")
+
+        # Filter test fixtures
+        if opts["no_filter_dummy"]:
+            real_devices = all_devices
+            self.stdout.write("Dummy filtering disabled (--no-filter-dummy)")
+        else:
+            real_devices, dummy_devices = _filter_dummy(
+                all_devices, opts["dummy_regex"]
+            )
+            if dummy_devices:
+                preview = ", ".join(dummy_devices[:5])
+                more = (
+                    f" ... (+{len(dummy_devices)-5} more)"
+                    if len(dummy_devices) > 5
+                    else ""
+                )
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"Filtered {len(dummy_devices)} test fixtures: {preview}{more}"
+                    )
+                )
+
+        if not real_devices:
+            self.stdout.write(
+                self.style.ERROR(
+                    "No real devices found. Check myQA connectivity or adjust --dummy-regex."
+                )
+            )
+            return
+
+        # Build suggestions
+        existing_units = {u.number: u.name for u in Unit.objects.all()}
+        used_numbers = set(existing_units.keys())  # track within this scan
+        suggestions = []
+        for device_name in real_devices:
+            utype_cls, utype_name = _classify(device_name, cfg)
+            site_info = _site_for(device_name, cfg)
+            suggested_num = _suggest_unit_number(
+                device_name, existing_units, used_numbers
+            )
+            suggestions.append(
+                {
+                    "device_name": device_name,
+                    "suggested_number": suggested_num,
+                    "unit_type": utype_name,
+                    "site_slug": site_info[0] if site_info else None,
+                    "site_name": site_info[1] if site_info else None,
+                }
+            )
+
+        # Write draft
+        _write_draft_yaml(suggestions, _DRAFT_PATH, opts["non_interactive"])
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"\nWrote draft device map: {_DRAFT_PATH}\n"
+                f"  {len(suggestions)} device(s) ready for review.\n"
+            )
+        )
+        self.stdout.write("Next steps:")
+        self.stdout.write(f"  1. Edit the draft: $EDITOR {_DRAFT_PATH}")
+        self.stdout.write("     (adjust unit numbers, remove unwanted devices)")
+        self.stdout.write(
+            "  2. Apply: uv run python manage.py bootstrap_myqa_centre --apply"
+        )
+        if opts["non_interactive"]:
+            self.stdout.write(
+                self.style.NOTICE(
+                    "  (Non-interactive mode — uncomment the entries you want before --apply)"
+                )
+            )
+
+    # ------------------------------------------------------------------
+    # --apply
+    # ------------------------------------------------------------------
+
+    def _apply(self, opts):
+        if not os.path.exists(_DRAFT_PATH):
+            self.stdout.write(
+                self.style.ERROR(f"Draft not found at {_DRAFT_PATH}. Run --scan first.")
+            )
+            return
+
+        cfg = _load_centre_config()
+        entries = _read_draft_yaml(_DRAFT_PATH)
+        self.stdout.write(
+            self.style.MIGRATE_HEADING(
+                f"\nApplying draft: {len(entries)} device(s) → Units + production device map"
+            )
+        )
+
+        # Validate uniqueness (within draft + against existing Units)
+        existing = {u.number: u for u in Unit.objects.all()}
+        for number, device_name in entries.items():
+            existing_unit = existing.get(number)
+            if existing_unit is not None:
+                primary = (
+                    device_name[0] if isinstance(device_name, list) else device_name
+                )
+                if existing_unit.name != primary:
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f"  Unit {number} exists as {existing_unit.name!r} — "
+                            f"draft wants {primary!r}. Will keep existing Unit "
+                            f"(--apply never modifies existing Units)."
+                        )
+                    )
+
+        # Create Units (idempotent on number)
+        created = 0
+        skipped = 0
+        for number in sorted(entries):
+            if number in existing:
+                skipped += 1
+                continue
+
+            device_name = entries[number]
+            primary = device_name[0] if isinstance(device_name, list) else device_name
+            cls_name, type_name = _classify(device_name, cfg)
+            site_info = _site_for(device_name, cfg)
+
+            unit_class, _ = UnitClass.objects.get_or_create(name=cls_name)
+            unit_type, _ = UnitType.objects.get_or_create(
+                name=type_name,
+                defaults={"unit_class": unit_class},
+            )
+            site = None
+            if site_info is not None:
+                site, _ = Site.objects.get_or_create(
+                    slug=site_info[0],
+                    defaults={"name": site_info[1]},
+                )
+
+            Unit.objects.create(
+                number=number,
+                name=primary,
+                type=unit_type,
+                site=site,
+                date_acceptance=timezone.now().date(),
+                active=True,
+            )
+            self.stdout.write(f"  CREATED unit {number}: {primary}")
+            created += 1
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"\nUnits: {created} created, {skipped} existing (unchanged)"
+            )
+        )
+
+        # Atomic write of production YAML
+        _atomic_write_yaml(entries, _PROD_PATH)
+        self.stdout.write(
+            self.style.SUCCESS(f"Wrote production device map: {_PROD_PATH}")
+        )
+
+        # Run setup_myqa_tests unless --skip-setup
+        if opts["skip_setup"]:
+            self.stdout.write(
+                self.style.NOTICE("--skip-setup: not running setup_myqa_tests")
+            )
+            return
+
+        self.stdout.write(self.style.MIGRATE_HEADING("\nRunning setup_myqa_tests..."))
+        manage = os.path.join(settings.PROJECT_ROOT, "..", "manage.py")
+        cmd = [sys.executable, manage, "setup_myqa_tests"]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            self.stdout.write(self.style.ERROR("setup_myqa_tests FAILED:"))
+            self.stdout.write(result.stdout)
+            self.stderr.write(result.stderr)
+            return
+        # Print last 5 lines of setup output (the summary)
+        for line in result.stdout.strip().splitlines()[-5:]:
+            self.stdout.write(f"  {line}")
+
+        # Count UTIs created (rough — count UTIs referencing the Units we just made)
+        from qatrack.qa.models import UnitTestInfo
+
+        n_utis = UnitTestInfo.objects.filter(unit__number__in=entries.keys()).count()
+        _print_tolerance_warning(n_utis)
+
+        self.stdout.write(
+            self.style.SUCCESS("\n=== Bootstrap complete ===\nNext steps:")
+        )
+        self.stdout.write(
+            "  1. Run first import: uv run python manage.py import_myqa --days 90"
+        )
+        self.stdout.write("  2. Review tolerances (see warning above)")
+        self.stdout.write(
+            "  3. Run myqa_validate (after first import) to verify correctness"
+        )
+        self.stdout.write(
+            "  4. Register schedules: uv run python manage.py setup_myqa_setup_schedule"
+        )
+
+    def handle(self, *args, **options):
+        if options["scan"]:
+            self._scan(options)
+        elif options["apply"]:
+            self._apply(options)
