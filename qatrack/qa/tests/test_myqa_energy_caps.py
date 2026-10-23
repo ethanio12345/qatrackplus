@@ -423,12 +423,13 @@ class TestConstantReadingsMode(TestCase):
             created_by=cls.internal_user,
             modified_by=cls.internal_user,
         )
-        # 12 placeholder couch readings + 12 genuine-ok peak counts +
-        # 12 varying output readings + only 5 of a constant series.
-        cls._add_readings("couch", [1.0] * 12)
+        # 12 placeholder couch readings (blocking review, like the real junk)
+        # + 12 genuine-ok peak counts + 12 varying output readings + only 5
+        # of a constant blocking series.
+        cls._add_readings("couch", [1.0] * 12, pass_fail="action")
         cls._add_readings("peaks", [0.0] * 12)
         cls._add_readings("varying", [1.0 + i / 100 for i in range(12)])
-        cls._add_readings("short", [0.03] * 5)
+        cls._add_readings("short", [0.03] * 5, pass_fail="action")
 
         # A constant series living in an already-REVIEWED session must not
         # be scanned: quantized/legit values repeat in reviewed history.
@@ -491,17 +492,19 @@ class TestConstantReadingsMode(TestCase):
         return ruleset
 
     @classmethod
-    def _add_readings(cls, key, values):
+    def _add_readings(cls, key, values, pass_fail="ok"):
         test = cls.tests[key]
         uti = UnitTestInfo.objects.get(unit=cls.unit, test=test)
-        status_ok = TestInstanceStatus.objects.get(slug="approved")
+        status = TestInstanceStatus.objects.get(
+            slug="approved" if pass_fail == "ok" else "unreviewed"
+        )
         for value in values:
             TestInstance.objects.create(
                 test_list_instance=cls.tli,
                 unit_test_info=uti,
                 value=value,
-                pass_fail="ok",
-                status=status_ok,
+                pass_fail=pass_fail,
+                status=status,
                 created_by=cls.internal_user,
                 modified_by=cls.internal_user,
                 work_started=cls.tli.work_started,

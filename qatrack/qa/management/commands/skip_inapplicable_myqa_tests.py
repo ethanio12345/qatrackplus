@@ -10,13 +10,15 @@ Two junk families exist in myQA-sourced data:
 
 2. **Constant placeholder readings** — because myQA has no "skip" for an
    individual condition, staff sometimes enter a filler value (0.5, 1, 0.03,
-   ...) just so the task can be completed. The signature is a numeric series
-   where every reading within the stuck sessions is identical
-   (``--constant-readings``); detection is scoped to sessions that are still
-   unreviewed, since the same test may legitimately vary (or be quantized)
-   in reviewed history. Count-type metrics whose constants are legitimate
-   (picket-fence failing peaks = 0, MU counters, half-life, ...) are
-   excluded by name.
+   ...) just so the task can be completed. The signature is a series of
+   review-blocking readings (requires-review status in sessions that are
+   still unreviewed) where every reading of a test is identical
+   (``--constant-readings``); real failures fluctuate, identical ones are
+   filler. Detection is grouped per (unit, test, list) and scoped to
+   unreviewed sessions, since the same shared Test may legitimately vary in
+   reviewed history or other lists. Count-type metrics whose constants are
+   legitimate (picket-fence failing peaks = 0, MU counters, half-life, ...)
+   are excluded by name.
 
 This command:
 
@@ -220,13 +222,14 @@ class Command(BaseCommand):
         """Yield ``(unit, placeholder_tis)`` per linac unit (constant mode).
 
         A test's readings form a placeholder series when at least
-        ``min_readings`` non-skipped numeric readings exist **in sessions
-        that are still unreviewed** and every one of them is identical.
-        Scoping to unreviewed sessions is deliberate: junk fillers are what
-        keep sessions stuck in the review queue, while the same test may
-        legitimately vary (or be quantized) in already-reviewed history —
-        e.g. CBCT lp/mm resolution values repeat by design. Count-type tests
-        are excluded by name.
+        ``min_readings`` non-skipped numeric readings exist **among the
+        readings that block review** (requires-review status in sessions
+        that are still unreviewed) and every one of them is identical.
+        Real out-of-tolerance readings fluctuate; a few hundred identical
+        failures are filler. Grouping is per (unit, test, list) because the
+        same shared Test can carry genuine data in other lists, and the
+        reviewed-history scope keeps quantized-but-legit metrics (e.g.
+        CBCT lp/mm resolution) out. Count-type tests are excluded by name.
         """
         for unit in self._scoped_units(unit_numbers, linacs_only=True):
             series = (
@@ -235,8 +238,14 @@ class Command(BaseCommand):
                     value__isnull=False,
                     skipped=False,
                     test_list_instance__all_reviewed=False,
+                    status__requires_review=True,
                 )
-                .values("unit_test_info__test_id", "unit_test_info__test__name")
+                .values(
+                    "unit_test_info__test_id",
+                    "unit_test_info__test__name",
+                    "test_list_instance__test_list_id",
+                    "test_list_instance__test_list__name",
+                )
                 .annotate(
                     n=Count("id"),
                     n_distinct=Count("value", distinct=True),
@@ -256,6 +265,7 @@ class Command(BaseCommand):
                         skipped=False,
                         value=row["constant"],
                         test_list_instance__all_reviewed=False,
+                        status__requires_review=True,
                     ).select_related(
                         "unit_test_info__test",
                         "test_list_instance__test_list",
