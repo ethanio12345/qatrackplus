@@ -186,7 +186,7 @@ unit_energy_caps:
   1: {photons: [6X, 6FFF, 10X, 10FFF, 18X], electrons: [6, 9, 12, 15]}   # Coast (CST15)
   2: {photons: [6X, 6FFF, 10X, 10FFF, 18X], electrons: [6, 9, 12, 15]}   # Outback (OBK15)
   3: {photons: [6X, 6FFF, 10X, 10FFF], electrons: []}                     # LA317 (Ethos) — no electrons
-  4: {photons: [6X, 6FFF, 10X, 10FFF, 18X], electrons: [6, 9, 12]}        # LA414
+  4: {photons: [], electrons: []}                                         # LA414 — decommissioned 2026-10 (was 6X/6FFF/10X/10FFF/18X + E6/9/12); historical data only
   5: {photons: [], electrons: []}                                         # LA512 — retired Jul 2024
   7: {photons: [6X, 6FFF, 10X, 10FFF], electrons: []}                     # LA524 — no electrons
   8: {photons: [6X, 6FFF, 10X, 10FFF], electrons: []}                     # LA224 — no electrons

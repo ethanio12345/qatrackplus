@@ -1,24 +1,36 @@
-"""Flag historical test results for beam energies a unit doesn't have.
+"""Flag historical test results that can't apply to a unit, then close out.
 
-myQA task templates contain conditions for every beam energy on every
-machine, so linacs without electrons (or without 18X) imported junk
-placeholder readings (e.g. 0.03) that fail tolerance and permanently block
-auto-review of the affected sessions.
+Two junk families exist in myQA-sourced data:
 
-This command, driven by ``unit_energy_caps`` in ``myqa_centre_config.yaml``:
+1. **Energy-inapplicable readings** — myQA task templates contain conditions
+   for every beam energy on every machine, so linacs without electrons (or
+   without 18X) imported junk placeholder readings (e.g. 0.03) that fail
+   tolerance and permanently block auto-review of the affected sessions.
+   Detection is driven by ``unit_energy_caps`` in ``myqa_centre_config.yaml``.
 
-  1. scans TestInstances on capped units and finds tests classified as an
-     energy the unit lacks;
-  2. (dry-run by default) reports findings per unit/test list/test, including
+2. **Constant placeholder readings** — because myQA has no "skip" for an
+   individual condition, staff sometimes enter a filler value (0.5, 1, 0.03,
+   ...) just so the task can be completed. The signature is a numeric series
+   where *every single reading is identical* (``--constant-readings``);
+   count-type metrics whose constants are legitimate (picket-fence failing
+   peaks = 0, MU counters, half-life, ...) are excluded by name.
+
+This command:
+
+  1. (dry-run by default) reports findings per unit/test list/test, including
      how many sessions would become fully reviewed once the junk is flagged;
-  3. with ``--apply``, marks those TestInstances skipped (commented,
+  2. with ``--apply``, marks those TestInstances skipped (commented,
      pass_fail=not_done) and re-runs auto-approval on the affected sessions —
-     sessions whose only blocker was the junk energy readings then clear the
-     unreviewed queue, while genuine failures keep requiring review;
-  4. optionally deactivates the per-unit UnitTestInfos
-     (``--deactivate-utis``) so those tests stop being offered/reported for
-     the unit, and/or deactivates all UTCs of chosen units
-     (``--deactivate-utcs --units 4,5``) for retired machines.
+     sessions whose only blocker was junk then clear the unreviewed queue,
+     while genuine failures keep requiring review;
+  3. optionally deactivates the per-unit UnitTestInfos (``--deactivate-utis``),
+     all UTCs of chosen units (``--deactivate-utcs --units 4,5``), or every
+     UTC assigned to a retired TestList
+     (``--deactivate-list-utcs "<list name>"``);
+  4. optionally force-closes any sessions still unreviewed on chosen
+     (decommissioned) units (``--force-close-unreviewed --units 4,5``) so
+     their record is complete — data is preserved, only the review flags are
+     set.
 
 Idempotent: already-skipped TestInstances and already-inactive UTIs/UTCs are
 no-ops, so the command can be re-run safely.
@@ -27,20 +39,49 @@ no-ops, so the command can be re-run safely.
 from collections import defaultdict
 
 from django.core.management.base import BaseCommand, CommandError
+from django.db.models import Count, Min, Q
+from django.utils import timezone
 
 from qatrack.myqa_import import (
+    _load_centre_config,
     classify_test_energy,
     energy_applicable,
     get_unit_energy_caps,
 )
 from qatrack.qa.models import (
     TestInstance,
+    TestList,
     TestListInstance,
     UnitTestCollection,
     UnitTestInfo,
 )
 from qatrack.qa.utils import get_internal_user
 from qatrack.units.models import Unit
+
+# Tests whose value is legitimately constant (counts of fixed things, physical
+# constants, ...) must never be flagged by --constant-readings. Matched
+# case-insensitively against the Test name.
+_COUNT_TYPE_RE = None  # compiled lazily via _count_type_regex()
+
+_COUNT_TYPE_PATTERNS = (
+    r"peak",  # picket fence / leaf positional accuracy peak counts
+    r"counter",  # "Backup MU counter (MU)"
+    r"\bmu\b",  # "MU2 (MU)" — but not "MV"/"murky"
+    r"half.life",  # Ir-192 half-life is a physical constant
+    r"serial",  # recorded device serial numbers
+    r"pressure",  # environmental constants
+    r"temperature",
+    r"taskid",  # import dedup metadata
+)
+
+
+def _count_type_regex():
+    global _COUNT_TYPE_RE
+    if _COUNT_TYPE_RE is None:
+        import re
+
+        _COUNT_TYPE_RE = re.compile("|".join(_COUNT_TYPE_PATTERNS), re.IGNORECASE)
+    return _COUNT_TYPE_RE
 
 
 def _energy_label(test_name: str) -> str:
@@ -53,12 +94,24 @@ def _energy_label(test_name: str) -> str:
     return "non-energy"
 
 
+def _caps_comment(unit, ti):
+    return f"Not applicable: {unit.name} has no {_energy_label(ti.unit_test_info.test.name)} beam (unit_energy_caps)"
+
+
+def _constant_comment(unit, ti):
+    return (
+        f"Not applicable: placeholder readings — '{ti.unit_test_info.test.name}' "
+        f"recorded as {ti.value} on every entry (auto-flagged)"
+    )
+
+
 class Command(BaseCommand):
     help = (
-        "Mark TestInstances for beam energies a unit doesn't have as Skipped "
-        "(per unit_energy_caps in myqa_centre_config.yaml), re-run auto-"
-        "approval on the affected sessions, and optionally deactivate the "
-        "unit's UnitTestInfos / UnitTestCollections."
+        "Flag TestInstances that can't apply to a unit (beam energies the unit "
+        "lacks per unit_energy_caps, and/or constant placeholder reading "
+        "series), re-run auto-approval on the affected sessions, and "
+        "optionally deactivate UnitTestInfos / UnitTestCollections or "
+        "force-close remaining unreviewed sessions on decommissioned units."
     )
 
     def add_arguments(self, parser):
@@ -66,6 +119,21 @@ class Command(BaseCommand):
             "--apply",
             action="store_true",
             help="Perform the changes (default: dry-run report only).",
+        )
+        parser.add_argument(
+            "--constant-readings",
+            action="store_true",
+            help="Scan for constant placeholder reading series (every reading "
+            "of a test identical) on linac units instead of the energy-caps "
+            "scan. Count-type tests (peaks, MU counters, half-life, ...) are "
+            "excluded.",
+        )
+        parser.add_argument(
+            "--min-readings",
+            type=int,
+            default=10,
+            help="Minimum number of readings for a series to be considered "
+            "by --constant-readings (default: 10).",
         )
         parser.add_argument(
             "--deactivate-utis",
@@ -80,26 +148,51 @@ class Command(BaseCommand):
             "given by --units (retired machines).",
         )
         parser.add_argument(
+            "--deactivate-list-utcs",
+            action="append",
+            default=[],
+            metavar="LIST",
+            help="Deactivate every UnitTestCollection assigned to the given "
+            "TestList (name or slug), on all units — for retired lists. "
+            "Repeatable.",
+        )
+        parser.add_argument(
+            "--force-close-unreviewed",
+            action="store_true",
+            help="Mark any sessions still unreviewed on the units given by "
+            "--units as reviewed (decommissioned machines — data preserved, "
+            "review flags set).",
+        )
+        parser.add_argument(
             "--units",
             default="",
             help="Comma-separated unit numbers: restrict the TestInstance "
-            "scan (and select units for --deactivate-utcs), e.g. --units 4,5.",
+            "scan (and select units for --deactivate-utcs / "
+            "--force-close-unreviewed), e.g. --units 4,5.",
         )
 
     # ------------------------------------------------------------------
     # Scanning
     # ------------------------------------------------------------------
 
+    def _scoped_units(self, unit_numbers, linacs_only=False):
+        units = Unit.objects.all().order_by("name")
+        if unit_numbers:
+            return units.filter(number__in=unit_numbers)
+        if linacs_only:
+            linac_types = tuple(
+                _load_centre_config().get("linac_unit_type_names") or []
+            )
+            units = units.filter(type__name__in=linac_types)
+        return units
+
     def _iter_findings(self, unit_numbers):
-        """Yield ``(unit, caps, inapplicable_tis)`` per capped unit.
+        """Yield ``(unit, inapplicable_tis)`` per capped unit (energy mode).
 
         ``inapplicable_tis`` are TestInstances (already-skipped ones
         included) whose test is classified as an energy the unit lacks.
         """
-        units = Unit.objects.all().order_by("name")
-        if unit_numbers:
-            units = units.filter(number__in=unit_numbers)
-        for unit in units:
+        for unit in self._scoped_units(unit_numbers):
             caps = get_unit_energy_caps(unit.number)
             if caps is None:
                 continue
@@ -117,18 +210,65 @@ class Command(BaseCommand):
                 if not energy_applicable(ti.unit_test_info.test.name, caps)
             ]
             if inapplicable:
-                yield unit, caps, inapplicable
+                yield unit, inapplicable
+
+    def _iter_constant_findings(self, unit_numbers, min_readings):
+        """Yield ``(unit, placeholder_tis)`` per linac unit (constant mode).
+
+        A test's readings form a placeholder series when at least
+        ``min_readings`` non-skipped numeric readings exist and every one of
+        them is identical. Count-type tests are excluded by name.
+        """
+        for unit in self._scoped_units(unit_numbers, linacs_only=True):
+            series = (
+                TestInstance.objects.filter(
+                    unit_test_info__unit=unit,
+                    value__isnull=False,
+                    skipped=False,
+                )
+                .values("unit_test_info__test_id", "unit_test_info__test__name")
+                .annotate(
+                    n=Count("id"),
+                    n_distinct=Count("value", distinct=True),
+                    constant=Min("value"),
+                )
+                .filter(n__gte=min_readings, n_distinct=1)
+            )
+            placeholder_tis = []
+            for row in series:
+                test_name = row["unit_test_info__test__name"]
+                if _count_type_regex().search(test_name):
+                    continue  # legitimately constant (peak counts, MU, ...)
+                tis = list(
+                    TestInstance.objects.filter(
+                        unit_test_info__unit=unit,
+                        unit_test_info__test_id=row["unit_test_info__test_id"],
+                        skipped=False,
+                        value=row["constant"],
+                    ).select_related(
+                        "unit_test_info__test",
+                        "test_list_instance__test_list",
+                    )
+                )
+                placeholder_tis.extend(tis)
+            if placeholder_tis:
+                yield unit, placeholder_tis
 
     # ------------------------------------------------------------------
     # Reporting
     # ------------------------------------------------------------------
 
-    def _report(self, unit, inapplicable, opts):
+    def _label(self, ti, mode):
+        if mode == "constant":
+            return "constant placeholder"
+        return _energy_label(ti.unit_test_info.test.name)
+
+    def _report(self, unit, tis, opts, mode):
         """Print per-unit findings; return count of TLIs that would become
         fully reviewed."""
         by_list_test = defaultdict(lambda: [0, set()])  # (list, test) -> [n, tli_ids]
         tis_by_tli = defaultdict(list)
-        for ti in inapplicable:
+        for ti in tis:
             list_name = ti.test_list_instance.test_list.name
             test_name = ti.unit_test_info.test.name
             by_list_test[(list_name, test_name)][0] += 1
@@ -137,7 +277,9 @@ class Command(BaseCommand):
 
         n_would_approve = 0
         for (list_name, test_name), (n, tli_ids) in sorted(by_list_test.items()):
-            label = _energy_label(test_name)
+            label = self._label(
+                next(t for t in tis if t.unit_test_info.test.name == test_name), mode
+            )
             self.stdout.write(
                 f"  {list_name:<55.55} {test_name:<45.45} {n:>5} TI(s) in {len(tli_ids):>4} session(s) [{label}]"
             )
@@ -146,9 +288,9 @@ class Command(BaseCommand):
             return 0  # real numbers reported after mutation
 
         for tli_id in tis_by_tli:
-            # Would the session become fully reviewed once the inapplicable
-            # TIs are skipped? Only if no *other* TI still requires review
-            # and the session isn't already reviewed.
+            # Would the session become fully reviewed once the flagged TIs
+            # are skipped? Only if no *other* TI still requires review and
+            # the session isn't already reviewed.
             still_blocked = (
                 TestInstance.objects.filter(test_list_instance_id=tli_id)
                 .exclude(pk__in=tis_by_tli[tli_id])
@@ -172,17 +314,17 @@ class Command(BaseCommand):
     # Mutation
     # ------------------------------------------------------------------
 
-    def _apply_skips(self, unit, inapplicable):
-        """Skip inapplicable TIs, re-run auto-approval on their sessions."""
+    def _apply_skips(self, unit, tis, comment_fn):
+        """Skip flagged TIs, re-run auto-approval on their sessions."""
         internal_user = get_internal_user()
         already = 0
         to_update = []
-        for ti in inapplicable:
+        for ti in tis:
             if ti.skipped:
                 already += 1
                 continue
             ti.skipped = True
-            ti.comment = f"Not applicable: {unit.name} has no {_energy_label(ti.unit_test_info.test.name)} beam (unit_energy_caps)"
+            ti.comment = comment_fn(unit, ti)
             # skipped=True => pass_fail=not_done => Default AutoReviewRuleSet
             # maps it to Approved, so it no longer blocks review.
             ti.calculate_pass_fail()
@@ -215,56 +357,69 @@ class Command(BaseCommand):
 
     def handle(self, *args, **opts):
         unit_numbers = self._parse_units(opts["units"])
+        mode = "constant" if opts["constant_readings"] else "energy"
+
+        self._handle_list_utc_deactivation(opts)
+
+        if opts["constant_readings"]:
+            findings = list(
+                self._iter_constant_findings(unit_numbers, opts["min_readings"])
+            )
+        else:
+            findings = list(self._iter_findings(unit_numbers))
+
+        if not findings:
+            self.stdout.write("No flaggable TestInstances found — nothing to do.")
+        else:
+            comment_fn = _constant_comment if mode == "constant" else _caps_comment
+            total_tis = 0
+            total_approved = 0
+            for unit, tis in findings:
+                self.stdout.write(
+                    self.style.MIGRATE_HEADING(
+                        f"Unit {unit.number} ({unit.name}): {len(tis)} flaggable TI(s)"
+                    )
+                )
+                if opts["apply"]:
+                    n_tis, n_approved = self._apply_skips(unit, tis, comment_fn)
+                    total_tis += n_tis
+                    total_approved += n_approved
+                else:
+                    total_approved += self._report(unit, tis, opts, mode)
+
+            if opts["apply"] and opts["deactivate_utis"] and mode == "energy":
+                self._deactivate_utis(findings)
+
+            if opts["apply"]:
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f"Done: {total_tis} TI(s) flagged; {total_approved} session(s) auto-approved."
+                    )
+                )
+            else:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"Dry run — {total_approved} session(s) would become fully reviewed. "
+                        "Re-run with --apply to make the changes."
+                    )
+                )
 
         if opts["deactivate_utcs"]:
             if not unit_numbers:
                 raise CommandError(
                     "--deactivate-utcs requires --units <n,n,...> to name the units."
                 )
-            if not opts["apply"]:
+            if opts["apply"]:
+                self._deactivate_utcs(unit_numbers)
+            else:
                 self._preview_utc_deactivation(unit_numbers)
 
-        findings = list(self._iter_findings(unit_numbers))
-        if not findings:
-            self.stdout.write("No inapplicable TestInstances found — nothing to do.")
-            if opts["deactivate_utcs"] and opts["apply"]:
-                self._deactivate_utcs(unit_numbers)
-            return
-
-        total_tis = 0
-        total_approved = 0
-        for unit, _caps, inapplicable in findings:
-            self.stdout.write(
-                self.style.MIGRATE_HEADING(
-                    f"Unit {unit.number} ({unit.name}): {len(inapplicable)} inapplicable TI(s)"
+        if opts["force_close_unreviewed"]:
+            if not unit_numbers:
+                raise CommandError(
+                    "--force-close-unreviewed requires --units <n,n,...> to name the units."
                 )
-            )
-            if opts["apply"]:
-                n_tis, n_approved = self._apply_skips(unit, inapplicable)
-                total_tis += n_tis
-                total_approved += n_approved
-            else:
-                total_approved += self._report(unit, inapplicable, opts)
-
-        if opts["apply"] and opts["deactivate_utis"]:
-            self._deactivate_utis(findings)
-
-        if opts["deactivate_utcs"] and opts["apply"]:
-            self._deactivate_utcs(unit_numbers)
-
-        if opts["apply"]:
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f"Done: {total_tis} TI(s) flagged; {total_approved} session(s) auto-approved."
-                )
-            )
-        else:
-            self.stdout.write(
-                self.style.WARNING(
-                    f"Dry run — {total_approved} session(s) would become fully reviewed. "
-                    "Re-run with --apply to make the changes."
-                )
-            )
+            self._force_close_unreviewed(unit_numbers, opts["apply"])
 
     # ------------------------------------------------------------------
     # Helpers
@@ -280,10 +435,40 @@ class Command(BaseCommand):
         except ValueError:
             raise CommandError("--units must be comma-separated integers, e.g. 4,5")
 
+    def _handle_list_utc_deactivation(self, opts):
+        """--deactivate-list-utcs: retire every UTC assigned to a TestList."""
+        for ref in opts["deactivate_list_utcs"]:
+            test_list = TestList.objects.filter(Q(name=ref) | Q(slug=ref)).first()
+            if test_list is None:
+                raise CommandError(f"No TestList found matching {ref!r}")
+            qs = UnitTestCollection.objects.filter(
+                content_type_id=self._testlist_content_type_id(),
+                object_id=test_list.pk,
+                active=True,
+            )
+            if opts["apply"]:
+                n = qs.update(active=False, auto_schedule=False)
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f"Deactivated {n} UTC(s) assigned to '{test_list.name}'."
+                    )
+                )
+            else:
+                self.stdout.write(
+                    f"Would deactivate {qs.count()} UTC(s) assigned to '{test_list.name}' "
+                    "(dry run — re-run with --apply)."
+                )
+
+    @staticmethod
+    def _testlist_content_type_id():
+        from django.contrib.contenttypes.models import ContentType
+
+        return ContentType.objects.get_for_model(TestList).pk
+
     def _deactivate_utis(self, findings):
         total = 0
-        for unit, _caps, inapplicable in findings:
-            test_ids = {ti.unit_test_info.test_id for ti in inapplicable}
+        for unit, tis in findings:
+            test_ids = {ti.unit_test_info.test_id for ti in tis}
             n = UnitTestInfo.objects.filter(
                 unit=unit, test_id__in=test_ids, active=True
             ).update(active=False)
@@ -297,6 +482,27 @@ class Command(BaseCommand):
         ).update(active=False, auto_schedule=False)
         self.stdout.write(
             self.style.SUCCESS(f"Deactivated {n} UTC(s) on unit(s) {unit_numbers}")
+        )
+
+    def _force_close_unreviewed(self, unit_numbers, apply):
+        qs = TestListInstance.objects.filter(
+            all_reviewed=False,
+            unit_test_collection__unit__number__in=unit_numbers,
+        )
+        if not apply:
+            self.stdout.write(
+                f"Would force-close {qs.count()} unreviewed session(s) on unit(s) "
+                f"{unit_numbers} (dry run — re-run with --apply)."
+            )
+            return
+        internal_user = get_internal_user()
+        now = timezone.now()
+        n = qs.update(all_reviewed=True, reviewed=now, reviewed_by=internal_user)
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Force-closed {n} unreviewed session(s) on unit(s) {unit_numbers} "
+                f"(reviewed_by={internal_user.username})."
+            )
         )
 
     def _preview_utc_deactivation(self, unit_numbers):

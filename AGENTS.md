@@ -89,7 +89,7 @@ Everything is driven by what's in the myQA database (SQL Server, accessed via `p
 | `clear_stale_due_dates` | Frequency-aware (`max(180d, 3× nominal_interval)`) → `due_date=None` + `auto_schedule=False` on stale UTCs. `--linacs-only`, `--apply`. Idempotent. |
 | `set_angular_wraparound` | Set angular tests (gantry/collimator/couch/etc.) to `type=wraparound` [0,360] + re-evaluate `pass_fail`. Idempotent. |
 | `setup_myqa_setup_schedule` | Register a weekly django-q Schedule that runs `setup_myqa_tests` (Sunday 02:00 local time, cron `0 2 * * 0`) so new unit↔TaskName combos are picked up automatically. Idempotent. |
-| `skip_inapplicable_myqa_tests` | Flag historical TestInstances for beam energies a unit doesn't have (per `unit_energy_caps` in `myqa_centre_config.yaml`) as Skipped + re-run auto-approval, and optionally deactivate the unit's UTIs / all its UTCs. Dry-run by default; `--apply`, `--deactivate-utis`, `--deactivate-utcs --units 4,5`. Idempotent. |
+| `skip_inapplicable_myqa_tests` | Flag junk TestInstances: beam energies a unit doesn't have (per `unit_energy_caps`) and/or `--constant-readings` placeholder series (every reading of a test identical on linac units; count-type metrics excluded), then re-run auto-approval. Also deactivates UTIs (`--deactivate-utis`), UTCs (`--deactivate-utcs --units 4,5`, or `--deactivate-list-utcs "<list>"` for retired lists), and force-closes leftover unreviewed sessions on decommissioned units (`--force-close-unreviewed --units 4,5`). Dry-run by default; `--apply`. Idempotent. |
 
 ### Operational workflow
 
