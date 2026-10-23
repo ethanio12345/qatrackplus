@@ -735,3 +735,98 @@ class TestForceCloseAndListUtcs(TestCase):
     def test_deactivate_list_utcs_unknown_list(self):
         with pytest.raises(CommandError):
             self._run("--deactivate-list-utcs", "No Such List", "--apply")
+
+
+class TestEmptyCapsAndNoScan(TestCase):
+    """Empty caps = decommissioned: history must NOT be flagged, and
+    --no-scan must suppress the default energy-caps scan."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.internal_user = get_internal_user()
+        unit_type = UnitType.objects.create(name="Treatment LINAC")
+        cls.unit = Unit.objects.create(
+            name="LA512: 1182",
+            number=5,
+            type=unit_type,
+            date_acceptance=timezone.now().date(),
+        )
+        category = Category.objects.create(name="myQA")
+        cls.test_list = TestList.objects.create(
+            name="5.Tmt.Linac.M.Dosimetry - Monthly QA",
+            slug="5tmtlinacmdosimetrymonthlyqa",
+            created_by=cls.internal_user,
+            modified_by=cls.internal_user,
+        )
+        cls.utc = UnitTestCollection.objects.create(
+            unit=cls.unit,
+            content_type=ContentType.objects.get_for_model(TestList),
+            object_id=cls.test_list.pk,
+            name=cls.test_list.name,
+        )
+        cls.retired_test = Test.objects.create(
+            name="Photons 1.01 6MV Output",
+            slug="photons1016mvoutput-retired",
+            type="simple",
+            category=category,
+            created_by=cls.internal_user,
+            modified_by=cls.internal_user,
+        )
+        TestListMembership.objects.create(
+            test_list=cls.test_list, test=cls.retired_test, order=0
+        )
+        uti = UnitTestInfo.objects.get(unit=cls.unit, test=cls.retired_test)
+        status_ok = TestInstanceStatus.objects.get_or_create(
+            name="Approved", slug="approved", defaults={"requires_review": False}
+        )[0]
+        cls.tli = TestListInstance.objects.create(
+            unit_test_collection=cls.utc,
+            test_list=cls.test_list,
+            work_started=timezone.now(),
+            created=timezone.now(),
+            modified=timezone.now(),
+            day=0,
+            created_by=cls.internal_user,
+            modified_by=cls.internal_user,
+        )
+        for _ in range(12):
+            TestInstance.objects.create(
+                test_list_instance=cls.tli,
+                unit_test_info=uti,
+                value=1.002,
+                pass_fail="ok",
+                status=status_ok,
+                created_by=cls.internal_user,
+                modified_by=cls.internal_user,
+                work_started=cls.tli.work_started,
+            )
+
+    def _run(self, *args):
+        from io import StringIO
+
+        out = StringIO()
+        with mock.patch(
+            "qatrack.qa.management.commands.skip_inapplicable_myqa_tests"
+            ".get_unit_energy_caps",
+            return_value={"photons": set(), "electrons": set()},
+        ):
+            call_command("skip_inapplicable_myqa_tests", *args, stdout=out)
+        return out.getvalue()
+
+    def test_energy_scan_skips_empty_caps_units(self):
+        output = self._run()
+        assert "caps empty (decommissioned)" in output
+        assert TestInstance.objects.filter(skipped=True).count() == 0
+
+    def test_no_scan_suppresses_default_scan(self):
+        output = self._run("--no-scan")
+        assert "caps empty" not in output
+        assert TestInstance.objects.filter(skipped=True).count() == 0
+
+    def test_no_scan_runs_ancillary_actions(self):
+        before = self.utc.active
+        self._run("--no-scan", "--deactivate-list-utcs", self.test_list.name, "--apply")
+        self.utc.refresh_from_db()
+        assert before and not self.utc.active
+        # Real readings still untouched — deactivation only.
+        assert TestInstance.objects.filter(skipped=True).count() == 0

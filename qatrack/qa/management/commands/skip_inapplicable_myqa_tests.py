@@ -7,6 +7,10 @@ Two junk families exist in myQA-sourced data:
    without 18X) imported junk placeholder readings (e.g. 0.03) that fail
    tolerance and permanently block auto-review of the affected sessions.
    Detection is driven by ``unit_energy_caps`` in ``myqa_centre_config.yaml``.
+   Units with empty caps are decommissioned: the caps block their future
+   imports, but this scan deliberately leaves their history untouched
+   (real readings on real former beams) — close their queue with
+   ``--force-close-unreviewed`` instead.
 
 2. **Constant placeholder readings** — because myQA has no "skip" for an
    individual condition, staff sometimes enter a filler value (0.5, 1, 0.03,
@@ -170,6 +174,14 @@ class Command(BaseCommand):
             "review flags set).",
         )
         parser.add_argument(
+            "--no-scan",
+            action="store_true",
+            help="Skip the TestInstance scan entirely — use for ancillary-"
+            "only invocations (--deactivate-list-utcs, --force-close-"
+            "unreviewed, --deactivate-utcs) so the default energy-caps scan "
+            "does not run.",
+        )
+        parser.add_argument(
             "--units",
             default="",
             help="Comma-separated unit numbers: restrict the TestInstance "
@@ -197,10 +209,20 @@ class Command(BaseCommand):
 
         ``inapplicable_tis`` are TestInstances (already-skipped ones
         included) whose test is classified as an energy the unit lacks.
+        Units with *empty* caps are decommissioned: their future imports are
+        blocked by the caps, but their history must stay untouched (real
+        readings on real former beams) — closing their queue is
+        ``--force-close-unreviewed``'s job, not this scan's.
         """
         for unit in self._scoped_units(unit_numbers):
             caps = get_unit_energy_caps(unit.number)
             if caps is None:
+                continue
+            if not caps["photons"] and not caps["electrons"]:
+                self.stdout.write(
+                    f"  {unit.name}: caps empty (decommissioned) — history left "
+                    "untouched; use --force-close-unreviewed to close its queue."
+                )
                 continue
             qs = (
                 TestInstance.objects.filter(unit_test_info__unit=unit)
@@ -382,7 +404,9 @@ class Command(BaseCommand):
 
         self._handle_list_utc_deactivation(opts)
 
-        if opts["constant_readings"]:
+        if opts["no_scan"]:
+            findings = []
+        elif opts["constant_readings"]:
             findings = list(
                 self._iter_constant_findings(unit_numbers, opts["min_readings"])
             )
@@ -390,7 +414,8 @@ class Command(BaseCommand):
             findings = list(self._iter_findings(unit_numbers))
 
         if not findings:
-            self.stdout.write("No flaggable TestInstances found — nothing to do.")
+            if not opts["no_scan"]:
+                self.stdout.write("No flaggable TestInstances found — nothing to do.")
         else:
             comment_fn = _constant_comment if mode == "constant" else _caps_comment
             total_tis = 0
