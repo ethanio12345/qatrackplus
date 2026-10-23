@@ -430,6 +430,46 @@ class TestConstantReadingsMode(TestCase):
         cls._add_readings("varying", [1.0 + i / 100 for i in range(12)])
         cls._add_readings("short", [0.03] * 5)
 
+        # A constant series living in an already-REVIEWED session must not
+        # be scanned: quantized/legit values repeat in reviewed history.
+        cls.reviewed_test = Test.objects.create(
+            name="Reviewed Era Constant (mm)",
+            slug="reviewed-era-constant",
+            type="simple",
+            category=category,
+            created_by=cls.internal_user,
+            modified_by=cls.internal_user,
+        )
+        TestListMembership.objects.create(
+            test_list=cls.test_list, test=cls.reviewed_test, order=5
+        )
+        cls.reviewed_tli = TestListInstance.objects.create(
+            unit_test_collection=cls.utc,
+            test_list=cls.test_list,
+            work_started=timezone.now(),
+            created=timezone.now(),
+            modified=timezone.now(),
+            day=0,
+            all_reviewed=True,
+            reviewed=timezone.now(),
+            reviewed_by=cls.internal_user,
+            created_by=cls.internal_user,
+            modified_by=cls.internal_user,
+        )
+        status_ok = TestInstanceStatus.objects.get(slug="approved")
+        uti = UnitTestInfo.objects.get(unit=cls.unit, test=cls.reviewed_test)
+        for _ in range(12):
+            TestInstance.objects.create(
+                test_list_instance=cls.reviewed_tli,
+                unit_test_info=uti,
+                value=2.5,
+                pass_fail="ok",
+                status=status_ok,
+                created_by=cls.internal_user,
+                modified_by=cls.internal_user,
+                work_started=cls.reviewed_tli.work_started,
+            )
+
     @classmethod
     def _ruleset(cls):
         ruleset = AutoReviewRuleSet.objects.create(name="Default CR", is_default=True)
@@ -483,6 +523,8 @@ class TestConstantReadingsMode(TestCase):
         assert not any("Failing Peaks" in line for line in detail_lines)
         assert not any("6MV Output" in line for line in detail_lines)
         assert not any("Short Constant Series" in line for line in detail_lines)
+        # Constant readings inside already-reviewed sessions are out of scope.
+        assert not any("Reviewed Era Constant" in line for line in detail_lines)
         assert TestInstance.objects.filter(skipped=True).count() == 0
 
     def test_apply_skips_placeholders_only(self):

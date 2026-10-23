@@ -11,9 +11,12 @@ Two junk families exist in myQA-sourced data:
 2. **Constant placeholder readings** — because myQA has no "skip" for an
    individual condition, staff sometimes enter a filler value (0.5, 1, 0.03,
    ...) just so the task can be completed. The signature is a numeric series
-   where *every single reading is identical* (``--constant-readings``);
-   count-type metrics whose constants are legitimate (picket-fence failing
-   peaks = 0, MU counters, half-life, ...) are excluded by name.
+   where every reading within the stuck sessions is identical
+   (``--constant-readings``); detection is scoped to sessions that are still
+   unreviewed, since the same test may legitimately vary (or be quantized)
+   in reviewed history. Count-type metrics whose constants are legitimate
+   (picket-fence failing peaks = 0, MU counters, half-life, ...) are
+   excluded by name.
 
 This command:
 
@@ -123,9 +126,10 @@ class Command(BaseCommand):
         parser.add_argument(
             "--constant-readings",
             action="store_true",
-            help="Scan for constant placeholder reading series (every reading "
-            "of a test identical) on linac units instead of the energy-caps "
-            "scan. Count-type tests (peaks, MU counters, half-life, ...) are "
+            help="Scan for constant placeholder reading series (every "
+            "reading of a test identical within sessions that are still "
+            "unreviewed) on linac units instead of the energy-caps scan. "
+            "Count-type tests (peaks, MU counters, half-life, ...) are "
             "excluded.",
         )
         parser.add_argument(
@@ -216,8 +220,13 @@ class Command(BaseCommand):
         """Yield ``(unit, placeholder_tis)`` per linac unit (constant mode).
 
         A test's readings form a placeholder series when at least
-        ``min_readings`` non-skipped numeric readings exist and every one of
-        them is identical. Count-type tests are excluded by name.
+        ``min_readings`` non-skipped numeric readings exist **in sessions
+        that are still unreviewed** and every one of them is identical.
+        Scoping to unreviewed sessions is deliberate: junk fillers are what
+        keep sessions stuck in the review queue, while the same test may
+        legitimately vary (or be quantized) in already-reviewed history —
+        e.g. CBCT lp/mm resolution values repeat by design. Count-type tests
+        are excluded by name.
         """
         for unit in self._scoped_units(unit_numbers, linacs_only=True):
             series = (
@@ -225,6 +234,7 @@ class Command(BaseCommand):
                     unit_test_info__unit=unit,
                     value__isnull=False,
                     skipped=False,
+                    test_list_instance__all_reviewed=False,
                 )
                 .values("unit_test_info__test_id", "unit_test_info__test__name")
                 .annotate(
@@ -245,6 +255,7 @@ class Command(BaseCommand):
                         unit_test_info__test_id=row["unit_test_info__test_id"],
                         skipped=False,
                         value=row["constant"],
+                        test_list_instance__all_reviewed=False,
                     ).select_related(
                         "unit_test_info__test",
                         "test_list_instance__test_list",
