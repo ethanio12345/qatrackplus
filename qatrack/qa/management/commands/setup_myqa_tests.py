@@ -47,6 +47,7 @@ from qatrack.myqa_import import (
     infer_frequency,
     load_name_overrides,
     slugify_name,
+    unit_energy_applicable,
 )
 from qatrack.qa.models import (
     Category,
@@ -501,6 +502,13 @@ class Command(BaseCommand):
 
                 for test in created_tests:
                     if (unit.pk, test.pk) in existing_uti_keys:
+                        continue
+                    # Skip tests outside the unit's beam-energy caps (e.g.
+                    # electron conditions on a photons-only linac) — there is
+                    # no point giving the unit a UTI for a test it can never
+                    # perform. Historical UTIs are deactivated by
+                    # skip_inapplicable_myqa_tests.
+                    if not unit_energy_applicable(test.name, unit.number):
                         continue
                     # tolerance=None per spec myqa-dosimetry-tolerances R1.
                     utis_to_create.append(

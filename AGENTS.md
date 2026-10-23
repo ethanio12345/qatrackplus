@@ -70,6 +70,7 @@ Everything is driven by what's in the myQA database (SQL Server, accessed via `p
 - One TestList per TaskName (D1). One TestListInstance per session, aggregating all execution types (D4). Tests shared by condition name (D2). No tolerances set during setup (D3).
 - `import_session()` creates a `{list_slug}_taskid` TestInstance storing the myQA TaskExecutionId for dedup.
 - **Valueless sessions are skipped.** A session where `extract_all_types` returns rows but every condition's value is NULL (started/finished in myQA without entering readings) is skipped as `skipped_empty` — QATrack+ is a read-only duplicate, so no value = no TLI. (The guard checks for any non-null value across all extractors, not just non-zero rows.)
+- **Energy-inapplicable sessions are skipped too.** `unit_energy_caps` in `myqa_centre_config.yaml` declares the beam energies per unit (e.g. LA317/LA224/LA524 have no electrons); `import_session` drops out-of-caps conditions (`skipped_inapplicable`) and a session whose conditions are *all* out-of-caps imports nothing.
 - **`*_taskid` TestInstances are auto-approved** (Approved status, `requires_review=False`) — they are dedup metadata, not clinical data.
 - **TLIs auto-approve when all tests pass.** After `bulk_create`, `import_session()` calls `tli.auto_approve(internal_user)`, which applies the Default AutoReviewRuleSet (`ok`/`tolerance`/`no_tol`/`not_done` → Approved) and marks the TLI reviewed iff every test is within tolerance. Any `action` (out-of-tolerance) or commented test leaves it unreviewed.
 - `MYQA_DB_SETTINGS` is read lazily inside `get_connection()` (`_myqa_db_settings()`), so `myqa_import` imports cleanly in environments that don't configure `MYQA_*` (e.g. the test suite, which mocks the connection).
@@ -88,6 +89,7 @@ Everything is driven by what's in the myQA database (SQL Server, accessed via `p
 | `clear_stale_due_dates` | Frequency-aware (`max(180d, 3× nominal_interval)`) → `due_date=None` + `auto_schedule=False` on stale UTCs. `--linacs-only`, `--apply`. Idempotent. |
 | `set_angular_wraparound` | Set angular tests (gantry/collimator/couch/etc.) to `type=wraparound` [0,360] + re-evaluate `pass_fail`. Idempotent. |
 | `setup_myqa_setup_schedule` | Register a weekly django-q Schedule that runs `setup_myqa_tests` (Sunday 02:00 local time, cron `0 2 * * 0`) so new unit↔TaskName combos are picked up automatically. Idempotent. |
+| `skip_inapplicable_myqa_tests` | Flag historical TestInstances for beam energies a unit doesn't have (per `unit_energy_caps` in `myqa_centre_config.yaml`) as Skipped + re-run auto-approval, and optionally deactivate the unit's UTIs / all its UTCs. Dry-run by default; `--apply`, `--deactivate-utis`, `--deactivate-utcs --units 4,5`. Idempotent. |
 
 ### Operational workflow
 
@@ -148,6 +150,8 @@ out-of-tolerance (`action`) or commented tests.
 10. **`uv.lock` is gitignored but still tracked** (it was tracked before the ignore line was added). `pyproject.toml` is the source of truth for dependencies; production runs `uv sync` on deploy, which regenerates `uv.lock` locally.
 
 11. **`Tolerance.save()` overwrites `name` with `%.3f` / `%.2f%%` formatting** via `qatrack/qa/models.py:get_tolerance_name`. Distinct small numeric values (e.g. `warn=3e-06` vs `warn=5e-06`) truncate to the same name and hit the `Tolerance.name` UNIQUE constraint, which previously crashed the entire session import. `_get_or_create_tolerance` in `qatrack/myqa_import.py` now wraps `save()` in a savepoint and falls back to a name-based lookup on `IntegrityError` so the import continues. Don't reintroduce the bare `get_or_create`.
+
+12. **Energy caps are enforced at two levels — don't bypass either.** `unit_energy_caps` in `myqa_centre_config.yaml` declares the beam energies each unit actually has. `import_session()` drops out-of-caps conditions (`skipped_inapplicable`) and only links **active** UTIs, and `setup_myqa_tests` skips creating UTIs for out-of-caps tests. Historical junk is cleaned by `skip_inapplicable_myqa_tests` (marks TIs `skipped=True`, pass_fail `not_done` → Default AutoReviewRuleSet maps to Approved, so flagged TIs no longer block review; sessions whose only blocker was junk auto-approve). When classifying names, remember "MV Imager" is not an energy and enriched step prefixes like "1.18" must not read as 18 MeV — `classify_test_energy()` guards both with regex lookbehinds.
 
 ## Sharing with another centre
 

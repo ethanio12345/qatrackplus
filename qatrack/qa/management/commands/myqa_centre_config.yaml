@@ -155,3 +155,39 @@ linac_unit_type_names:
   - TrueBeam
   - Oncor
   - Primus
+
+# ── Per-unit beam-energy capabilities ────────────────────────────────────────
+#
+# Declares which beam energies each unit actually has. myQA task templates
+# contain conditions for every energy on every machine (e.g. electron
+# Output/Uniformity on photons-only linacs); without this section those
+# conditions import as junk readings that fail tolerance and permanently
+# block auto-review of the session.
+#
+# Semantics (enforced by qatrack.myqa_import):
+#   * unit number not listed, or listed with a null value -> unrestricted
+#     (classic behaviour);
+#   * photons: canonical tokens 6X / 6FFF / 10X / 10FFF / 18X. myQA condition
+#     names spell these 6MV/6FFF/10MV/10FFF/18MV — the importer maps MV to X
+#     automatically, so "6MV" and "6X" are interchangeable here;
+#   * electrons: nominal MeV values (6, 9, 12, 15, 18);
+#   * energy-agnostic electron tests (e.g. "Electron Applicator: A10")
+#     require the unit to have at least one electron energy;
+#   * empty lists = the unit has no beams at all (soft-blocks energy-bearing
+#     imports — used for retired machines).
+#
+# Import-time: conditions outside the caps are dropped (import_session logs
+# them as skipped_inapplicable). Historical junk: manage.py
+# skip_inapplicable_myqa_tests marks existing TestInstances Skipped and
+# deactivates the per-unit UnitTestInfos.
+#
+# Energies verified against commissioning records + myQA data, Oct 2026.
+unit_energy_caps:
+  1: {photons: [6X, 6FFF, 10X, 10FFF, 18X], electrons: [6, 9, 12, 15]}   # Coast (CST15)
+  2: {photons: [6X, 6FFF, 10X, 10FFF, 18X], electrons: [6, 9, 12, 15]}   # Outback (OBK15)
+  3: {photons: [6X, 6FFF, 10X, 10FFF], electrons: []}                     # LA317 (Ethos) — no electrons
+  4: {photons: [6X, 6FFF, 10X, 10FFF, 18X], electrons: [6, 9, 12]}        # LA414
+  5: {photons: [], electrons: []}                                         # LA512 — retired Jul 2024
+  7: {photons: [6X, 6FFF, 10X, 10FFF], electrons: []}                     # LA524 — no electrons
+  8: {photons: [6X, 6FFF, 10X, 10FFF], electrons: []}                     # LA224 — no electrons
+  437: {photons: [6X, 6FFF, 10X, 10FFF], electrons: [6, 9, 12, 15]}       # RFT26 — no 18X

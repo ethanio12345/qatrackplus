@@ -210,6 +210,10 @@ _BCHC_DEFAULT_CENTRE_CONFIG: dict[str, Any] = {
         "Oncor",
         "Primus",
     ],
+    # No per-unit energy restrictions in the in-code fallback: every unit is
+    # unrestricted (classic behaviour). Declare ``unit_energy_caps`` in
+    # myqa_centre_config.yaml to constrain.
+    "unit_energy_caps": {},
 }
 
 _CENTRE_CONFIG_CACHE: dict[str, Any] | None = None
@@ -240,10 +244,12 @@ def _load_centre_config() -> dict[str, Any]:
             data = None
         if data is not None:
             # Normalise: sites/device_classes/linac_unit_type_names default
-            # to empty containers if the YAML omitted them.
+            # to empty containers if the YAML omitted them. unit_energy_caps
+            # empty = every unit unrestricted.
             data.setdefault("sites", [])
             data.setdefault("device_classes", [])
             data.setdefault("linac_unit_type_names", [])
+            data.setdefault("unit_energy_caps", {})
             _CENTRE_CONFIG_CACHE = data
             return _CENTRE_CONFIG_CACHE
 
@@ -261,6 +267,150 @@ def _load_centre_config() -> dict[str, Any]:
         _CENTRE_CONFIG_FALLBACK_WARNED = True
     _CENTRE_CONFIG_CACHE = _BCHC_DEFAULT_CENTRE_CONFIG
     return _CENTRE_CONFIG_CACHE
+
+
+# ---------------------------------------------------------------------------
+# Per-unit beam-energy capabilities ("unit_energy_caps").
+#
+# myQA task templates can contain conditions for beam energies a unit doesn't
+# have (e.g. electron Output/Uniformity conditions on a photons-only linac).
+# Importing them produces useless TestInstances with placeholder values that
+# fail tolerance and permanently block auto-review of the session.
+#
+# ``myqa_centre_config.yaml`` may declare, per unit number, the beam energies
+# the unit actually has. Conditions classified as belonging to an energy the
+# unit lacks are dropped at import time and can be retro-flagged as Skipped
+# on historical data via ``manage.py skip_inapplicable_myqa_tests``.
+#
+# Units not listed (or listed with a null value) are unrestricted — behaviour
+# is unchanged unless the centre opts in.
+# ---------------------------------------------------------------------------
+
+# Electron energies, e.g. "9MeV Output", "15 MeV Uniformity", "08.01 Electron
+# PDI 01. 6MeV D90%". The lookbehind stops the "18" in an enriched step
+# prefix like "1.18" being read as an energy.
+_ELECTRON_ENERGY_RE = re.compile(r"(?<![\d.])(6|9|12|15|18)\s*mev\b", re.IGNORECASE)
+
+# Photon energies as they appear in myQA condition names: "6MV", "6FFF",
+# "10MV", "10FFF", "18MV". ("X" accepted for robustness, e.g. "18X".)
+_PHOTON_ENERGY_RE = re.compile(r"(?<![\d.])(6|10|18)\s?(MV|FFF|X)\b", re.IGNORECASE)
+
+# Any mention of electrons (e.g. "Electron Applicator: A10") — electron
+# modality without a specific energy.
+_ELECTRON_WORD_RE = re.compile(r"electron", re.IGNORECASE)
+
+# Canonical photon capability tokens (what the YAML declares) mapped from the
+# spellings found in condition names. MV == X for a given nominal energy.
+_PHOTON_TOKEN_ALIASES = {
+    "6MV": "6X",
+    "6X": "6X",
+    "6FFF": "6FFF",
+    "10MV": "10X",
+    "10X": "10X",
+    "10FFF": "10FFF",
+    "18MV": "18X",
+    "18X": "18X",
+}
+
+_EnergyCaps = dict[str, Any]
+"""Normalised caps: ``{"photons": set[str], "electrons": set[int]}``."""
+
+
+def classify_test_energy(name: str) -> tuple[str, int | str | None] | None:
+    """Classify a test/condition name as belonging to a beam energy.
+
+    Returns ``(modality, energy)`` where modality is ``"electron"`` or
+    ``"photon"``; energy is an int (MeV) for electrons, a canonical photon
+    token (``"6X"``/``"6FFF"``/``"10X"``/``"10FFF"``/``"18X"``) for photons,
+    or ``None`` when the name is energy-agnostic electron work (e.g.
+    applicator checks). Returns ``None`` for names with no beam-energy
+    bearing at all (MLC, gantry, couch, taskid, ...).
+    """
+    match = _ELECTRON_ENERGY_RE.search(name)
+    if match:
+        return ("electron", int(match.group(1)))
+    if _ELECTRON_WORD_RE.search(name):
+        return ("electron", None)
+    match = _PHOTON_ENERGY_RE.search(name)
+    if match:
+        token = (match.group(1) + match.group(2)).upper()
+        return ("photon", _PHOTON_TOKEN_ALIASES.get(token, token))
+    return None
+
+
+def _normalise_energy_caps(raw: Any) -> _EnergyCaps | None:
+    """Normalise one ``unit_energy_caps`` YAML entry.
+
+    ``None`` (unit absent or explicitly null) means unrestricted. Otherwise
+    returns ``{"photons": set[str], "electrons": set[int]}``; photon spellings
+    are canonicalised (``6MV`` → ``6X`` etc.) and electrons coerced to int.
+    """
+    if raw is None:
+        return None
+    raw_photons = raw.get("photons") or [] if isinstance(raw, dict) else []
+    raw_electrons = raw.get("electrons") or [] if isinstance(raw, dict) else []
+    return {
+        "photons": {
+            _PHOTON_TOKEN_ALIASES.get(str(p).strip().upper(), str(p).strip().upper())
+            for p in raw_photons
+        },
+        "electrons": {int(e) for e in raw_electrons},
+    }
+
+
+def get_unit_energy_caps(unit_number: int) -> _EnergyCaps | None:
+    """Return the normalised energy caps for a unit, or ``None`` if unrestricted.
+
+    Keys in the YAML may be ints or strings; both are accepted.
+    """
+    caps_cfg = _load_centre_config().get("unit_energy_caps") or {}
+    if unit_number in caps_cfg:
+        raw = caps_cfg[unit_number]
+    elif str(unit_number) in caps_cfg:
+        raw = caps_cfg[str(unit_number)]
+    else:
+        return None
+    return _normalise_energy_caps(raw)
+
+
+def energy_applicable(test_name: str, caps: _EnergyCaps | None) -> bool:
+    """Is ``test_name`` compatible with a unit whose caps are ``caps``?
+
+    ``caps=None`` (unrestricted) → always True. Energy-agnostic tests are
+    always applicable. Energy-agnostic *electron* tests require the unit to
+    have at least one electron energy.
+    """
+    if caps is None:
+        return True
+    classified = classify_test_energy(test_name)
+    if classified is None:
+        return True
+    modality, energy = classified
+    if modality == "electron":
+        if energy is None:
+            return bool(caps["electrons"])
+        return energy in caps["electrons"]
+    return energy in caps["photons"]
+
+
+def unit_energy_applicable(test_name: str, unit_number: int) -> bool:
+    """Convenience wrapper: is ``test_name`` applicable to ``unit_number``?"""
+    return energy_applicable(test_name, get_unit_energy_caps(unit_number))
+
+
+def _apply_energy_caps(
+    results: dict[str, dict[str, Any]], caps: _EnergyCaps | None
+) -> tuple[dict[str, dict[str, Any]], int]:
+    """Filter extractor results down to the unit's beam energies.
+
+    Returns ``(filtered_results, n_dropped)``.
+    """
+    if caps is None:
+        return results, 0
+    filtered = {
+        name: info for name, info in results.items() if energy_applicable(name, caps)
+    }
+    return filtered, len(results) - len(filtered)
 
 
 # ---------------------------------------------------------------------------
@@ -2103,6 +2253,22 @@ def import_session(
             "reason": "session has no values (all conditions null)",
         }
 
+    # Energy-capability guard: drop conditions for beam energies this unit
+    # doesn't have (per unit_energy_caps in myqa_centre_config.yaml) so they
+    # neither create junk TestInstances nor block auto-review. If *every*
+    # condition in the session is inapplicable there is nothing worth
+    # importing at all.
+    caps = get_unit_energy_caps(unit_number)
+    results, n_inapplicable = _apply_energy_caps(results, caps)
+    if caps is not None and not results:
+        return {
+            "status": "skipped_inapplicable",
+            "reason": (
+                f"all {n_inapplicable} condition(s) outside unit {unit_number}'s "
+                "energy caps"
+            ),
+        }
+
     try:
         test_list = TestList.objects.get(slug=list_slug)
     except TestList.DoesNotExist:
@@ -2130,8 +2296,11 @@ def import_session(
         tests_by_name[test.name] = test
 
     utis_by_slug: dict[str, UnitTestInfo] = {}
+    # Only active UTIs participate: skip_inapplicable_myqa_tests deactivates
+    # UTIs for tests outside a unit's beam-energy caps, and an inactive UTI
+    # must not receive new TestInstances on re-import.
     for uti in UnitTestInfo.objects.filter(
-        unit__number=unit_number, test__in=list(tests_by_slug.values())
+        unit__number=unit_number, active=True, test__in=list(tests_by_slug.values())
     ).select_related("test"):
         utis_by_slug[uti.test.slug] = uti
 
@@ -2265,7 +2434,11 @@ def import_session(
             # unreviewed queue. Failing/commented tests keep it unreviewed.
             tli.auto_approve(review_user=internal_user)
 
-        return {"status": "imported", "count": len(tis)}
+        return {
+            "status": "imported",
+            "count": len(tis),
+            "skipped_inapplicable": n_inapplicable,
+        }
     except Exception as e:
         return {"status": "error", "reason": str(e)}
 
